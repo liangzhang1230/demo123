@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "seed-check": "tsx scripts/seed-check.ts",
     "domain-check": "tsx scripts/domain-check.ts",
+    "p4-check": "tsx scripts/p4-check.ts",
     "build:offline": "tsc -b && OFFLINE=1 vite build --outDir dist-offline",
     "test": "vitest run"
   },
