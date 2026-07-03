@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { generateSeed } from '../../seed/generator';
-import { foldEvents } from '../../seed/fold';
+import { foldEvents } from '../engine';
 import {
   buildFacts,
   stocksOf,
