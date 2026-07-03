@@ -13,7 +13,7 @@ import {
   TARGETS, TENANT, TRANSITION_PLAN, WANGWU_LAST_ACTIVE,
 } from './plan';
 import { mulberry32, pickWeighted, randInt, type Rng } from './rng';
-import { foldEvents } from './fold';
+import { foldEvents } from '../domain/engine';
 
 interface LiveCustomer {
   id: string;

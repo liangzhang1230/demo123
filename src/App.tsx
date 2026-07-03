@@ -3,7 +3,7 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import type { SeedData } from './domain/types';
 import { STAGE_LABEL, FUNNEL_STAGES } from './domain/types';
 import { loadSeed, resetSeed } from './seed/store';
-import { foldEvents } from './seed/fold';
+import { foldEvents } from './domain/engine';
 import BossPage from './pages/boss';
 import ManagerPage from './pages/manager';
 import SalesPage from './pages/sales';

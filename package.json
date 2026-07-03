@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "seed-check": "tsx scripts/seed-check.ts",
+    "domain-check": "tsx scripts/domain-check.ts",
     "build:offline": "tsc -b && OFFLINE=1 vite build --outDir dist-offline"
   },
   "dependencies": {
