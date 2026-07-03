@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+.DS_Store
+*.tsbuildinfo
+# 依赖精确版本已钉在 package.json，lock 不入库
+package-lock.json
