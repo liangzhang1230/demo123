@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+/* 表单基元（移动优先） */
+.input {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  background: #fff;
+}
+.input:focus {
+  border-color: #9ca3af;
+}

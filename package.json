@@ -10,7 +10,9 @@
     "seed-check": "tsx scripts/seed-check.ts",
     "build:offline": "tsc -b && OFFLINE=1 vite build --outDir dist-offline",
     "domain-check": "tsx scripts/domain-check.ts",
-    "ui-check": "tsx scripts/ui-check.ts"
+    "ui-check": "tsx scripts/ui-check.ts",
+    "flow-check": "tsx scripts/flow-check.ts",
+    "e2e-check": "tsx scripts/e2e-check.ts"
   },
   "dependencies": {
     "react": "18.3.1",

@@ -1,0 +1,97 @@
+/**
+ * npm run e2e-check（P5 验收 · 浏览器现场剧本）：真实 Chromium 中
+ * 建档 → 查重拦截复现 → 推进到成交（录回款）→ 回看板断言数字联动 → 确认页 → 模拟过一天。
+ */
+import { chromium } from 'playwright-core';
+import { preview } from 'vite';
+
+const G = '\x1b[32m', R = '\x1b[31m', B = '\x1b[1m', N = '\x1b[0m';
+let failed = 0;
+function t(name: string, pass: boolean, detail?: string) {
+  console.log(`  ${pass ? `${G}✓${N}` : `${R}✗${N}`} ${name}${detail ? ` ＝ ${detail}` : ''}`);
+  if (!pass) failed++;
+}
+
+async function main() {
+  const server = await preview({ preview: { port: 4174, strictPort: true } });
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  const base = 'http://localhost:4174';
+
+  console.log(`${B}── 浏览器现场剧本（375px） ──${N}`);
+
+  // 基线：/boss 月回款
+  await page.goto(`${base}/#/boss`, { waitUntil: 'networkidle' });
+  const bodyBefore = (await page.textContent('body')) ?? '';
+  t('基线 /boss 月回款 ¥61.2万', bodyBefore.includes('¥61.2万'));
+
+  // 建档
+  await page.goto(`${base}/#/sales/customers/new`);
+  await page.fill('[data-testid=cust-name]', '杨浦端到端便利店');
+  await page.fill('[data-testid=cust-contact]', '钱老板');
+  await page.fill('[data-testid=cust-phone]', '13911112222');
+  await page.click('[data-testid=cust-submit]');
+  await page.waitForSelector('[data-testid=cust-stage]');
+  t('建档成功 → 客户卡状态＝线索', ((await page.textContent('[data-testid=cust-stage]')) ?? '').includes('线索'));
+  const custUrl = page.url();
+
+  // 查重拦截
+  await page.goto(`${base}/#/sales/customers/new`);
+  await page.fill('[data-testid=cust-name]', '重复号测试');
+  await page.fill('[data-testid=cust-contact]', '李四');
+  await page.fill('[data-testid=cust-phone]', '+86 139-1111-2222');
+  await page.click('[data-testid=cust-submit]');
+  await page.waitForSelector('[data-testid=dup-block]');
+  const dupText = (await page.textContent('[data-testid=dup-block]')) ?? '';
+  t('重复建档硬拦截＋脱敏归属', dupText.includes('王*') && dupText.includes('139****2222'), dupText.replace(/\s+/g, ' ').slice(0, 60));
+
+  // 推进：线索→意向→样品→签约→成交（¥8,000）
+  await page.goto(custUrl);
+  for (const s of ['intent', 'sample', 'signed'] as const) {
+    await page.click(`[data-testid=to-${s}]`);
+    await page.waitForTimeout(120);
+  }
+  t('推进到签约未回款', ((await page.textContent('[data-testid=cust-stage]')) ?? '').includes('签约未回款'));
+  await page.click('[data-testid=to-deal]');
+  await page.fill('[data-testid=deal-amount]', '8000');
+  await page.click('[data-testid=deal-confirm]');
+  await page.waitForTimeout(200);
+  t('成交完成（状态＝成交）', ((await page.textContent('[data-testid=cust-stage]')) ?? '').includes('成交'));
+
+  // 看板联动
+  await page.goto(`${base}/#/boss`);
+  await page.waitForTimeout(200);
+  const bodyAfter = (await page.textContent('body')) ?? '';
+  t('联动① 公司月回款 → ¥62.0万', bodyAfter.includes('¥62.0万'));
+  t('联动② 本月成交 78 单（新客 66 ＋ 复购 12）', bodyAfter.includes('新客 66'));
+  await page.goto(`${base}/#/sales`);
+  await page.waitForTimeout(200);
+  const salesBody = (await page.textContent('body')) ?? '';
+  t('联动③ 王丽本月回款 ¥108,000', salesBody.includes('¥108,000'));
+  t('联动④ 今日线索 1（单日过程量）', salesBody.includes('今日线索'));
+
+  // 确认页 → 提交确认 → 模拟过一天
+  await page.goto(`${base}/#/sales/confirm`);
+  await page.click('[data-testid=confirm-submit]');
+  await page.waitForTimeout(120);
+  t('提交确认成功', ((await page.textContent('[data-testid=confirm-submit]')) ?? '').includes('已确认'));
+  await page.click('[data-testid=simulate-day]');
+  await page.waitForTimeout(250);
+  const confirmBody = (await page.textContent('body')) ?? '';
+  t('模拟过一天 → 2026-06-30', confirmBody.includes('2026-06-30'));
+
+  // 刷新持久化（localStorage）
+  await page.reload();
+  await page.waitForTimeout(250);
+  t('刷新后仍为 6-30（localStorage 持久）', ((await page.textContent('body')) ?? '').includes('2026-06-30'));
+
+  await browser.close();
+  await new Promise<void>((res) => server.httpServer.close(() => res()));
+  if (failed > 0) {
+    console.error(`\n${R}${B}✗ e2e-check 未通过：${failed} 项失败${N}`);
+    process.exit(1);
+  }
+  console.log(`\n${G}${B}✓ e2e-check 全绿：浏览器现场剧本闭环${N}`);
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

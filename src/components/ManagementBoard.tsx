@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../store/AppStore';
 import {
-  DASH, daysInMonth, fmtPct0, fmtRoi2, fmtSignedPct1, fmtWan, fmtYuan,
+  absRate, DASH, daysInMonth, fmtPct0, fmtRoi2, fmtSignedPct1, fmtWan, fmtYuan,
   paceRate, sevenLevel, tenureDays,
 } from '../domain/engine';
 import { BoardGrid, Card, CardTitle, GrayNote, LevelChip, PaceBar, Shell, Stat, StallDots } from './ui';
@@ -54,9 +54,24 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
     return Math.round((Date.parse(computed.asOf) - Date.parse(last)) / 86400000);
   };
 
+  // 今日有单据/活动且未确认的账号（应确认口径 §6.9；演示中确认状态由 P5 操作产生）
+  const unconfirmedToday = useMemo(() => {
+    const confirmedSet = new Set(data.confirmations?.[computed.asOf] ?? []);
+    return members.filter(
+      (p) => data.events.some((e) => e.ownerId === p.id && e.date === computed.asOf) && !confirmedSet.has(p.id),
+    );
+  }, [data, computed.asOf, members]);
+
   // —— 区一 · 今日一件事（待办 ＞ 诊断，自上而下首次命中即停）——
   const arbitration = useMemo(() => {
     const items: { kind: '待办' | '诊断'; text: string; tone: 'red' | 'orange' | 'gray' }[] = [];
+    if (unconfirmedToday.length > 0) {
+      items.push({
+        kind: '待办',
+        text: `今日 ${unconfirmedToday.length} 人有单据待确认（23:00 前）：${unconfirmedToday.slice(0, 3).map((p) => p.name).join('·')}${unconfirmedToday.length > 3 ? ' 等' : ''}`,
+        tone: 'orange',
+      });
+    }
     if (scopeStall.dying > 0) {
       items.push({
         kind: '诊断',
@@ -76,7 +91,7 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
       });
     }
     return items;
-  }, [scopeStall, members, computed, deptId]);
+  }, [scopeStall, computed, deptId, dept, unconfirmedToday]);
 
   // —— 区四 · 团队一屏（紧急度分诊：红告警前置）——
   const teamRows = useMemo(() => {
@@ -155,6 +170,26 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
           </div>
         )}
       </Card>
+
+      {/* 销售早报样卡（必发核心 §10.4.1；演示中随事件流实时重算，模拟过一天即刷新） */}
+      {role === 'boss' && (
+        <Card className="!border-sky-200 bg-sky-50/60">
+          <CardTitle right={<span className="text-[10px] text-gray-400">工作日 8:00 推送 · 演示为实时刷新</span>}>
+            📨 销售早报 · {Number(computed.asOf.slice(5, 7))}月{Number(computed.asOf.slice(8, 10))}日
+          </CardTitle>
+          <div className="space-y-1 text-xs leading-5 text-gray-700">
+            <div>
+              确认：已确认 {members.filter((p) => data.events.some((e) => e.ownerId === p.id && e.date === computed.asOf)).length - unconfirmedToday.length} ／ 未确认 {unconfirmedToday.length}
+              {unconfirmedToday.length > 0 && `（${unconfirmedToday.slice(0, 3).map((p) => p.name).join('·')}${unconfirmedToday.length > 3 ? ' 等' : ''}）`}
+            </div>
+            <div>
+              本月人效比 {fmtRoi2(scopeRoi)} ｜ 回款达标 {fmtPct0(absRate(scopeMonthRevenue, scopeTarget))} ｜ 剩 {totalDays - elapsed} 天
+            </div>
+            <div>停滞：{scopeStall.dying} 个濒死客户待处理</div>
+            <div className="text-sky-600">打开系统 →</div>
+          </div>
+        </Card>
+      )}
 
       {/* 区二 · 经营心跳（固定 6 数 · 数值＋白话双行） */}
       <Card>

@@ -5,6 +5,10 @@ import { AppStoreProvider, useApp } from './store/AppStore';
 import BossPage from './pages/boss';
 import ManagerPage from './pages/manager';
 import SalesPage from './pages/sales';
+import CustomersPage from './pages/sales/Customers';
+import NewCustomerPage from './pages/sales/NewCustomer';
+import CustomerCardPage from './pages/sales/CustomerCard';
+import ConfirmPage from './pages/sales/Confirm';
 
 /** 身份切换首页：所有数字现场折算自事件流（无任何硬编码汇总） */
 function HomePage() {
@@ -91,6 +95,10 @@ export default function App() {
         <Route path="/boss" element={<BossPage />} />
         <Route path="/manager" element={<ManagerPage />} />
         <Route path="/sales" element={<SalesPage />} />
+        <Route path="/sales/customers" element={<CustomersPage />} />
+        <Route path="/sales/customers/new" element={<NewCustomerPage />} />
+        <Route path="/sales/customer/:id" element={<CustomerCardPage />} />
+        <Route path="/sales/confirm" element={<ConfirmPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppStoreProvider>

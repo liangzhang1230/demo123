@@ -1,12 +1,16 @@
 /**
  * 应用状态层：SeedData（localStorage 持久）＋ 实时折算结果（computeAll，铁律 2：
- * 一切展示数字由事件流实时计算）。P5 在此追加业务操作（建档/流转/回款/确认/模拟过一天），
+ * 一切展示数字由事件流实时计算）＋ P5 业务操作（建档/流转/回款/确认/模拟过一天）。
  * P6 追加「一键点亮全家桶」，P7 追加防误触锁定。
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { SeedData } from '../domain/types';
 import { computeAll, type Computed } from '../domain/compute';
-import { loadSeed, resetSeed } from '../seed/store';
+import {
+  addRepeatOrder, confirmToday, createCustomer, simulateDayPass, transitionStage,
+  type NewCustomerInput, type TransitionInput,
+} from '../domain/actions';
+import { loadSeed, resetSeed, saveSeed } from '../seed/store';
 
 interface AppState {
   data: SeedData;
@@ -16,6 +20,14 @@ interface AppState {
   setUnlocked: (v: boolean) => void;
   reset: () => void;
   error: string | null;
+  /** —— P5 业务操作（全部走 src/domain/actions 纯函数，事件追加＋持久化）—— */
+  actions: {
+    createCustomer: (input: NewCustomerInput) => string;
+    transition: (customerId: string, input: TransitionInput) => void;
+    addRepeatOrder: (customerId: string, amount: number, categoryCode: string) => void;
+    confirmToday: (ownerId: string) => void;
+    simulateDayPass: () => void;
+  };
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -45,6 +57,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  const apply = (next: SeedData) => {
+    saveSeed(next);
+    setData(next);
+  };
+
   const reset = () => {
     try {
       setData(resetSeed());
@@ -54,8 +71,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const actions: AppState['actions'] = {
+    createCustomer: (input) => {
+      const { data: next, customerId } = createCustomer(data, input);
+      apply(next);
+      return customerId;
+    },
+    transition: (customerId, input) => apply(transitionStage(data, customerId, input)),
+    addRepeatOrder: (customerId, amount, categoryCode) => apply(addRepeatOrder(data, customerId, amount, categoryCode)),
+    confirmToday: (ownerId) => apply(confirmToday(data, ownerId)),
+    simulateDayPass: () => apply(simulateDayPass(data)),
+  };
+
   return (
-    <Ctx.Provider value={{ data, computed, unlocked, setUnlocked, reset, error }}>
+    <Ctx.Provider value={{ data, computed, unlocked, setUnlocked, reset, error, actions }}>
       {children}
     </Ctx.Provider>
   );

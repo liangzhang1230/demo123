@@ -121,6 +121,10 @@ export interface SeedData {
   bounty: string;
   /** 昨日定版快照（单份，由事件流在生成时折算而来，非手写汇总） */
   yesterdaySnapshot: YesterdaySnapshot;
+  /** 每日确认状态（§4.7 confirm_status）：date → 已确认 ownerId 列表（P5 运行时产生） */
+  confirmations?: Record<string, string[]>;
+  /** 演示中发生过业务操作（P5）：加载校验降级为结构校验，不再对拍种子关键数 */
+  mutated?: boolean;
 }
 
 export interface YesterdaySnapshot {
