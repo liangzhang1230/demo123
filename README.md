@@ -1,3 +1,5 @@
+测试读写权限
+
 # AI 销售操盘手 · 演示版（纯前端 SPA）
 
 商务预售现场演示用衍生交付物。Vite ＋ React ＋ TypeScript ＋ Tailwind，零后端，
