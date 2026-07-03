@@ -5,6 +5,7 @@ import { STAGE_LABEL, FUNNEL_STAGES } from './domain/types';
 import { loadSeed, resetSeed } from './seed/store';
 import { foldEvents } from './seed/fold';
 import BossPage from './pages/boss';
+import PackSamplePage from './pages/boss/PackSamplePage';
 import ManagerPage from './pages/manager';
 import SalesPage from './pages/sales';
 
@@ -113,6 +114,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<SeedStatusPage data={data} onReset={handleReset} />} />
       <Route path="/boss" element={<BossPage data={data} />} />
+      <Route path="/boss/pack/:packId" element={<PackSamplePage />} />
       <Route path="/manager" element={<ManagerPage data={data} />} />
       <Route path="/sales" element={<SalesPage data={data} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
