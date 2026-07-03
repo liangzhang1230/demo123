@@ -37,6 +37,9 @@ export interface OwnerComputed {
   /** 锚点当日过程量（确认页/单日目标用） */
   dayProcess: ProcessCounts;
   monthRevenue: number;
+  monthGross: number;
+  revenueByMonth: Record<string, number>;
+  grossByMonth: Record<string, number>;
   monthFirstDeals: number;
   monthRepeatOrders: number;
   monthRepeatCusts: number;
@@ -73,6 +76,16 @@ export interface DeptComputed {
   stocks: Record<Stage, number>;
   stall: { dying: number; warning: number; watch: number };
   memberIds: string[];
+  monthGross: number;
+  monthLaborCost: number;
+  monthNet: number;
+  monthFirstDeals: number;
+  monthRepeatOrders: number;
+  monthRepeatCusts: number;
+  inManaged: number;
+  /** 完整月环比（成员先汇总再算） */
+  revenueMom: number | null;
+  netMom: number | null;
 }
 
 export interface Computed {
@@ -163,7 +176,8 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
         id,
         monthProcess: emptyProcess(),
         dayProcess: emptyProcess(),
-        monthRevenue: 0, monthFirstDeals: 0, monthRepeatOrders: 0, monthRepeatCusts: 0,
+        monthRevenue: 0, monthGross: 0, revenueByMonth: {}, grossByMonth: {},
+        monthFirstDeals: 0, monthRepeatOrders: 0, monthRepeatCusts: 0,
         conv: { lead: null, intent: null, sample: null, signed: null },
         convBase: { leadNew: 0, intentNew: 0, sampleNew: 0, signedNew: 0, fwdLead: 0, fwdIntent: 0, fwdSample: 0, fwdSigned: 0, toDeal: 0 },
         lastOrderSeq: 0,
@@ -218,9 +232,13 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
       lc.revenue += amt;
       lc.lastEventDate = e.date;
       lc.orders.push({ date: e.date, amount: amt, categoryCode: e.categoryCode ?? '', isRepeat: !!e.isRepeat });
-      grossByMonth[eym] = (grossByMonth[eym] ?? 0) + amt * (marginOf.get(e.categoryCode ?? '') ?? 0);
+      const gp = amt * (marginOf.get(e.categoryCode ?? '') ?? 0);
+      grossByMonth[eym] = (grossByMonth[eym] ?? 0) + gp;
+      o.revenueByMonth[eym] = (o.revenueByMonth[eym] ?? 0) + amt;
+      o.grossByMonth[eym] = (o.grossByMonth[eym] ?? 0) + gp;
       if (isMonth) {
         o.monthRevenue += amt;
+        o.monthGross += gp;
         o.lastOrderSeq = e.seq;
         if (e.isRepeat) {
           o.monthRepeatOrders++;
@@ -277,11 +295,16 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
       b.days - a.days,
   );
 
-  // 部门汇总（§6.6：分子分母各自先汇总再相除）
+  const momPair = completedMonthPair(asOfDate);
+  const [prevYm, curYm] = momPair;
+
+  // 部门汇总（§6.6：分子分母各自先汇总再相除；环比＝成员先汇总再算）
   const depts: Record<string, DeptComputed> = {};
   for (const d of data.departments) {
     const members = data.people.filter((p) => p.deptId === d.id);
     let monthRevenue = 0, cumRevenue = 0, gross = 0, cost = 0;
+    let monthGross = 0, monthLaborCost = 0, monthFirstDeals = 0, monthRepeatOrders = 0, monthRepeatCusts = 0, inManaged = 0;
+    let revPrev = 0, revCur = 0, grossPrev = 0, grossCur = 0, laborPrev = 0, laborCur = 0;
     const stocks: Record<Stage, number> = { lead: 0, intent: 0, sample: 0, signed: 0, deal: 0, lost: 0 };
     const stall = { dying: 0, warning: 0, watch: 0 };
     for (const m of members) {
@@ -291,6 +314,18 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
       cumRevenue += fo?.revenue ?? 0;
       gross += fo?.grossProfit ?? 0;
       cost += folded.perOwnerLaborCost[m.id] ?? 0;
+      monthGross += oc?.monthGross ?? 0;
+      monthLaborCost += laborCostInMonth(m, ym, data.openDate, asOfDate);
+      monthFirstDeals += oc?.monthFirstDeals ?? 0;
+      monthRepeatOrders += oc?.monthRepeatOrders ?? 0;
+      monthRepeatCusts += oc?.monthRepeatCusts ?? 0;
+      inManaged += oc?.inManaged ?? 0;
+      revPrev += oc?.revenueByMonth[prevYm] ?? 0;
+      revCur += oc?.revenueByMonth[curYm] ?? 0;
+      grossPrev += oc?.grossByMonth[prevYm] ?? 0;
+      grossCur += oc?.grossByMonth[curYm] ?? 0;
+      laborPrev += laborCostInMonth(m, prevYm, data.openDate, asOfDate);
+      laborCur += laborCostInMonth(m, curYm, data.openDate, asOfDate);
       if (fo) for (const s of Object.keys(stocks) as Stage[]) stocks[s] += fo.stocks[s];
       if (oc) { stall.dying += oc.stall.dying; stall.warning += oc.stall.warning; stall.watch += oc.stall.watch; }
     }
@@ -298,6 +333,10 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
       id: d.id, monthRevenue, cumRevenue, grossProfit: gross, laborCost: cost,
       roi: cost > 0 ? (gross - cost) / cost : null, stocks, stall,
       memberIds: members.map((m) => m.id),
+      monthGross, monthLaborCost, monthNet: monthGross - monthLaborCost,
+      monthFirstDeals, monthRepeatOrders, monthRepeatCusts, inManaged,
+      revenueMom: momRate(revPrev, revCur),
+      netMom: momRate(grossPrev - laborPrev, grossCur - laborCur),
     };
   }
 
@@ -309,8 +348,6 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
     laborByMonth[m] = data.people.reduce((a, p) => a + laborCostInMonth(p, m, data.openDate, asOfDate), 0);
     netByMonth[m] = (grossByMonth[m] ?? 0) - laborByMonth[m];
   }
-  const momPair = completedMonthPair(asOfDate);
-  const [prevYm, curYm] = momPair;
   const revenueMom = momRate(folded.revenueByMonth[prevYm] ?? 0, folded.revenueByMonth[curYm] ?? 0);
   const netMom = momRate(netByMonth[prevYm] ?? 0, netByMonth[curYm] ?? 0);
 
