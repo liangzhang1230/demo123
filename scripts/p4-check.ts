@@ -12,7 +12,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateSeed } from '../src/seed/generator';
-import { foldEvents } from '../src/seed/fold';
+import { foldEvents } from '../src/domain/engine';
 import { FUNNEL_STAGES } from '../src/domain/types';
 import { gradeOf } from '../src/domain/levels';
 import { absRate, dailyTarget, paceRate } from '../src/domain/targets';
@@ -39,7 +39,11 @@ function walk(dir: string): string[] {
     return statSync(p).isDirectory() ? walk(p) : [p];
   });
 }
-const salesSurface = [...walk('src/pages/sales'), ...walk('src/components')];
+// 销售端可达面＝销售页＋共享组件；src/components/board 为管理端（/boss、/manager）专用看板，
+// 合法含 labor_roi 等经营口径，不在销售端零利润断言范围内
+const salesSurface = [...walk('src/pages/sales'), ...walk('src/components')].filter(
+  (p) => !p.includes(join('src/components', 'board')),
+);
 for (const file of salesSurface) {
   const hits = readFileSync(file, 'utf8').match(FORBIDDEN);
   check('A 零利润口径', `${file} 无利润类字样`, hits == null, hits ? `命中 ${hits[0]}` : '干净');
