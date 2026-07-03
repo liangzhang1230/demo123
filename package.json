@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "seed-check": "tsx scripts/seed-check.ts"
+    "seed-check": "tsx scripts/seed-check.ts",
+    "build:offline": "tsc -b && OFFLINE=1 vite build --outDir dist-offline"
   },
   "dependencies": {
     "react": "18.3.1",
@@ -23,6 +24,7 @@
     "tailwindcss": "4.3.2",
     "tsx": "4.23.0",
     "typescript": "5.6.3",
-    "vite": "6.4.3"
+    "vite": "6.4.3",
+    "vite-plugin-singlefile": "2.3.3"
   }
 }
