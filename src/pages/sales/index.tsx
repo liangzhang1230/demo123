@@ -41,10 +41,9 @@ const STALL_TEXT: Record<StallLevelKey, string> = {
 
 const yuan = (v: number) => `¥${v.toLocaleString('zh-CN')}`;
 
-export default function SalesPage({ data }: { data: SeedData }) {
+export default function SalesPage({ data, confirmedToday = false }: { data: SeedData; confirmedToday?: boolean }) {
   const [showAllStall, setShowAllStall] = useState(false);
   const [showBoard, setShowBoard] = useState(false);
-  const [entryNotice, setEntryNotice] = useState<string | null>(null);
 
   const anchor = data.anchorDate;
   const ym = anchor.slice(0, 7);
@@ -52,8 +51,8 @@ export default function SalesPage({ data }: { data: SeedData }) {
   const me = data.people.find((p) => p.id === ME)!;
   const myDept = data.departments.find((d) => d.id === me.deptId)!;
 
-  /** ① 确认页状态：确认动作在源模块页发生（P5 接入），演示当日恒为未确认；休息日静默 */
-  const confirmPending = !restDay;
+  /** ① 确认页状态（P5 已接入：读当日确认记录）；休息日静默 */
+  const confirmPending = !restDay && !confirmedToday;
   /** ③ 带教任务（受教者视角静态一条：目标环节＋指派人＋起始日，施工包 P4 清单） */
   const teachTask = { goal: '本周专练：意向→样品 推进', assigner: '刘敏', since: '06-24', status: '进行中' };
 
@@ -105,9 +104,6 @@ export default function SalesPage({ data }: { data: SeedData }) {
   const stallRest = view.stall.length - stallTop5.length;
   const nameOf = (id: string) => data.people.find((p) => p.id === id)?.name ?? id;
 
-  const entryStub = (what: string) =>
-    setEntryNotice(`「${what}」的录入动作在源模块页发生（P5 阶段接入），本板只路由。`);
-
   return (
     <div className="mx-auto max-w-md px-4 py-5 sm:max-w-2xl">
       <header className="mb-3 flex items-baseline justify-between">
@@ -140,13 +136,13 @@ export default function SalesPage({ data }: { data: SeedData }) {
           <div className="space-y-3">
             {/* ① 今日确认页（未确认则置顶提示） */}
             {confirmPending && (
-              <button
-                onClick={() => entryStub('今日确认页')}
+              <Link
+                to="/sales/confirm"
                 className="flex w-full items-center justify-between rounded-lg bg-blue-50 px-3 py-2.5 text-left"
               >
                 <span className="text-sm font-medium text-blue-800">① 今日确认页 · 未完成</span>
                 <span className="text-xs text-blue-500">23:00 前完成 ›</span>
-              </button>
+              </Link>
             )}
 
             {/* ② 待推进（停滞预警销售端列表，Top 5） */}
@@ -169,12 +165,12 @@ export default function SalesPage({ data }: { data: SeedData }) {
                 {(showAllStall ? view.stall : stallTop5).map((s) => (
                   <li key={s.customerId} className="flex items-center gap-2 px-3 py-2">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${STALL_DOT[s.level]}`} />
-                    <button
-                      onClick={() => entryStub('客户卡推进')}
+                    <Link
+                      to={`/sales/customer/${s.customerId}`}
                       className="min-w-0 flex-1 truncate text-left text-sm text-gray-800"
                     >
                       {s.name}
-                    </button>
+                    </Link>
                     <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
                       {s.abcd} · {STAGE_LABEL[s.stage]}
                     </span>
@@ -294,18 +290,18 @@ export default function SalesPage({ data }: { data: SeedData }) {
           ))}
         </div>
         <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => entryStub('客户建档')}
-            className="flex-1 rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white active:bg-gray-700"
+          <Link
+            to="/sales/new"
+            className="flex-1 rounded-xl bg-gray-900 py-3 text-center text-sm font-semibold text-white active:bg-gray-700"
           >
             ＋ 建档
-          </button>
-          <button
-            onClick={() => entryStub('客户推进')}
-            className="flex-1 rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 active:bg-gray-50"
+          </Link>
+          <Link
+            to="/sales/customers"
+            className="flex-1 rounded-xl border border-gray-300 py-3 text-center text-sm font-semibold text-gray-700 active:bg-gray-50"
           >
             推进 ›
-          </button>
+          </Link>
         </div>
         <div className="mt-3 flex items-baseline justify-between border-t border-gray-100 pt-2.5">
           <span className="text-sm text-gray-600">本月回款小计</span>
@@ -313,16 +309,6 @@ export default function SalesPage({ data }: { data: SeedData }) {
         </div>
       </section>
 
-      {entryNotice && (
-        <div
-          className="fixed inset-x-0 bottom-4 mx-auto max-w-md px-4"
-          onClick={() => setEntryNotice(null)}
-        >
-          <p className="rounded-xl bg-gray-900/90 px-4 py-3 text-center text-xs text-white shadow-lg">
-            {entryNotice}（点按关闭）
-          </p>
-        </div>
-      )}
     </div>
   );
 }
