@@ -9,6 +9,7 @@ import CustomersPage from './pages/sales/Customers';
 import NewCustomerPage from './pages/sales/NewCustomer';
 import CustomerCardPage from './pages/sales/CustomerCard';
 import ConfirmPage from './pages/sales/Confirm';
+import SamplePage from './pages/boss/SamplePages';
 
 /** 身份切换首页：所有数字现场折算自事件流（无任何硬编码汇总） */
 function HomePage() {
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/sales/customers/new" element={<NewCustomerPage />} />
         <Route path="/sales/customer/:id" element={<CustomerCardPage />} />
         <Route path="/sales/confirm" element={<ConfirmPage />} />
+        <Route path="/sample/:key" element={<SamplePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppStoreProvider>

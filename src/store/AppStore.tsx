@@ -42,7 +42,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlockedState] = useState(
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('sales-demo/unlocked') === '1',
+  );
+  const setUnlocked = (v: boolean) => {
+    setUnlockedState(v);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('sales-demo/unlocked', v ? '1' : '0');
+  };
 
   const computed = useMemo(() => (data ? computeAll(data) : null), [data]);
 
@@ -70,6 +76,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setError(String(e));
     }
   };
+
 
   const actions: AppState['actions'] = {
     createCustomer: (input) => {

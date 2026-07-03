@@ -85,6 +85,29 @@ async function main() {
   await page.waitForTimeout(250);
   t('刷新后仍为 6-30（localStorage 持久）', ((await page.textContent('body')) ?? '').includes('2026-06-30'));
 
+  // —— P6 · 一键点亮全家桶（点亮/回锁瞬时切换，示例角标常驻）——
+  console.log(`\n${B}── P6 · 货架与一键点亮 ──${N}`);
+  await page.goto(`${base}/#/boss`);
+  await page.waitForTimeout(200);
+  let body = (await page.textContent('body')) ?? '';
+  t('初始锁态：现金前瞻显 — ＋价值语', body.includes('开通增长操盘包，这里每天预告未来 30 天回款'));
+  await page.click('[data-testid=unlock-toggle]');
+  await page.waitForTimeout(150);
+  body = (await page.textContent('body')) ?? '';
+  t('点亮：心跳第 6 格示例值 ¥17.0万', body.includes('¥17.0万'));
+  t('点亮：分诊条在漏 ¥8,900 / 卡点 ¥49.6万（示例）', body.includes('¥8,900') && body.includes('¥49.6万'));
+  t('点亮：示例数据角标常驻', body.includes('示例数据'));
+  t('点亮：活卡交作业行', body.includes('今日作业'));
+  await page.click('[data-testid=unlock-toggle]');
+  await page.waitForTimeout(150);
+  body = (await page.textContent('body')) ?? '';
+  t('回锁：恢复 —＋锁标', body.includes('开通增长操盘包，这里每天预告未来 30 天回款'));
+  // 锁卡点开 → 静态样例长页
+  await page.goto(`${base}/#/sample/pack1`);
+  await page.waitForTimeout(200);
+  body = (await page.textContent('body')) ?? '';
+  t('样例长页：王五止血 ¥8,900＋示例角标', body.includes('¥8,900') && body.includes('示例数据'));
+
   await browser.close();
   await new Promise<void>((res) => server.httpServer.close(() => res()));
   if (failed > 0) {

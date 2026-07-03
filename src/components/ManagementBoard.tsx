@@ -5,15 +5,16 @@
  * 货架诚实法则：未购包一律上锁显 —＋一行价值语，绝不预演任何付费结论数字。
  */
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../store/AppStore';
 import {
   absRate, DASH, daysInMonth, fmtPct0, fmtRoi2, fmtSignedPct1, fmtWan, fmtYuan,
   paceRate, sevenLevel, tenureDays,
 } from '../domain/engine';
-import { BoardGrid, Card, CardTitle, GrayNote, LevelChip, PaceBar, Shell, Stat, StallDots } from './ui';
+import { BoardGrid, Card, CardTitle, ExampleBadge, GrayNote, LevelChip, PaceBar, Shell, Stat, StallDots } from './ui';
 
 export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
-  const { data, computed } = useApp();
+  const { data, computed, unlocked, setUnlocked } = useApp();
   const [toast, setToast] = useState<string | null>(null);
   const [showRest, setShowRest] = useState(false);
 
@@ -121,11 +122,11 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
   const openDays = Math.round((Date.parse(computed.asOf) - Date.parse(data.openDate)) / 86400000) + 1;
 
   const packs = [
-    { key: 'pack1', name: '操盘包① · 人效操盘包', value: '这些人值不值、该招该汰该扩——招·用·汰·扩一条链', to: '/sample/pack1' },
-    { key: 'pack2', name: '操盘包② · 增长操盘包', value: '下一笔钱在哪、现金什么时候回——找钱四步闭环', to: '/sample/pack2' },
-    { key: 'pack3', name: '操盘包③ · 销冠 DNA 克隆引擎', value: '她凭什么是销冠？她走了怎么办？——把销冠战法变成公司资产', to: '/sample/pack3' },
-    { key: 'pack4', name: '操盘包④ · 经营黑匣子', value: '我是怎么走到今天的、我的拍板值不值——决策→结果因果回放', to: '/sample/pack4' },
-    { key: 'lib', name: '经营智库', value: '定薪建议：底薪该给多少、提成该怎么设——用同行数据答', to: '/sample/library' },
+    { key: 'pack1', name: '操盘包① · 人效操盘包', value: '这些人值不值、该招该汰该扩——招·用·汰·扩一条链', to: '/sample/pack1', job: '今日作业：王五每月净烧 ¥8,900——止血建议已就绪' },
+    { key: 'pack2', name: '操盘包② · 增长操盘包', value: '下一笔钱在哪、现金什么时候回——找钱四步闭环', to: '/sample/pack2', job: '今日作业：样品→签约卡点，估算卡着 ¥49.6万' },
+    { key: 'pack3', name: '操盘包③ · 销冠 DNA 克隆引擎', value: '她凭什么是销冠？她走了怎么办？——把销冠战法变成公司资产', to: '/sample/pack3', job: '今日作业：赵敏首要带教点＝样品→签约（对标王丽）' },
+    { key: 'pack4', name: '操盘包④ · 经营黑匣子', value: '我是怎么走到今天的、我的拍板值不值——决策→结果因果回放', to: '/sample/pack4', job: '本月作业：6 月航迹已生成——B 品类提价回放' },
+    { key: 'library', name: '经营智库', value: '定薪建议：底薪该给多少、提成该怎么设——用同行数据答', to: '/sample/library', job: '定薪建议：底薪带 ¥4,800–6,500 已就绪' },
   ];
 
   const roleTitle = role === 'boss' ? `${data.tenant.bossName}（老板）· 决策看板` : `刘敏（主管）· ${deptName}`;
@@ -136,6 +137,14 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
       subtitle={`${data.tenant.name} ｜ 模拟今天 ${computed.asOf} · 开通第 ${openDays} 天`}
       tone="boss"
     >
+      {/* AI 操盘手晨话（静态位：白话原语回退层——AI 挂了系统一字不缺） */}
+      {role === 'boss' && (
+        <div className="rounded-2xl bg-gray-900 px-4 py-3 text-sm leading-6 text-gray-100">
+          🎙 陈总早。今天的火我已替你排好序：先看停滞红色积压，再看样品池的转出率——它掉得不正常。
+          <div className="mt-1 text-[10px] text-gray-400">上线后由 AI 销售操盘手按你的真实数据每日生成</div>
+        </div>
+      )}
+
       {/* 区一 · 今日一件事 */}
       <Card>
         <CardTitle>区一 · 今日一件事{deptId ? '（本部门）' : ''}</CardTitle>
@@ -235,28 +244,61 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
               </span>
             }
           />
-          <Stat label="30 天现金前瞻" value={DASH} locked plain="开通增长操盘包，这里每天预告未来 30 天回款（估算）🔑" />
+          {unlocked ? (
+            <Stat
+              label="30 天现金前瞻"
+              value={<span className="flex items-center gap-1.5">¥17.0万 <ExampleBadge inline /></span>}
+              plain="未来 30 天预计回款（估算 · 示例数据）"
+            />
+          ) : (
+            <Stat label="30 天现金前瞻" value={DASH} locked plain="开通增长操盘包，这里每天预告未来 30 天回款（估算）🔑" />
+          )}
         </div>
       </Card>
 
-      {/* 区三 · 钱事分诊条（三段 · 全部读包结论；未购显 —＋价值语） */}
+      {/* 区三 · 钱事分诊条（三段 · 全部读包结论；未购显 —＋价值语；点亮＝静态示例值＋角标） */}
       <Card>
-        <CardTitle>区三 · 钱事分诊条</CardTitle>
+        <CardTitle right={unlocked ? <ExampleBadge inline /> : undefined}>区三 · 钱事分诊条</CardTitle>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-red-100 bg-red-50/50 p-3">
-            <div className="text-[11px] font-semibold text-red-600">在漏 🔒</div>
-            <div className="text-lg font-bold text-gray-300">{DASH}</div>
-            <p className="mt-1 text-[10px] leading-4 text-gray-500">开通人效操盘包，这里每天告诉你在漏多少钱</p>
+            <div className="text-[11px] font-semibold text-red-600">在漏 {unlocked ? '' : '🔒'}</div>
+            {unlocked ? (
+              <div className="text-sm font-bold leading-5 text-gray-900">
+                ¥8,900/月<div className="text-[10px] font-normal text-gray-500">止血分诊 · 分列</div>
+                ¥49.6万<div className="text-[10px] font-normal text-gray-500">卡点卡住营收（估算）</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-lg font-bold text-gray-300">{DASH}</div>
+                <p className="mt-1 text-[10px] leading-4 text-gray-500">开通人效操盘包，这里每天告诉你在漏多少钱</p>
+              </>
+            )}
           </div>
           <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
-            <div className="text-[11px] font-semibold text-amber-600">待拿 🔒</div>
-            <div className="text-lg font-bold text-gray-300">{DASH}</div>
-            <p className="mt-1 text-[10px] leading-4 text-gray-500">开通增长操盘包，这里估算沉睡金矿与超期管道</p>
+            <div className="text-[11px] font-semibold text-amber-600">待拿 {unlocked ? '' : '🔒'}</div>
+            {unlocked ? (
+              <div className="text-sm font-bold leading-5 text-gray-900">
+                ¥23.8万<div className="text-[10px] font-normal text-gray-500">38 家休眠唤醒估值（估算）</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-lg font-bold text-gray-300">{DASH}</div>
+                <p className="mt-1 text-[10px] leading-4 text-gray-500">开通增长操盘包，这里估算沉睡金矿与超期管道</p>
+              </>
+            )}
           </div>
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
-            <div className="text-[11px] font-semibold text-emerald-600">在赚 🔒</div>
-            <div className="text-lg font-bold text-gray-300">{DASH}</div>
-            <p className="mt-1 text-[10px] leading-4 text-gray-500">开通人效操盘包，这里显示已回本人数与里程碑</p>
+            <div className="text-[11px] font-semibold text-emerald-600">在赚 {unlocked ? '' : '🔒'}</div>
+            {unlocked ? (
+              <div className="text-sm font-bold leading-5 text-gray-900">
+                7 / 10 人已回本<div className="text-[10px] font-normal text-gray-500">＋本月里程碑：回款新高</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-lg font-bold text-gray-300">{DASH}</div>
+                <p className="mt-1 text-[10px] leading-4 text-gray-500">开通人效操盘包，这里显示已回本人数与里程碑</p>
+              </>
+            )}
           </div>
         </div>
       </Card>
@@ -312,29 +354,68 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
           <GrayNote>回本状态列与量质象限列随人效/销冠 DNA 包开通后点亮（未购隐藏）。</GrayNote>
         </Card>
 
-        {/* 区五 · 武器坞 */}
+        {/* 区五 · 武器坞（活锁两态；「一键点亮全家桶」仅演示版存在，正式版无此物） */}
         <Card>
-          <CardTitle right={<span className="text-[10px] text-gray-400">货架 · 锁卡安静陈列</span>}>区五 · 武器坞</CardTitle>
+          <CardTitle
+            right={
+              role === 'boss' ? (
+                <button
+                  data-testid="unlock-toggle"
+                  onClick={() => setUnlocked(!unlocked)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${
+                    unlocked ? 'bg-amber-100 text-amber-700 ring-amber-300' : 'bg-gray-100 text-gray-600 ring-gray-300'
+                  }`}
+                >
+                  {unlocked ? '⏻ 一键回锁（演示专属）' : '✨ 一键点亮全家桶（演示专属）'}
+                </button>
+              ) : (
+                <span className="text-[10px] text-gray-400">货架 · 锁卡安静陈列</span>
+              )
+            }
+          >
+            区五 · 武器坞
+          </CardTitle>
           {role === 'boss' ? (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {packs.map((pk) => (
-                <div key={pk.key} className="relative rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-sm font-semibold text-gray-700">🔒 {pk.name}</div>
-                  </div>
-                  <p className="mt-1 text-xs leading-4 text-gray-500">{pk.value}</p>
-                  <div className="mt-2 inline-flex rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
-                    数据就绪：该演示租户已沉淀 {computed.folded.totalDealCnt} 笔成交 / {openDays} 天数据
-                  </div>
-                  <div className="mt-2">
-                    <button
-                      className="rounded-lg bg-gray-900 px-2.5 py-1 text-xs text-white"
-                      onClick={() => setToast('试看申请已记录——上线后由商务开通')}
-                    >
-                      试看申请
-                    </button>
-                  </div>
-                </div>
+                <Link
+                  key={pk.key}
+                  to={pk.to}
+                  className={`relative block rounded-xl border p-3 active:opacity-80 ${
+                    unlocked ? 'border-amber-300 bg-amber-50/60' : 'border-dashed border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  {unlocked ? (
+                    <>
+                      <div className="flex items-start justify-between gap-2 pr-14">
+                        <div className="text-sm font-semibold text-gray-800">✨ {pk.name}</div>
+                      </div>
+                      <ExampleBadge />
+                      <p className="mt-1 text-xs leading-4 text-gray-600">{pk.job}</p>
+                      <div className="mt-2 text-[11px] font-medium text-amber-700">点开查看样例长页 →</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm font-semibold text-gray-700">🔒 {pk.name}</div>
+                      <p className="mt-1 text-xs leading-4 text-gray-500">{pk.value}</p>
+                      <div className="mt-2 inline-flex rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                        数据就绪：该演示租户已沉淀 {computed.folded.totalDealCnt} 笔成交 / {openDays} 天数据
+                      </div>
+                      <div className="mt-2">
+                        <button
+                          className="rounded-lg bg-gray-900 px-2.5 py-1 text-xs text-white"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setToast('试看申请已记录——上线后由商务开通');
+                          }}
+                        >
+                          试看申请
+                        </button>
+                        <span className="ml-2 text-[10px] text-gray-400">点卡片看样例 →</span>
+                      </div>
+                    </>
+                  )}
+                </Link>
               ))}
             </div>
           ) : (
