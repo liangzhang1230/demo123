@@ -4,7 +4,7 @@
  */
 import type { SeedData, Stage } from '../domain/types';
 import { ALLOWED_TRANSITIONS, LOSS_REASONS } from '../domain/types';
-import { foldEvents, type Folded } from './fold';
+import { foldEvents, type Folded } from '../domain/engine';
 
 export interface CheckResult {
   group: string;
