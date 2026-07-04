@@ -115,6 +115,28 @@ export function runSeedChecks(data: SeedData): { results: CheckResult[]; folded:
     ok('停滞分布', '王五名下预警 ≥8（老化意向池）', '≥8', String(wangwuStall.warning), wangwuStall.warning >= 8);
   }
 
+  // ---- 5c. P12 新人筛选与筛人漏斗（数据齐全可交互的前提断言） ----
+  {
+    const c2 = computeAll(data);
+    const ten = (id: string) => {
+      const p2 = data.people.find((x) => x.id === id)!;
+      return (Date.parse(data.anchorDate) - Date.parse(p2.hireDate!)) / 86400000 + 1;
+    };
+    eq('新人组', '李曼在司第 7 天（优秀）', 7, ten('liman'));
+    eq('新人组', '孙悦在司第 10 天（预警）', 10, ten('sunyue'));
+    eq('新人组', '周舟在司第 13 天（普通）', 13, ten('zhouzhou'));
+    eq('新人组', '陈昊在司第 63 天', 63, ten('chenhao'));
+    eq('新人组', '韩雪在司第 81 天', 81, ten('hanxue'));
+    const lm = c2.owners['liman'], sy = c2.owners['sunyue'], zz = c2.owners['zhouzhou'];
+    ok('新人组', '李曼当日有业务数据（6-29）', '≥2', String(lm.dayProcess.lead + lm.dayProcess.intent), lm.dayProcess.lead + lm.dayProcess.intent >= 2);
+    ok('新人组', '李曼累计线索达标（≥0.8×7）', '≥6', String(lm.convBase.leadNew), lm.convBase.leadNew >= 6);
+    ok('新人组', '孙悦累计线索落后（<0.8×10 的 60%）', '<5', String(sy.convBase.leadNew), sy.convBase.leadNew < 5);
+    eq('新人组', '孙悦当日零动作（第 10 天预警）', 0, sy.dayProcess.lead + sy.dayProcess.intent + sy.dayProcess.sample);
+    ok('新人组', '周舟累计线索居中', '8-12', String(zz.convBase.leadNew), zz.convBase.leadNew >= 8 && zz.convBase.leadNew <= 12);
+    ok('新人组', '韩雪累计回款 ¥68,000', '68000', String(c2.folded.perOwner['hanxue']?.revenue), c2.folded.perOwner['hanxue']?.revenue === 68000);
+    ok('新人组', '陈昊累计回款 ¥54,400', '54400', String(c2.folded.perOwner['chenhao']?.revenue), c2.folded.perOwner['chenhao']?.revenue === 54400);
+  }
+
   // ---- 6. 事件流完整性 ----
   let illegal = 0;
   let lossNoReason = 0;

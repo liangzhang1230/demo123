@@ -108,7 +108,7 @@ eq('王丽部门内排名第 1', 1, c.rankings.deptByOwner['wangli']);
 t('王五存在濒死停滞客户（47 天零事件）', c.owners['wangwu'].stall.dying > 0, `dying=${c.owners['wangwu'].stall.dying}`);
 eq('李强在职天数（R2-01 含首日）', 38, tenureDays(data.people.find((p) => p.id === 'liqiang')!.hireDate!, data.anchorDate));
 t('赵敏样品转化率 ≈9%（≤12%）', (c.owners['zhaomin'].conv.sample ?? 1) <= 0.12, fmtPct1(c.owners['zhaomin'].conv.sample));
-t('华东一部部门间排名第 1（月回款）', c.rankings.deptRank[0].id === 'd1', `${c.rankings.deptRank.map((r) => `${r.id}#${r.rank}`).join(' ')}`);
+t('销售一部部门间排名第 1（月回款）', c.rankings.deptRank[0].id === 'd1', `${c.rankings.deptRank.map((r) => `${r.id}#${r.rank}`).join(' ')}`);
 
 sec('停滞列表排序（§8.5.1 等级→ABCD→天数倒序）');
 {

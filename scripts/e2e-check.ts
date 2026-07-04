@@ -157,7 +157,7 @@ async function main() {
   await page.click('[data-testid=dept-chip-d1]');
   await page.waitForTimeout(300);
   body = (await page.textContent('body')) ?? '';
-  t('部门筛选一部 → 全板按部门裁剪', body.includes('区四 · 团队一屏（华东一部）') && body.includes('已按 华东一部 裁剪全板数据'));
+  t('部门筛选一部 → 全板按部门裁剪', body.includes('区四 · 团队一屏（销售一部）') && body.includes('已按 销售一部 裁剪全板数据'));
   await page.click('[data-testid=dept-chip-all]');
   await page.waitForTimeout(300);
   t('切回全公司 → 部门对比可见', ((await page.textContent('body')) ?? '').includes('部门对比'));

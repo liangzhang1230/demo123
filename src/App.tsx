@@ -26,7 +26,7 @@ function HomePage() {
 
   const roles = [
     { to: '/boss', name: '陈总', role: '老板', desc: '决策看板 · 五区＋货架＋一键点亮', grad: 'from-indigo-500 to-purple-600', hint: '30 秒答三问：今天干什么 / 生意好不好 / 钱在哪' },
-    { to: '/manager', name: '刘敏', role: '主管', desc: '同板裁剪 · 华东一部带教视图', grad: 'from-cyan-500 to-blue-600', hint: '今天带谁、催谁、教哪一跳' },
+    { to: '/manager', name: '刘敏', role: '主管', desc: '同板裁剪 · 销售一部带教视图', grad: 'from-cyan-500 to-blue-600', hint: '今天带谁、催谁、教哪一跳' },
     { to: '/sales', name: '王丽', role: '销售', desc: '战绩中心 · 待办·目标·排名·漏斗', grad: 'from-emerald-500 to-teal-600', hint: '顶上有没有彩头、今天先推谁、我排第几' },
   ];
 

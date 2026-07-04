@@ -12,7 +12,7 @@ import type { Stage, LossReason } from '../domain/types';
 
 export const OPEN_DATE = '2026-04-01';
 export const ANCHOR_DATE = '2026-06-29';
-export const SEED_VERSION = 'p8-huadongxinghui-v2';
+export const SEED_VERSION = 'p12-huadongxinghui-v3';
 export const RNG_SEED = 20260629;
 
 export const MONTHS = [
@@ -24,8 +24,8 @@ export const MONTHS = [
 export const TENANT = { name: '华东星辉商贸', bossName: '陈总' };
 
 export const DEPARTMENTS = [
-  { id: 'd1', name: '华东一部', managerId: 'liumin' },
-  { id: 'd2', name: '华东二部', managerId: 'zhaogang' },
+  { id: 'd1', name: '销售一部', managerId: 'liumin' },
+  { id: 'd2', name: '销售二部', managerId: 'zhaogang' },
 ];
 
 /**
@@ -38,16 +38,22 @@ export const DEPARTMENTS = [
  */
 export const PEOPLE = [
   { id: 'chenzong', name: '陈总', role: 'boss' as const, deptId: null, monthlyCost: 0, hireDate: null, onboardingCost: 0 },
-  { id: 'liumin', name: '刘敏', role: 'manager' as const, deptId: 'd1', monthlyCost: 6000, hireDate: null, onboardingCost: 0 },
+  { id: 'liumin', name: '刘敏', role: 'manager' as const, deptId: 'd1', monthlyCost: 4500, hireDate: null, onboardingCost: 0 },
   { id: 'wangli', name: '王丽', role: 'sales' as const, deptId: 'd1', monthlyCost: 8200, hireDate: null, onboardingCost: 0 },
   { id: 'liqiang', name: '李强', role: 'sales' as const, deptId: 'd1', monthlyCost: 5800, hireDate: '2026-05-23', onboardingCost: 3000 },
-  { id: 'zhangtao', name: '张涛', role: 'sales' as const, deptId: 'd1', monthlyCost: 5700, hireDate: null, onboardingCost: 0 },
-  { id: 'chenjing', name: '陈静', role: 'sales' as const, deptId: 'd1', monthlyCost: 5500, hireDate: null, onboardingCost: 0 },
-  { id: 'zhaogang', name: '赵刚', role: 'manager' as const, deptId: 'd2', monthlyCost: 6000, hireDate: null, onboardingCost: 0 },
+  { id: 'zhangtao', name: '张涛', role: 'sales' as const, deptId: 'd1', monthlyCost: 3800, hireDate: null, onboardingCost: 0 },
+  { id: 'chenjing', name: '陈静', role: 'sales' as const, deptId: 'd1', monthlyCost: 3700, hireDate: null, onboardingCost: 0 },
+  { id: 'zhaogang', name: '赵刚', role: 'manager' as const, deptId: 'd2', monthlyCost: 4500, hireDate: null, onboardingCost: 0 },
   { id: 'wangwu', name: '王五', role: 'sales' as const, deptId: 'd2', monthlyCost: 8900, hireDate: null, onboardingCost: 0 },
-  { id: 'zhaomin', name: '赵敏', role: 'sales' as const, deptId: 'd2', monthlyCost: 5800, hireDate: null, onboardingCost: 0 },
-  { id: 'sunlei', name: '孙磊', role: 'sales' as const, deptId: 'd2', monthlyCost: 5500, hireDate: null, onboardingCost: 0 },
-  { id: 'zhoufang', name: '周芳', role: 'sales' as const, deptId: 'd2', monthlyCost: 5300, hireDate: null, onboardingCost: 0 },
+  { id: 'zhaomin', name: '赵敏', role: 'sales' as const, deptId: 'd2', monthlyCost: 4000, hireDate: null, onboardingCost: 0 },
+  { id: 'sunlei', name: '孙磊', role: 'sales' as const, deptId: 'd2', monthlyCost: 3400, hireDate: null, onboardingCost: 0 },
+  { id: 'zhoufang', name: '周芳', role: 'sales' as const, deptId: 'd2', monthlyCost: 3400, hireDate: null, onboardingCost: 0 },
+  // ---- P12 新人（演示约定：≤15 天带「新人」标签；招培按减半首付、余款后补录）----
+  { id: 'hanxue', name: '韩雪', role: 'sales' as const, deptId: 'd1', monthlyCost: 5200, hireDate: '2026-04-10', onboardingCost: 1500 }, // 筛人漏斗 · 第 81 天
+  { id: 'chenhao', name: '陈昊', role: 'sales' as const, deptId: 'd2', monthlyCost: 5200, hireDate: '2026-04-28', onboardingCost: 1500 }, // 筛人漏斗 · 第 63 天
+  { id: 'zhouzhou', name: '周舟', role: 'sales' as const, deptId: 'd2', monthlyCost: 4800, hireDate: '2026-06-17', onboardingCost: 1500 }, // 新人筛选 · 第 13 天 普通
+  { id: 'sunyue', name: '孙悦', role: 'sales' as const, deptId: 'd2', monthlyCost: 4800, hireDate: '2026-06-20', onboardingCost: 1500 }, // 新人筛选 · 第 10 天 预警
+  { id: 'liman', name: '李曼', role: 'sales' as const, deptId: 'd1', monthlyCost: 4800, hireDate: '2026-06-23', onboardingCost: 1500 }, // 新人筛选 · 第 7 天 优秀
 ];
 
 /** 王五活动窗（末次事件 5-13 → 连续 47 天零业务事件，含 6-29 当天共 47 天）；李强 5-23 入职 */
@@ -63,13 +69,18 @@ export const LEAD_MATRIX: Record<string, [number, number, number]> = {
   wangli: [32, 28, 28], // 88
   liqiang: [0, 10, 36], // 46
   wangwu: [22, 8, 0], // 30
-  liumin: [22, 19, 19], // 60
-  zhangtao: [40, 36, 36], // 112
-  chenjing: [30, 26, 26], // 82
-  zhaogang: [21, 19, 18], // 58
+  liumin: [18, 15, 13], // 46
+  zhangtao: [40, 36, 30], // 106（仍第 1）
+  chenjing: [26, 20, 18], // 64
+  zhaogang: [19, 15, 12], // 46
   zhaomin: [38, 34, 33], // 105
-  sunlei: [28, 24, 24], // 76
-  zhoufang: [27, 26, 17], // 70
+  sunlei: [24, 18, 14], // 56
+  zhoufang: [25, 22, 6], // 53
+  hanxue: [16, 12, 10], // 38（第 81 天）
+  chenhao: [0, 12, 10], // 22（第 63 天）
+  liman: [0, 0, 14], // 14（第 7 天 · 剧本）
+  zhouzhou: [0, 0, 10], // 10（第 13 天 · 剧本）
+  sunyue: [0, 0, 3], // 3（第 10 天 · 剧本 · 预警）
 };
 
 /**
@@ -120,13 +131,18 @@ export const DEAL_MATRIX: Record<string, [number, number, number]> = {
   wangli: [14, 9, 12], // 35
   liqiang: [0, 0, 4], // 4
   wangwu: [0, 0, 0],
-  liumin: [11, 7, 8], // 26
-  zhangtao: [13, 8, 9], // 30
-  chenjing: [11, 7, 8], // 26
-  zhaogang: [11, 7, 8], // 26
+  liumin: [10, 6, 6], // 22
+  zhangtao: [12, 7, 7], // 26
+  chenjing: [11, 6, 6], // 23
+  zhaogang: [11, 6, 6], // 23
   zhaomin: [10, 7, 7], // 24
-  sunlei: [10, 7, 5], // 22
-  zhoufang: [10, 7, 4], // 21
+  sunlei: [10, 6, 4], // 20
+  zhoufang: [10, 6, 3], // 19
+  hanxue: [2, 3, 5], // 10
+  chenhao: [0, 3, 5], // 8
+  liman: [0, 0, 0],
+  zhouzhou: [0, 0, 0],
+  sunyue: [0, 0, 0],
 };
 
 /**
@@ -153,13 +169,18 @@ export const REVENUE_MATRIX: Record<string, [number, number, number]> = {
   wangli: [90000, 53200, 100000], // 243,200
   liqiang: [0, 0, 24000], // 24,000
   wangwu: [0, 0, 0],
-  liumin: [55000, 48000, 72000], // 175,000
-  zhangtao: [60000, 52000, 78000], // 190,000
-  chenjing: [53000, 46000, 69000], // 168,000
-  zhaogang: [54000, 46000, 70000], // 170,000
+  liumin: [52400, 41200, 59000], // 152,600
+  zhangtao: [55000, 45000, 64000], // 164,000
+  chenjing: [50000, 39000, 56000], // 145,000
+  zhaogang: [51000, 39000, 57000], // 147,000
   zhaomin: [55000, 48000, 72000], // 175,000
-  sunlei: [50000, 44000, 66000], // 160,000
-  zhoufang: [48000, 41000, 61000], // 150,000
+  sunlei: [50000, 37800, 59000], // 146,800
+  zhoufang: [48000, 34200, 53000], // 135,200
+  hanxue: [13600, 20400, 34000], // 68,000（2/3/5 单 × ¥6,800）
+  chenhao: [0, 20400, 34000], // 54,400（3/5 单 × ¥6,800）
+  liman: [0, 0, 0],
+  zhouzhou: [0, 0, 0],
+  sunyue: [0, 0, 0],
 };
 
 /** 预置品类（毛利率 31%，与「品类成本按预置毛利率 31% 反推自洽」对齐） */
@@ -184,9 +205,14 @@ export const TARGETS = {
     zhaomin: 55000,
     sunlei: 55000,
     zhoufang: 55000,
+    hanxue: 55000,
+    chenhao: 55000,
+    liman: 0,
+    zhouzhou: 0,
+    sunyue: 0,
   } as Record<string, number>,
   personMonthlyProcess: Object.fromEntries(
-    ['liumin', 'wangli', 'liqiang', 'zhangtao', 'chenjing', 'zhaogang', 'wangwu', 'zhaomin', 'sunlei', 'zhoufang'].map(
+    ['liumin', 'wangli', 'liqiang', 'zhangtao', 'chenjing', 'zhaogang', 'wangwu', 'zhaomin', 'sunlei', 'zhoufang', 'hanxue', 'chenhao', 'liman', 'zhouzhou', 'sunyue'].map(
       (id) => [id, { lead: 24, intent: 12, sample: 8 }],
     ),
   ) as Record<string, { lead: number; intent: number; sample: number }>,

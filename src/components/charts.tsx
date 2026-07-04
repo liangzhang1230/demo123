@@ -5,12 +5,13 @@
 import type { ReactNode } from 'react';
 
 /** 面积迷你趋势线 */
-export function Spark({ data, w = 120, h = 34, stroke = '#818cf8', fillFrom = 'rgba(129,140,248,0.35)' }: {
+export function Spark({ data, w = 120, h = 34, stroke = '#818cf8', fillFrom = 'rgba(129,140,248,0.35)', fluid = false }: {
   data: number[];
   w?: number;
   h?: number;
   stroke?: string;
   fillFrom?: string;
+  fluid?: boolean;
 }) {
   if (data.length < 2) return null;
   const max = Math.max(...data, 1);
@@ -25,7 +26,7 @@ export function Spark({ data, w = 120, h = 34, stroke = '#818cf8', fillFrom = 'r
   const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${h} L${pts[0][0].toFixed(1)},${h} Z`;
   const gid = `sg${Math.abs(data.reduce((a, b, i) => a + b * (i + 7), 0)).toFixed(0)}${w}`;
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="block">
+    <svg width={fluid ? undefined : w} height={fluid ? undefined : h} viewBox={`0 0 ${w} ${h}`} className={fluid ? 'block h-auto w-full' : 'block'} preserveAspectRatio="none">
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={fillFrom} />

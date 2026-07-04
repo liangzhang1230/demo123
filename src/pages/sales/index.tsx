@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../../store/AppStore';
 import { computeAll, dailyRevenueSeries, periodOrdersList, personalRecords } from '../../domain/compute';
 import { computePeriod, type PeriodKind } from '../../domain/period';
-import { addDays, dailyTarget, daysInMonth, fmtPct0, fmtYuan, paceRate, sevenLevel } from '../../domain/engine';
+import { addDays, dailyTarget, daysInMonth, fmtPct0, fmtPct1, fmtWan, fmtYuan, paceRate, sevenLevel } from '../../domain/engine';
 import { STAGE_LABEL, FUNNEL_STAGES } from '../../domain/types';
 import { AiHint, BCard, BoardShell, DarkLevelChip, DarkPaceBar, DrillRow, DrillSheet, PeriodTabs, TL, TrendPill } from '../../components/board';
 import { Ring, Spark } from '../../components/charts';
@@ -95,7 +95,7 @@ export default function SalesPage() {
       }
       subtitle={
         <>
-          <span>华东一部 · 销售</span>
+          <span>销售一部 · 销售</span>
           <span>今天 {computed.asOf}</span>
           <span className="flex items-center gap-1"><i className="live-dot" />🤖 AI 操盘手在线 · 本月成交 {records.monthDeals} 单</span>
         </>
@@ -193,7 +193,7 @@ export default function SalesPage() {
               <div className="text-[11px] text-slate-400">部门内排名</div>
               <div className={`my-1 text-4xl font-black ${deptNow === 1 ? 'gold-text' : 'text-slate-100'}`}>{deptNow}</div>
               <RankBadge now={deptNow} prev={deptPrev} />
-              <div className="mt-1 text-[9px] text-slate-500">华东一部</div>
+              <div className="mt-1 text-[9px] text-slate-500">销售一部</div>
             </div>
           </div>
           <p className="mt-2 text-[10px] leading-4 text-slate-500">
@@ -326,6 +326,77 @@ export default function SalesPage() {
           <AiHint tone="block">
             打开就三眼：顶上有没有彩头、今天先推谁、我排第几——看完拿起电话。
           </AiHint>
+        </BCard>
+      </div>
+
+      {/* P12 · 我的转化率与成交率（区四下方）＋ 本月流失原因 ＋ AI 参谋 */}
+      <div className="space-y-3 lg:grid lg:grid-cols-12 lg:gap-3 lg:space-y-0">
+        <BCard title="我的转化率 · 成交率" icon="🎛️" tl={TL.indigo} className="lg:col-span-4"
+          right={<span className="text-[10px] text-slate-500">累计制 §6.3 · 分母 0 显 —</span>}
+        >
+          <div className="grid grid-cols-4 gap-1">
+            {([['线索', oc.conv.lead, '#22d3ee'], ['意向', oc.conv.intent, '#818cf8'], ['样品', oc.conv.sample, '#a78bfa'], ['签约', oc.conv.signed, '#fbbf24']] as const).map(([label, v, color]) => (
+              <div key={label} className="flex flex-col items-center">
+                <Ring pct={v} size={64} color={color} center={<span className="text-[12px]">{fmtPct0(v)}</span>} sub={`${label}转化`} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 rounded-xl bg-emerald-500/10 p-2.5 text-center ring-1 ring-emerald-400/20">
+            <div className="text-lg font-extrabold text-emerald-300">
+              {fmtPct1(oc.convBase.leadNew > 0 ? oc.convBase.toDeal / oc.convBase.leadNew : null)}
+            </div>
+            <div className="text-[10px] text-slate-400">我的成交率（累计首购 ÷ 累计线索）</div>
+          </div>
+        </BCard>
+
+        <BCard title="我的本月流失原因" icon="📉" tl={TL.slate} className="lg:col-span-4">
+          {(() => {
+            const map: Record<string, number> = {};
+            let total = 0;
+            for (const e of data.events) {
+              if (e.ownerId !== ME || e.type !== 'stage_changed' || e.to !== 'lost') continue;
+              if (e.date.slice(0, 7) !== computed.ym || e.date > computed.asOf) continue;
+              map[e.lossReason ?? '未填'] = (map[e.lossReason ?? '未填'] ?? 0) + 1;
+              total++;
+            }
+            const rows = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 4);
+            if (total === 0) return <p className="py-5 text-center text-xs text-slate-500">本月无流失——保持住</p>;
+            return (
+              <div className="space-y-1.5">
+                <div className="text-sm font-bold text-slate-200">本月流失 <b className="text-red-300">{total}</b> 家（我的客户）</div>
+                {rows.map(([reason, n], i) => (
+                  <div key={reason} className="flex items-center gap-2 text-[11px]">
+                    <span className="w-14 shrink-0 text-slate-400">{reason}</span>
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                      <div className="bar-anim h-full rounded-full" style={{ width: `${(n / total) * 100}%`, background: i === 0 ? TL.red : TL.slate }} />
+                    </div>
+                    <span className="w-12 shrink-0 text-right tabular-nums text-slate-300">{n} 家</span>
+                  </div>
+                ))}
+                <p className="text-[10px] text-slate-500">丢单原因看清楚，下一单换个打法。</p>
+              </div>
+            );
+          })()}
+        </BCard>
+
+        <BCard title="AI 参谋 · 归因 / 预测 / 建议" icon="🤖" tl={TL.purple} className="lg:col-span-4"
+          right={<span className="text-[10px] text-slate-500">上线后每日生成</span>}
+        >
+          <div className="space-y-1.5 text-[11px] leading-5">
+            <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+              <span className="mr-1 rounded bg-red-500/15 px-1 text-[9px] font-bold text-red-300">归因</span>
+              你的样品→签约通过率全员最高——单子不是丢在临门，而是丢在放着不推（当前停滞 {myStalls.length} 家）。
+            </p>
+            <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+              <span className="mr-1 rounded bg-sky-500/15 px-1 text-[9px] font-bold text-sky-300">预测</span>
+              按当前节奏，你本月回款预计 ≈ {fmtWan((oc.monthRevenue / Math.max(1, elapsed)) * 30)}（线性估算 · 演示口径）——第 1 名能不能守住，看这周。
+            </p>
+            <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+              <span className="mr-1 rounded bg-emerald-500/15 px-1 text-[9px] font-bold text-emerald-300">建议</span>
+              今天先推：{myStalls.slice(0, 3).map((x) => x.name).join('、') || '区四建新档'}——推完再去接新线索。
+            </p>
+            <p className="pl-1 text-[9px] text-slate-500">🤖 AI 销售操盘手 · 静态话术位，上线后按你的真实数据每日生成</p>
+          </div>
         </BCard>
       </div>
 

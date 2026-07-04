@@ -32,7 +32,15 @@ interface OrderSlot {
   event: SeedEvent; // amount 待二次填充
 }
 
-const SCRIPTED_OWNERS = new Set(['wangwu', 'liqiang']);
+const SCRIPTED_OWNERS = new Set(['wangwu', 'liqiang', 'liman', 'zhouzhou', 'sunyue']);
+
+/** P12 筛选期新人：建档日剧本（含 6-29 当日数据；孙悦近 3 日零动作 → 第 10 天预警） */
+const ROOKIE_CREATE_DAYS: Record<string, number[]> = {
+  liman: [23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29],
+  zhouzhou: [17, 18, 19, 20, 21, 22, 23, 24, 26, 28],
+  sunyue: [20, 23, 26],
+};
+const rookieDayCursor: Record<string, number> = { liman: 0, zhouzhou: 0, sunyue: 0 };
 
 function dayAbs(mi: number, day: number): number {
   let base = 0;
@@ -125,9 +133,11 @@ export function generateSeed(): SeedData {
     const last = MONTHS[mi].lastEventDay;
     if (ownerId === 'wangwu') return mi === 0 ? randInt(rng, 1, 28) : randInt(rng, 1, 12);
     if (ownerId === 'liqiang') return mi === 1 ? randInt(rng, 23, 31) : randInt(rng, 8, Math.min(27, last));
+    if (ROOKIE_CREATE_DAYS[ownerId]) return ROOKIE_CREATE_DAYS[ownerId][rookieDayCursor[ownerId]++]; // P12 剧本队列
+    if (ownerId === 'hanxue' && mi === 0) return randInt(rng, 10, 28); // 4-10 入职后才建档
     if (mi === 2) {
       const r = rng();
-      if (r < 0.06) return randInt(rng, 1, 6);
+      if (r < 0.03) return randInt(rng, 1, 6);
       if (r < 0.21) return randInt(rng, 7, 14);
       return randInt(rng, 15, 27);
     }
@@ -161,7 +171,7 @@ export function generateSeed(): SeedData {
       let day: number;
       if (to === 'signed') {
         const r = rng();
-        day = r < 0.16 ? randInt(rng, 12, 14) : r < 0.34 ? randInt(rng, 15, 18) : r < 0.6 ? randInt(rng, 19, 22) : randInt(rng, 23, last);
+        day = r < 0.12 ? randInt(rng, 12, 14) : r < 0.27 ? randInt(rng, 15, 18) : r < 0.55 ? randInt(rng, 19, 22) : randInt(rng, 23, last);
       } else {
         const r = rng();
         day = r < 0.25 ? randInt(rng, 2, 9) : randInt(rng, 10, last);
@@ -418,6 +428,40 @@ export function generateSeed(): SeedData {
     }
   }
 
+  // ---- P12 筛选新人剧本（6 月）：李曼 5 转意向＋2 转样品；周舟 2 转意向；孙悦零流转 ----
+  function scriptScreenRookies() {
+    const mi = 2;
+    const doOnDay = (c: LiveCustomer, to: Stage, day: number) => {
+      emit({ date: dateOf(mi, day), type: 'stage_changed', customerId: c.id, ownerId: c.ownerId, from: c.stage, to });
+      c.stage = to;
+      c.stageDay = dayAbs(mi, day);
+    };
+    const mine = (o: string, st: Stage) =>
+      [...live.values()].filter((c) => c.ownerId === o && c.stage === st).sort((a, b) => a.stageDay - b.stageDay);
+    // 李曼：意向 5（25..29，含当日）→ 其中 2 家转样品（27、29）
+    const lmIntentDays = [25, 26, 27, 28, 29];
+    for (const d of lmIntentDays) {
+      const c = mine('liman', 'lead').find((x) => x.stageDay < dayAbs(mi, d));
+      if (!c) throw new Error('李曼剧本排期失败');
+      doOnDay(c, 'intent', d);
+      takeQuota('lead', 'intent', mi, 1);
+    }
+    for (const d of [27, 29]) {
+      const c = mine('liman', 'intent').find((x) => x.stageDay < dayAbs(mi, d));
+      if (!c) throw new Error('李曼样品剧本排期失败');
+      doOnDay(c, 'sample', d);
+      takeQuota('intent', 'sample', mi, 1);
+    }
+    // 周舟：意向 2（22、26）
+    for (const d of [22, 26]) {
+      const c = mine('zhouzhou', 'lead').find((x) => x.stageDay < dayAbs(mi, d));
+      if (!c) throw new Error('周舟剧本排期失败');
+      doOnDay(c, 'intent', d);
+      takeQuota('lead', 'intent', mi, 1);
+    }
+    // 孙悦：零流转（第 10 天 · 数据落后 → 日度滚动预警）
+  }
+
   // ---- 复购（不产状态事件，只落成交单） ----
   const repeatCustomersByOwner = new Map<string, LiveCustomer[]>();
   function runRepeats(mi: number) {
@@ -462,6 +506,7 @@ export function generateSeed(): SeedData {
     // 2. 剧本
     if (mi <= 1) scriptWangwu(mi);
     if (mi === 2) scriptLiqiang();
+    if (mi === 2) scriptScreenRookies();
     // 3. 一般流转（按喂池顺序）
     // sample→deal 受 owner 成交配额约束，须先于 sample→signed 抽取，避免样品池被抽干后无候选
     const order: [Stage, Stage][] = [

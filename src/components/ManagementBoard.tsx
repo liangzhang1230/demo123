@@ -6,7 +6,7 @@
  * 逐层转化率＋总成交转化率＋客户流失率；AI 操盘手提示层（静态话术位，全板常驻）。
  */
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppStore';
 import {
   absRate, DASH, fmtPct0, fmtPct1, fmtRoi2, fmtWan, fmtYuan,
@@ -40,6 +40,7 @@ const RING_COLORS = ['#22d3ee', '#818cf8', '#a78bfa', '#fbbf24'];
 
 export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
   const { data, computed, unlocked, setUnlocked } = useApp();
+  const nav = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
   const [showRest, setShowRest] = useState(false);
   const [drill, setDrill] = useState<Drill>(null);
@@ -436,12 +437,14 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
               icon="🔮" label="30 天现金前瞻" tl={TL.pink} valueClass="text-pink-300"
               value={<span className="flex items-center gap-1.5">¥17.0万 <ExampleBadge inline /></span>}
               plain="AI 按签约池节奏外推未来 30 天回款（估算 · 示例数据）"
+              onClick={() => nav('/sample/pack2')}
             />
           ) : (
             <Kpi
               icon="🔮" label="30 天现金前瞻" tl={TL.slate} locked
               value={DASH}
               plain="开通增长操盘包，这里每天预告未来 30 天回款（估算）🔑"
+              onClick={() => nav('/sample/pack2')}
             />
           )}
         </div>
@@ -543,8 +546,15 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
               />
             ))}
           </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[10px]">
-            <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-slate-400">逐层＝各池累计转化率（§6.3 累计制）· 点任意层下钻</span>
+          <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px]">
+            {(['lead', 'intent', 'sample', 'signed'] as const).map((pl) => (
+              <div key={pl} className="rounded-md bg-white/5 py-1 tabular-nums text-slate-400">
+                {STAGE_LABEL[pl]}{R.label} <b className="text-emerald-300">+{pm.flows[pl].entered}</b> / <b className="text-red-300">−{pm.flows[pl].exited + pm.flows[pl].lost}</b>
+              </div>
+            ))}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+            <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-slate-400">条形＝当前存量（点时口径，不随周期变）；上行进/出随周期联动 · 逐层右列＝累计转化率（§6.3）</span>
             {pm.flows.sample.entered > 0 && (
               <span className="rounded-md bg-red-500/15 px-1.5 py-0.5 font-semibold text-red-300">
                 样品池{R.label} {pm.flows.sample.entered} 进 / {pm.flows.sample.exited} 出（{fmtPct1(pm.flows.sample.exited / pm.flows.sample.entered)}）
@@ -556,61 +566,97 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
           </AiHint>
         </BCard>
 
-        <BCard title="月度经营趋势" icon="📊" tl={TL.indigo} className="lg:col-span-4"
-          right={<div className="flex gap-1"><TrendPill value={monthRevenueMom} note="回款完整月环比" /><TrendPill value={monthNetMom} note="净利完整月环比" /></div>}
-        >
-          <MonthBars
-            months={monthLabels}
-            a={revSeries}
-            aLabel={`${deptId ? deptName : '公司'}月回款（当月进行中 · 环比仅自然月 §6.5）`}
-            aColor="#38bdf8"
-            bRows={
-              deptId
-                ? undefined
-                : [
-                    { label: '净利', values: netSeries.map((v) => fmtWan(v)), color: '#34d399' },
-                    { label: '人力成本', values: monthsKeys.map((m) => fmtWan(computed.company.laborByMonth[m] ?? 0)), color: '#f87171' },
-                  ]
-            }
-          />
-        </BCard>
+        <div className="space-y-3 lg:col-span-4">
+          <BCard title={`日回款趋势（近 14 天 · ${deptId ? deptName : '公司'}）`} icon="📈" tl={TL.cyan}
+            right={<button className="text-[10px] text-indigo-300 hover:underline" onClick={() => setDrill({ kind: 'revenue' })}>明细 ›</button>}
+          >
+            <Spark data={daily14.map((d) => d.value)} w={520} h={92} stroke="#22d3ee" fillFrom="rgba(34,211,238,0.28)" fluid />
+            <div className="mt-1 flex justify-between text-[9px] text-slate-500">
+              <span>{daily14[0]?.date.slice(5)}</span>
+              <span>峰值 {fmtWan(Math.max(...daily14.map((d) => d.value)))}</span>
+              <span>今天</span>
+            </div>
+          </BCard>
+          <BCard title="月度经营趋势" icon="📊" tl={TL.indigo}
+            right={<div className="flex gap-1"><TrendPill value={monthRevenueMom} note="回款完整月环比" /><TrendPill value={monthNetMom} note="净利完整月环比" /></div>}
+          >
+            <MonthBars
+              months={monthLabels}
+              a={revSeries}
+              aLabel={`${deptId ? deptName : '公司'}月回款（当月进行中 · 环比仅自然月 §6.5）`}
+              aColor="#38bdf8"
+              bRows={
+                deptId
+                  ? undefined
+                  : [
+                      { label: '净利', values: netSeries.map((v) => fmtWan(v)), color: '#34d399' },
+                      { label: '人力成本', values: monthsKeys.map((m) => fmtWan(computed.company.laborByMonth[m] ?? 0)), color: '#f87171' },
+                    ]
+              }
+            />
+          </BCard>
+        </div>
 
-        <BCard title={`${R.label}流失归因`} icon="🕳️" tl={TL.red} className="lg:col-span-3"
-          right={<button className="text-[10px] text-indigo-300 hover:underline" onClick={() => setDrill({ kind: 'loss' })}>明细 ›</button>}
-        >
-          {(() => {
-            const rows = Object.entries(pm.lossReasons).sort((a, b) => b[1] - a[1]).slice(0, 4);
-            return (
-              <>
-                <div className="mb-1 flex cursor-pointer items-end justify-between" onClick={() => setDrill({ kind: 'loss' })}>
-                  <div className="text-2xl font-extrabold text-red-300">{pm.lossTotal} 家</div>
-                  <div className="text-right text-[10px] leading-4 text-slate-400">
-                    累计客户流失率<br />
-                    <b className="text-sm text-red-200">{fmtPct1(convAgg.churn)}</b>
+        <div className="space-y-3 lg:col-span-3">
+          <BCard title={`${R.label}流失归因`} icon="🕳️" tl={TL.red}
+            right={<button className="text-[10px] text-indigo-300 hover:underline" onClick={() => setDrill({ kind: 'loss' })}>明细 ›</button>}
+          >
+            {(() => {
+              const rows = Object.entries(pm.lossReasons).sort((a, b) => b[1] - a[1]).slice(0, 4);
+              return (
+                <>
+                  <div className="mb-1 flex cursor-pointer items-end justify-between" onClick={() => setDrill({ kind: 'loss' })}>
+                    <div className="text-2xl font-extrabold text-red-300">{pm.lossTotal} 家</div>
+                    <div className="text-right text-[10px] leading-4 text-slate-400">
+                      累计客户流失率<br />
+                      <b className="text-sm text-red-200">{fmtPct1(convAgg.churn)}</b>
+                    </div>
                   </div>
-                </div>
-                {pm.lossTotal === 0 ? (
-                  <p className="py-3 text-center text-xs text-slate-500">{R.label}暂无流失（累计 {scopeStocks.lost} 家）</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {rows.map(([reason, n], i) => (
-                      <div key={reason} className="flex cursor-pointer items-center gap-2 text-[11px]" onClick={() => setDrill({ kind: 'loss' })}>
-                        <span className="w-14 shrink-0 text-slate-400">{reason}</span>
-                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
-                          <div className="bar-anim h-full rounded-full" style={{ width: `${(n / pm.lossTotal) * 100}%`, background: i === 0 ? TL.red : TL.slate }} />
+                  {pm.lossTotal === 0 ? (
+                    <p className="py-3 text-center text-xs text-slate-500">{R.label}暂无流失（累计 {scopeStocks.lost} 家）</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {rows.map(([reason, n], i) => (
+                        <div key={reason} className="flex cursor-pointer items-center gap-2 text-[11px]" onClick={() => setDrill({ kind: 'loss' })}>
+                          <span className="w-14 shrink-0 text-slate-400">{reason}</span>
+                          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                            <div className="bar-anim h-full rounded-full" style={{ width: `${(n / pm.lossTotal) * 100}%`, background: i === 0 ? TL.red : TL.slate }} />
+                          </div>
+                          <span className="w-14 shrink-0 text-right tabular-nums text-slate-300">{n} · {fmtPct0(n / pm.lossTotal)}</span>
                         </div>
-                        <span className="w-14 shrink-0 text-right tabular-nums text-slate-300">{n} · {fmtPct0(n / pm.lossTotal)}</span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </BCard>
+          <BCard title="本月流失原因" icon="📉" tl={TL.slate}
+            right={<span className="text-[10px] text-slate-500">固定自然月口径</span>}
+          >
+            {(() => {
+              const lossMap = computed.folded.lossReasonByMonth[computed.ym] ?? {};
+              const total = computed.folded.monthlyLossTotal[computed.ym] ?? 0;
+              const rows = Object.entries(lossMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+              if (total === 0) return <p className="py-3 text-center text-xs text-slate-500">本月暂无流失</p>;
+              return (
+                <div className="space-y-1.5">
+                  <div className="text-sm font-bold text-slate-200">本月共流失 <b className="text-red-300">{total}</b> 家</div>
+                  {rows.map(([reason, n], i) => (
+                    <div key={reason} className="flex cursor-pointer items-center gap-2 text-[11px]" onClick={() => setDrill({ kind: 'loss' })}>
+                      <span className="w-14 shrink-0 text-slate-400">{reason}</span>
+                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                        <div className="bar-anim h-full rounded-full" style={{ width: `${(n / total) * 100}%`, background: i === 0 ? TL.red : TL.slate }} />
                       </div>
-                    ))}
-                  </div>
-                )}
-                <AiHint tone="block">
-                  首因「价格偏高」集中在样品之后——不是产品不行，是报价动作在漏。深度归因（与卡点交叉）随增长包开通。
-                </AiHint>
-              </>
-            );
-          })()}
-        </BCard>
+                      <span className="w-14 shrink-0 text-right tabular-nums text-slate-300">{n} · {fmtPct0(n / total)}</span>
+                    </div>
+                  ))}
+                  <AiHint tone="block">首因「价格偏高」集中在样品之后——报价动作在漏。深度归因（与卡点交叉）随增长包开通。</AiHint>
+                </div>
+              );
+            })()}
+          </BCard>
+        </div>
       </div>
 
       <div className="space-y-3 lg:grid lg:grid-cols-12 lg:gap-3 lg:space-y-0">
@@ -639,11 +685,11 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-slate-100">
-                      {r.p.name}
+                      {r.p.name}{r.tenure != null && r.tenure <= 15 ? '（新人）' : ''}
                       {r.p.role === 'manager' && <span className="text-[10px] font-normal text-slate-500">主管</span>}
                       {!deptId && (
                         <span className="text-[10px] font-normal text-slate-500">
-                          {data.departments.find((d) => d.id === r.p.deptId)?.name.replace('华东', '')}
+                          {data.departments.find((d) => d.id === r.p.deptId)?.name.replace('销售', '')}
                         </span>
                       )}
                       {r.tenure != null && r.tenure <= 90 && (
@@ -747,84 +793,30 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
               </div>
             </div>
           </BCard>
+
+          <BCard title="AI 参谋 · 归因 / 预测 / 建议" icon="🤖" tl={TL.purple}
+            right={<span className="text-[10px] text-slate-500">上线后按真实数据每日生成</span>}
+          >
+            <div className="space-y-1.5 text-[11px] leading-5">
+              <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+                <span className="mr-1 rounded bg-red-500/15 px-1 text-[9px] font-bold text-red-300">归因</span>
+                总成交转化率 {fmtPct1(convAgg.close)}，最弱一跳＝样品→签约（本月 82 进 9 出）；流失首因「价格偏高」——报价动作在漏，不是产品不行。
+              </p>
+              <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+                <span className="mr-1 rounded bg-sky-500/15 px-1 text-[9px] font-bold text-sky-300">预测</span>
+                按当前节奏，本月回款预计 ≈ {fmtWan(((dept ? dept.monthRevenue : computed.company.monthRevenue) / Math.max(1, Number(computed.asOf.slice(8, 10)))) * 30)}（线性估算 · 演示口径）；深度 30 天现金前瞻随增长包开通。
+              </p>
+              <p className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-slate-300">
+                <span className="mr-1 rounded bg-emerald-500/15 px-1 text-[9px] font-bold text-emerald-300">建议</span>
+                ① 先修样品→签约话术（估算找回 ¥49.6万 → <Link to="/sample/pack2" className="text-indigo-300 hover:underline">增长包</Link>）
+                ② {members.some((mm) => (idleDaysOf(mm.id) ?? 0) >= 30) ? '约谈王五（每月 ¥8,900 → ' : '盯住新人爬坡节奏（→ '}<Link to="/sample/pack1" className="text-indigo-300 hover:underline">人效包</Link>）
+                ③ 把王丽打法带教给弱侧成员（→ <Link to="/sample/pack3" className="text-indigo-300 hover:underline">销冠包</Link>）。
+              </p>
+              <p className="pl-1 text-[9px] text-slate-500">🤖 AI 销售操盘手 · 以上为静态话术位（白话原语回退层），上线后按你的真实数据每日生成</p>
+            </div>
+          </BCard>
         </div>
       </div>
-
-      {/* 新人筛选（系统内置全套功能 · 看板同步上架）：老板用人痛点的第一现场 */}
-      <BCard
-        title="新人筛选 · 筛人漏斗"
-        icon="🧪"
-        tl={TL.pink}
-        right={<Link to="/rookie" data-testid="rookie-detail-link" className="rounded-lg bg-gradient-to-r from-pink-500/30 to-purple-500/30 px-2.5 py-1 text-[11px] font-bold text-pink-200 ring-1 ring-pink-400/40 hover:ring-pink-300">进入筛选详情页 ›</Link>}
-      >
-        <div className="grid gap-2.5 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <div className="rounded-xl border border-pink-400/25 bg-pink-500/[0.07] p-3">
-              <p className="text-sm font-extrabold leading-6 text-slate-100">
-                招错一个人 ＝ 白扔几万块 ＋ 市场延误 ＋ 客户差评 ＋ 老员工心态被带崩。
-              </p>
-              <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
-                想给高底薪招销冠，又怕养到混工资的——窗口 90 天，逐日数据筛人：
-                谁是销冠苗子、谁在混，第 38 天就有判断依据，不用等半年。
-                把省下的钱激励优秀，事半功倍。
-              </p>
-              <AiHint tone="block">
-                每天盯新人单量与节奏，异常当天提醒；窗口满自动汇总，留还是汰，你一键拍板。
-              </AiHint>
-            </div>
-          </div>
-          <div className="lg:col-span-8">
-            {(() => {
-              const rookies = members.filter((p) => p.hireDate && tenureDays(p.hireDate!, computed.asOf) <= 90);
-              if (rookies.length === 0) return <p className="py-6 text-center text-xs text-slate-500">当前无筛选期新人</p>;
-              return rookies.map((p) => {
-                const t = tenureDays(p.hireDate!, computed.asOf);
-                const oc = computed.owners[p.id];
-                const cost = Math.round(computed.folded.perOwnerLaborCost[p.id] ?? 0);
-                const rev = computed.folded.perOwner[p.id]?.revenue ?? 0;
-                const tiles = [
-                  { k: '累计建档', v: `${oc?.convBase.leadNew ?? 0} 家` },
-                  { k: '本月新客', v: `${oc?.monthFirstDeals ?? 0} 单` },
-                  { k: '累计回款', v: fmtYuan(rev) },
-                  { k: '累计投入（工资＋招培）', v: fmtYuan(cost) },
-                  { k: 'labor_roi', v: fmtRoi2(computed.folded.perOwnerRoi[p.id]) },
-                  { k: '窗口剩余', v: `${90 - t} 天` },
-                ];
-                return (
-                  <Link key={p.id} to="/rookie" className="block rounded-xl bg-white/[0.04] p-3 transition-colors hover:bg-white/[0.08]">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 text-sm font-bold">{p.name[0]}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-slate-100">
-                          {p.name}
-                          <span className="rounded bg-blue-500/20 px-1 text-[10px] font-medium text-blue-300">筛选中 · 第 {t} 天 / 窗口 90 天</span>
-                          <span className="rounded bg-emerald-500/20 px-1 text-[10px] font-bold text-emerald-300">单量达标</span>
-                          <span className="rounded bg-yellow-500/20 px-1 text-[10px] text-yellow-300">亏损爬坡 · 继续观察</span>
-                        </div>
-                        <div className="mt-1 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/8">
-                          <div className="h-full rounded-full" style={{ width: `${(t / 90) * 100}%`, background: TL.pink }} />
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-semibold text-pink-300">筛选详情 ›</span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-center sm:grid-cols-6">
-                      {tiles.map((x) => (
-                        <div key={x.k} className="rounded-lg bg-white/[0.04] px-1 py-2">
-                          <div className="text-[13px] font-extrabold tabular-nums text-slate-100">{x.v}</div>
-                          <div className="text-[9px] leading-3 text-slate-500">{x.k}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </Link>
-                );
-              });
-            })()}
-            <p className="mt-1.5 text-[10px] text-slate-500">
-              筛人漏斗：本季筛选 2 人 → 筛剩 1 人（历史部分为示例数据）→ 李强转正窗口观察中——留下的每一个，都有 90 天数据背书。
-            </p>
-          </div>
-        </div>
-      </BCard>
 
       {/* 区五 · 武器坞（AI 四包＋经营智库货架） */}
       <BCard
@@ -850,7 +842,7 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
         }
       >
         {role === 'boss' ? (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
             {packs.map((pk) => (
               <Link
                 key={pk.key}
@@ -937,6 +929,138 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
           </div>
         </div>
       </BCard>
+
+      {/* 新人筛选（底部板块 · ≤15 天带「新人」标签）＋ 筛人漏斗（紧随其后 · 上下对齐） */}
+      <div className="space-y-3 lg:grid lg:grid-cols-12 lg:gap-3 lg:space-y-0">
+        <BCard title="新人筛选（窗口 90 天 · 第 10 天即预警）" icon="🧪" tl={TL.pink} className="lg:col-span-7"
+          right={<Link to="/rookie" data-testid="rookie-detail-link" className="rounded-lg bg-gradient-to-r from-pink-500/30 to-purple-500/30 px-2.5 py-1 text-[11px] font-bold text-pink-200 ring-1 ring-pink-400/40 hover:ring-pink-300">进入筛选详情页 ›</Link>}
+        >
+          <div className="mb-2.5 rounded-xl border border-pink-400/25 bg-pink-500/[0.07] p-3">
+            <p className="text-sm font-extrabold leading-6 text-slate-100">
+              想给高底薪招销冠，又怕混工资的——窗口几个月！逐日数据筛人：
+              谁是销冠苗子、谁在混，几天就有数据依据，实战数据卡住庸才，1 年筛出 10 个人就省十几万。
+            </p>
+            <p className="mt-1 text-[10px] leading-4 text-slate-500">
+              招错一个人 ＝ 白扔几万块 ＋ 市场延误 ＋ 客户差评 ＋ 老员工心态被带崩——把省下的钱激励优秀，事半功倍。
+            </p>
+          </div>
+          {(() => {
+            const dTarget = 0.8; // 单日线索目标＝月 24 ÷ 30（目标分解引擎）
+            const screen = members
+              .filter((mm) => mm.hireDate && tenureDays(mm.hireDate, computed.asOf) <= 15)
+              .map((mm) => {
+                const t = tenureDays(mm.hireDate!, computed.asOf);
+                const oc2 = computed.owners[mm.id];
+                const cumRate = oc2.convBase.leadNew / (dTarget * t);
+                const grade = cumRate >= 1.2 ? { txt: '优秀', cls: 'bg-emerald-500/20 text-emerald-300' }
+                  : cumRate >= 0.8 ? { txt: '普通', cls: 'bg-white/10 text-slate-300' }
+                  : { txt: '预警', cls: 'bg-red-500/20 text-red-300' };
+                return { mm, t, oc2, cumRate, grade };
+              })
+              // 排名＝正向流转正序（线索→意向→样品逐级比较）
+              .sort((a, b) =>
+                b.oc2.convBase.leadNew - a.oc2.convBase.leadNew ||
+                b.oc2.convBase.intentNew - a.oc2.convBase.intentNew ||
+                b.oc2.convBase.sampleNew - a.oc2.convBase.sampleNew);
+            if (screen.length === 0) return <p className="py-4 text-center text-xs text-slate-500">当前无 ≤15 天筛选期新人</p>;
+            return (
+              <div className="space-y-2">
+                {screen.map((r, idx) => (
+                  <Link key={r.mm.id} to="/rookie" className="block rounded-xl bg-white/[0.04] p-2.5 transition-colors hover:bg-white/[0.08]">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Medal n={idx + 1} />
+                      <span className="text-sm font-bold text-slate-100">{r.mm.name}（新人）</span>
+                      <span className="text-[10px] text-slate-500">{data.departments.find((d) => d.id === r.mm.deptId)?.name}</span>
+                      <span className="rounded bg-blue-500/20 px-1 text-[10px] text-blue-300">第 {r.t} 天</span>
+                      <span className={`rounded px-1 text-[10px] font-bold ${r.grade.cls}`}>{r.grade.txt}</span>
+                      {r.grade.txt === '预警' && (
+                        <span className="rounded bg-red-500/20 px-1.5 text-[10px] font-bold text-red-300">⚠ 第 {r.t} 天预警 · 数据落后（近 3 日零动作）</span>
+                      )}
+                      <span className="ml-auto text-[10px] font-semibold text-pink-300">详情 ›</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-center sm:grid-cols-6">
+                      {[
+                        { k: '今日线索', v: r.oc2.dayProcess.lead, lv: sevenLevel(r.oc2.dayProcess.lead / dTarget) },
+                        { k: '今日意向', v: r.oc2.dayProcess.intent, lv: null },
+                        { k: '今日样品', v: r.oc2.dayProcess.sample, lv: null },
+                        { k: '累计线索', v: r.oc2.convBase.leadNew, lv: sevenLevel(r.cumRate) },
+                        { k: '累计意向', v: r.oc2.convBase.intentNew, lv: null },
+                        { k: '累计样品', v: r.oc2.convBase.sampleNew, lv: null },
+                      ].map((x) => (
+                        <div key={x.k} className="rounded-lg bg-white/[0.04] px-1 py-1.5">
+                          <div className="text-[13px] font-extrabold tabular-nums text-slate-100">{x.v}</div>
+                          <div className="text-[9px] leading-3 text-slate-500">{x.k}</div>
+                          {x.lv && <div className="mt-0.5"><DarkLevelChip level={x.lv} /></div>}
+                        </div>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+                <AiHint tone="block">
+                  AI 参谋：李曼节奏＝销冠苗子带内，建议窗口过半即预沟通转正；孙悦第 10 天触发预警、近 3 日零动作——今天约谈，止损要趁早；周舟达标线附近，本周盯日量。
+                </AiHint>
+              </div>
+            );
+          })()}
+        </BCard>
+
+        <BCard title="筛人漏斗（转正窗口对比）" icon="🔻" tl={TL.purple} className="lg:col-span-5"
+          right={<Link to="/rookie" className="text-[10px] text-indigo-300 hover:underline">明细 ›</Link>}
+        >
+          <p className="mb-2 text-[10px] text-slate-500">排名＝全员总排名（与老员工同口径 · 流转倒序：回款在前、线索在后）</p>
+          {(() => {
+            const funnelIds = ['liqiang', 'chenhao', 'hanxue'];
+            const rows = members
+              .filter((mm) => funnelIds.includes(mm.id))
+              .map((mm) => {
+                const oc2 = computed.owners[mm.id];
+                const fo2 = computed.folded.perOwner[mm.id];
+                return {
+                  mm, t: tenureDays(mm.hireDate!, computed.asOf),
+                  monthRev: oc2?.monthRevenue ?? 0, cumRev: fo2?.revenue ?? 0,
+                  deals: oc2?.convBase.toDeal ?? 0, samples: oc2?.convBase.sampleNew ?? 0,
+                  intents: oc2?.convBase.intentNew ?? 0, leads: oc2?.convBase.leadNew ?? 0,
+                  rank: computed.rankings.totalByOwner[mm.id],
+                  roi: computed.folded.perOwnerRoi[mm.id],
+                };
+              })
+              .sort((a, b) => b.monthRev - a.monthRev);
+            return (
+              <div className="space-y-2">
+                {rows.map((r) => (
+                  <Link key={r.mm.id} to="/rookie" className="block rounded-xl bg-white/[0.04] p-2.5 transition-colors hover:bg-white/[0.08]">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Medal n={r.rank} />
+                      <span className="text-sm font-bold text-slate-100">{r.mm.name}</span>
+                      <span className="text-[10px] text-slate-500">{data.departments.find((d) => d.id === r.mm.deptId)?.name}</span>
+                      <span className="rounded bg-blue-500/20 px-1 text-[10px] text-blue-300">第 {r.t} 天</span>
+                      <span className="ml-auto text-[10px] tabular-nums text-slate-500">全员第 {r.rank} 名 · labor_roi {fmtRoi2(r.roi)}</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-6 gap-1 text-center text-[10px]">
+                      {[
+                        { k: '本月回款', v: fmtWan(r.monthRev) },
+                        { k: '累计回款', v: fmtWan(r.cumRev) },
+                        { k: '首购单', v: r.deals },
+                        { k: '样品', v: r.samples },
+                        { k: '意向', v: r.intents },
+                        { k: '线索', v: r.leads },
+                      ].map((x) => (
+                        <div key={x.k} className="rounded-lg bg-white/[0.04] px-0.5 py-1.5">
+                          <div className="text-[12px] font-extrabold tabular-nums text-slate-100">{x.v}</div>
+                          <div className="text-[9px] leading-3 text-slate-500">{x.k}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+                <p className="text-[10px] leading-4 text-slate-500">
+                  第 38 / 63 / 81 天三人同窗对比：都留到今天、都有回款——留下的每一个人，都有 90 天数据背书。
+                </p>
+              </div>
+            );
+          })()}
+        </BCard>
+      </div>
 
       {/* 底部固定条 */}
       <BCard tl={TL.slate} className="!py-3">
