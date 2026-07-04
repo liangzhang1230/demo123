@@ -206,12 +206,43 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
   const monthLabels = monthsKeys.map((m) => `${Number(m.slice(5, 7))}月`);
   const peopleName = (id: string) => data.people.find((p) => p.id === id)?.name ?? id;
 
+  // 区五文案三段式：功能是什么 / 解决什么问题 / 拿到什么结果（只讲省钱、赚钱、控风险）
   const packs = [
-    { key: 'pack1', name: '操盘包① · 人效操盘包', ai: 'AI 人效诊断', value: '这些人值不值、该招该汰该扩——招·用·汰·扩一条链', to: '/sample/pack1', job: '今日作业：王五每月净烧 ¥8,900——止血建议已就绪', tl: TL.red },
-    { key: 'pack2', name: '操盘包② · 增长操盘包', ai: 'AI 增长归因', value: '下一笔钱在哪、现金什么时候回——找钱四步闭环', to: '/sample/pack2', job: '今日作业：样品→签约卡点，估算卡着 ¥49.6万', tl: TL.cyan },
-    { key: 'pack3', name: '操盘包③ · 销冠 DNA 克隆引擎', ai: 'AI 战法克隆', value: '她凭什么是销冠？她走了怎么办？——把销冠战法变成公司资产', to: '/sample/pack3', job: '今日作业：赵敏首要带教点＝样品→签约（对标王丽）', tl: TL.purple },
-    { key: 'pack4', name: '操盘包④ · 经营黑匣子', ai: 'AI 决策回放', value: '我是怎么走到今天的、我的拍板值不值——决策→结果因果回放', to: '/sample/pack4', job: '本月作业：6 月航迹已生成——B 品类提价回放', tl: TL.amber },
-    { key: 'library', name: '经营智库', ai: 'AI 定薪分析', value: '定薪建议：底薪该给多少、提成该怎么设——用同行数据答', to: '/sample/library', job: '定薪建议：底薪带 ¥4,800–6,500 已就绪', tl: TL.green },
+    {
+      key: 'pack1', name: '操盘包① · 人效操盘包', ai: 'AI 人效诊断', to: '/sample/pack1', tl: TL.red,
+      func: '每人每天一笔账：工资花多少、赚回多少，谁回本、谁亏损、谁零产出',
+      pain: '王五 47 天零业务事件、月薪照付——今天就现形，不再拖到年底',
+      effect: '止住 ¥8,900/月 白花的工资；新人第几天回本、续不续用，按数据拍板',
+      job: '今日作业：王五每月净烧 ¥8,900——止血建议已就绪',
+    },
+    {
+      key: 'pack2', name: '操盘包② · 增长操盘包', ai: 'AI 增长归因', to: '/sample/pack2', tl: TL.cyan,
+      func: '找出漏斗最漏钱的一跳并算成钱；按签约节奏预告未来 30 天回款',
+      pain: '样品送出去签不回来：本月 82 进 9 出，钱卡在哪一步一眼看到',
+      effect: '修一个卡点＝找回 ¥49.6万营收；唤醒 38 家休眠客户＝再拿 ¥23.8万（估算）',
+      job: '今日作业：样品→签约卡点，估算卡着 ¥49.6万',
+    },
+    {
+      key: 'pack3', name: '操盘包③ · 销冠 DNA 克隆引擎', ai: 'AI 战法克隆', to: '/sample/pack3', tl: TL.purple,
+      func: '拆解销冠每步动作数据，生成可复制打法模板，指派带教并跟踪结果',
+      pain: '王丽样品→签约 38%、赵敏 9%——差的那一推，教得会',
+      effect: '销冠打法复制给其余 9 人；销冠离职，打法留在公司',
+      job: '今日作业：赵敏首要带教点＝样品→签约（对标王丽）',
+    },
+    {
+      key: 'pack4', name: '操盘包④ · 经营黑匣子', ai: 'AI 决策回放', to: '/sample/pack4', tl: TL.amber,
+      func: '记录每次拍板，自动对照拍板前后的回款、流失变化',
+      pain: 'B 品类提价后回款 −12%、流失 +6 家——拍板对错，有据可查',
+      effect: '同一个判断错误不犯第二次；每月一页经营航迹',
+      job: '本月作业：6 月航迹已生成——B 品类提价回放',
+    },
+    {
+      key: 'library', name: '经营智库', ai: 'AI 定薪分析', to: '/sample/library', tl: TL.green,
+      func: '按同行数据给出底薪带与提成阶梯',
+      pain: '底薪给高了亏钱、给低了招不到人',
+      effect: '底薪定在 ¥4,800–6,500 带内、提成 3–5% 阶梯，一次定准',
+      job: '定薪建议：底薪带 ¥4,800–6,500 已就绪',
+    },
   ];
 
   const stageDrillData = (stage: Stage) => {
@@ -416,53 +447,70 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
         </div>
       </div>
 
-      {/* 区三 · 钱事分诊条 */}
+      {/* 区三 · 钱事分诊条（三段三包，业务边界一一对应、点击不重复） */}
       <BCard
         title="区三 · 钱事分诊条"
         icon="🩺"
         tl={TL.amber}
-        right={unlocked ? <ExampleBadge inline /> : <span className="text-[10px] text-slate-500">三段读 AI 包结论 · 未购显 —</span>}
+        right={unlocked ? <ExampleBadge inline /> : <span className="text-[10px] text-slate-500">三段各对应一个 AI 包 · 未购显 —</span>}
       >
-        <div className="grid grid-cols-3 gap-2.5">
-          <Link to="/sample/pack1" className="rounded-xl border border-red-500/25 bg-red-500/[0.07] p-3 transition-colors hover:border-red-400/50">
-            <div className="text-[11px] font-bold text-red-400">在漏 {unlocked ? '' : '🔒'}</div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {/* 在漏 ＝ 人效操盘包（止血）——只管「工资白花」 */}
+          <Link to="/sample/pack1" className="flex flex-col rounded-xl border-2 border-red-500/40 bg-red-500/[0.07] p-3 transition-colors hover:border-red-400/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-red-400">在漏 {unlocked ? '' : '🔒'}</span>
+              <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold text-red-300">人效操盘包</span>
+            </div>
             {unlocked ? (
-              <div className="mt-1 text-sm font-extrabold leading-5 text-slate-100">
-                ¥8,900/月<div className="text-[10px] font-normal text-slate-400">止血分诊 · 分列</div>
-                ¥49.6万<div className="text-[10px] font-normal text-slate-400">卡点卡住营收（估算）</div>
-              </div>
+              <>
+                <div className="mt-1.5 text-2xl font-extrabold leading-7 text-slate-100">¥8,900<span className="text-sm font-bold text-slate-400">/月</span></div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-400">王五 47 天零业务事件、工资照付；累计净亏 ¥9,200</div>
+              </>
             ) : (
               <>
-                <div className="mt-1 text-xl font-extrabold text-slate-600">{DASH}</div>
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">开通人效操盘包，这里每天告诉你在漏多少钱 ›</p>
+                <div className="mt-1.5 text-2xl font-extrabold text-slate-600">{DASH}</div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-500">白花的工资，逐人逐月标出来</div>
               </>
             )}
+            <div className="mt-auto pt-1.5 text-[10px] font-semibold text-red-300">止血明细 ›</div>
           </Link>
-          <Link to="/sample/pack2" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-3 transition-colors hover:border-amber-400/50">
-            <div className="text-[11px] font-bold text-amber-400">待拿 {unlocked ? '' : '🔒'}</div>
+          {/* 待拿 ＝ 增长操盘包（卡点＋休眠）——只管「没拿回来的营收」 */}
+          <Link to="/sample/pack2" className="flex flex-col rounded-xl border-2 border-amber-500/40 bg-amber-500/[0.07] p-3 transition-colors hover:border-amber-400/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-400">待拿 {unlocked ? '' : '🔒'}</span>
+              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">增长操盘包</span>
+            </div>
             {unlocked ? (
-              <div className="mt-1 text-sm font-extrabold leading-5 text-slate-100">
-                ¥23.8万<div className="text-[10px] font-normal text-slate-400">38 家休眠唤醒估值（估算）</div>
-              </div>
+              <>
+                <div className="mt-1.5 text-2xl font-extrabold leading-7 text-slate-100">¥49.6万</div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-400">样品→签约卡点卡住的营收；另休眠客户 ¥23.8万（估算 · 分列不相加）</div>
+              </>
             ) : (
               <>
-                <div className="mt-1 text-xl font-extrabold text-slate-600">{DASH}</div>
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">开通增长操盘包，这里估算沉睡金矿与超期管道 ›</p>
+                <div className="mt-1.5 text-2xl font-extrabold text-slate-600">{DASH}</div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-500">卡点卡住的营收＋休眠客户估值</div>
               </>
             )}
+            <div className="mt-auto pt-1.5 text-[10px] font-semibold text-amber-300">找钱明细 ›</div>
           </Link>
-          <Link to="/sample/pack1" className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] p-3 transition-colors hover:border-emerald-400/50">
-            <div className="text-[11px] font-bold text-emerald-400">在赚 {unlocked ? '' : '🔒'}</div>
+          {/* 在赚 ＝ 销冠 DNA 引擎——只管「谁在替你赚、打法能不能复制」 */}
+          <Link to="/sample/pack3" className="flex flex-col rounded-xl border-2 border-emerald-500/40 bg-emerald-500/[0.07] p-3 transition-colors hover:border-emerald-400/70">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-emerald-400">在赚 {unlocked ? '' : '🔒'}</span>
+              <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">销冠 DNA 引擎</span>
+            </div>
             {unlocked ? (
-              <div className="mt-1 text-sm font-extrabold leading-5 text-slate-100">
-                7 / 10 人已回本<div className="text-[10px] font-normal text-slate-400">＋本月里程碑：回款新高</div>
-              </div>
+              <>
+                <div className="mt-1.5 text-2xl font-extrabold leading-7 text-slate-100">2.10<span className="text-sm font-bold text-slate-400"> 王丽</span></div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-400">销冠打法已拆解成模板，可复制给其余 9 人；她走了，打法留在公司</div>
+              </>
             ) : (
               <>
-                <div className="mt-1 text-xl font-extrabold text-slate-600">{DASH}</div>
-                <p className="mt-1 text-[10px] leading-4 text-slate-500">开通人效操盘包，这里显示已回本人数与里程碑 ›</p>
+                <div className="mt-1.5 text-2xl font-extrabold text-slate-600">{DASH}</div>
+                <div className="mt-0.5 text-[10px] leading-4 text-slate-500">谁在替你赚、打法能不能复制</div>
               </>
             )}
+            <div className="mt-auto pt-1.5 text-[10px] font-semibold text-emerald-300">克隆明细 ›</div>
           </Link>
         </div>
       </BCard>
@@ -702,6 +750,82 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
         </div>
       </div>
 
+      {/* 新人筛选（系统内置全套功能 · 看板同步上架）：老板用人痛点的第一现场 */}
+      <BCard
+        title="新人筛选 · 筛人漏斗"
+        icon="🧪"
+        tl={TL.pink}
+        right={<Link to="/rookie" data-testid="rookie-detail-link" className="rounded-lg bg-gradient-to-r from-pink-500/30 to-purple-500/30 px-2.5 py-1 text-[11px] font-bold text-pink-200 ring-1 ring-pink-400/40 hover:ring-pink-300">进入筛选详情页 ›</Link>}
+      >
+        <div className="grid gap-2.5 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <div className="rounded-xl border border-pink-400/25 bg-pink-500/[0.07] p-3">
+              <p className="text-sm font-extrabold leading-6 text-slate-100">
+                招错一个人 ＝ 白扔几万块 ＋ 市场延误 ＋ 客户差评 ＋ 老员工心态被带崩。
+              </p>
+              <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
+                想给高底薪招销冠，又怕养到混工资的——窗口 90 天，逐日数据筛人：
+                谁是销冠苗子、谁在混，第 38 天就有判断依据，不用等半年。
+                把省下的钱激励优秀，事半功倍。
+              </p>
+              <AiHint tone="block">
+                每天盯新人单量与节奏，异常当天提醒；窗口满自动汇总，留还是汰，你一键拍板。
+              </AiHint>
+            </div>
+          </div>
+          <div className="lg:col-span-8">
+            {(() => {
+              const rookies = members.filter((p) => p.hireDate && tenureDays(p.hireDate!, computed.asOf) <= 90);
+              if (rookies.length === 0) return <p className="py-6 text-center text-xs text-slate-500">当前无筛选期新人</p>;
+              return rookies.map((p) => {
+                const t = tenureDays(p.hireDate!, computed.asOf);
+                const oc = computed.owners[p.id];
+                const cost = Math.round(computed.folded.perOwnerLaborCost[p.id] ?? 0);
+                const rev = computed.folded.perOwner[p.id]?.revenue ?? 0;
+                const tiles = [
+                  { k: '累计建档', v: `${oc?.convBase.leadNew ?? 0} 家` },
+                  { k: '本月新客', v: `${oc?.monthFirstDeals ?? 0} 单` },
+                  { k: '累计回款', v: fmtYuan(rev) },
+                  { k: '累计投入（工资＋招培）', v: fmtYuan(cost) },
+                  { k: 'labor_roi', v: fmtRoi2(computed.folded.perOwnerRoi[p.id]) },
+                  { k: '窗口剩余', v: `${90 - t} 天` },
+                ];
+                return (
+                  <Link key={p.id} to="/rookie" className="block rounded-xl bg-white/[0.04] p-3 transition-colors hover:bg-white/[0.08]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 text-sm font-bold">{p.name[0]}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-slate-100">
+                          {p.name}
+                          <span className="rounded bg-blue-500/20 px-1 text-[10px] font-medium text-blue-300">筛选中 · 第 {t} 天 / 窗口 90 天</span>
+                          <span className="rounded bg-emerald-500/20 px-1 text-[10px] font-bold text-emerald-300">单量达标</span>
+                          <span className="rounded bg-yellow-500/20 px-1 text-[10px] text-yellow-300">亏损爬坡 · 继续观察</span>
+                        </div>
+                        <div className="mt-1 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/8">
+                          <div className="h-full rounded-full" style={{ width: `${(t / 90) * 100}%`, background: TL.pink }} />
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-pink-300">筛选详情 ›</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-center sm:grid-cols-6">
+                      {tiles.map((x) => (
+                        <div key={x.k} className="rounded-lg bg-white/[0.04] px-1 py-2">
+                          <div className="text-[13px] font-extrabold tabular-nums text-slate-100">{x.v}</div>
+                          <div className="text-[9px] leading-3 text-slate-500">{x.k}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </Link>
+                );
+              });
+            })()}
+            <p className="mt-1.5 text-[10px] text-slate-500">
+              筛人漏斗：本季筛选 2 人 → 筛剩 1 人（历史部分为示例数据）→ 李强转正窗口观察中——留下的每一个，都有 90 天数据背书。
+            </p>
+          </div>
+        </div>
+      </BCard>
+
       {/* 区五 · 武器坞（AI 四包＋经营智库货架） */}
       <BCard
         title="区五 · 武器坞（AI 增值包货架）"
@@ -726,33 +850,54 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
         }
       >
         {role === 'boss' ? (
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
             {packs.map((pk) => (
               <Link
                 key={pk.key}
                 to={pk.to}
-                className={`glass-hover topline relative block rounded-xl border p-3 ${
+                className={`glass-hover topline relative flex flex-col rounded-xl border p-3.5 ${
                   unlocked ? 'border-amber-400/40 bg-amber-500/[0.08]' : 'border-dashed border-white/20 bg-white/[0.03]'
                 }`}
                 style={{ ['--tl' as never]: unlocked ? TL.amber : pk.tl } as CSSProperties}
               >
                 {unlocked ? (
                   <>
-                    <div className="pr-14 text-[13px] font-bold text-slate-100">✨ {pk.name}</div>
+                    <div className="flex items-center gap-1.5 pr-14 text-[13px] font-bold text-slate-100">
+                      ✨ {pk.name}
+                      <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-300">🤖 {pk.ai}</span>
+                    </div>
                     <ExampleBadge />
-                    <span className="mt-1 inline-block rounded bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-300">🤖 {pk.ai}</span>
-                    <p className="mt-1 text-[11px] leading-4 text-slate-300">{pk.job}</p>
-                    <div className="mt-2 text-[10px] font-semibold text-amber-300">点开查看样例长页 →</div>
+                    <p className="mt-2 text-[11px] leading-4 text-slate-200">{pk.job}</p>
+                    <p className="mt-1 text-[11px] leading-4 text-slate-400">
+                      <span className="mr-1 rounded bg-emerald-500/15 px-1 text-[9px] font-bold text-emerald-300">结果</span>
+                      {pk.effect}（示例）
+                    </p>
+                    <div className="mt-auto pt-2 text-[10px] font-semibold text-amber-300">点开查看完整样例长页 →</div>
                   </>
                 ) : (
                   <>
-                    <div className="text-[13px] font-bold text-slate-200">🔒 {pk.name}</div>
-                    <span className="mt-1 inline-block rounded bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-300">🤖 {pk.ai}</span>
-                    <p className="mt-1 text-[11px] leading-4 text-slate-400">{pk.value}</p>
+                    <div className="flex items-center gap-1.5 text-[13px] font-bold text-slate-200">
+                      🔒 {pk.name}
+                      <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-300">🤖 {pk.ai}</span>
+                    </div>
+                    <div className="mt-2 space-y-1 text-[11px] leading-4">
+                      <p className="text-slate-300">
+                        <span className="mr-1 rounded bg-sky-500/15 px-1 text-[9px] font-bold text-sky-300">功能</span>
+                        {pk.func}
+                      </p>
+                      <p className="text-slate-300">
+                        <span className="mr-1 rounded bg-orange-500/15 px-1 text-[9px] font-bold text-orange-300">解决</span>
+                        {pk.pain}
+                      </p>
+                      <p className="font-semibold text-slate-100">
+                        <span className="mr-1 rounded bg-emerald-500/15 px-1 text-[9px] font-bold text-emerald-300">结果</span>
+                        {pk.effect}
+                      </p>
+                    </div>
                     <div className="mt-2 inline-flex rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-medium leading-3 text-emerald-300 ring-1 ring-emerald-400/30">
                       数据就绪：该演示租户已沉淀 {computed.folded.totalDealCnt} 笔成交 / {openDays} 天数据
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-auto flex items-center gap-2 pt-2">
                       <button
                         className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-900"
                         onClick={(e) => {
@@ -762,7 +907,7 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
                       >
                         试看申请
                       </button>
-                      <span className="text-[10px] text-slate-500">点卡片看样例 →</span>
+                      <span className="text-[10px] text-slate-500">点卡片看完整样例 →</span>
                     </div>
                   </>
                 )}
@@ -797,7 +942,8 @@ export function ManagementBoard({ role }: { role: 'boss' | 'manager' }) {
       <BCard tl={TL.slate} className="!py-3">
         <div className="flex flex-col gap-1.5 text-xs text-slate-400">
           <div>
-            <span className="font-semibold text-slate-300">筛人漏斗：</span>
+            <Link to="/rookie" className="font-semibold text-pink-300 hover:underline">筛人漏斗</Link>
+            <span className="font-semibold text-slate-300">：</span>
             {(() => {
               const rookies = members.filter((p) => p.hireDate);
               if (rookies.length === 0) return '当前无筛选期新人';

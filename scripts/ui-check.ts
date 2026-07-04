@@ -24,7 +24,14 @@ const DEFAULT_CHECKS: PageCheck[] = [
       // P10：AI 常驻/周期/部门/转化流失指标/下钻
       'AI 决策看板', 'AI 销售操盘手在线', '部门筛选', '部门对比', '总成交转化率', '客户流失率',
       '转化 · 流失总览', '每格可点下钻', '明细 ›',
+      // P11：区三边界/三段式文案/新人筛选
+      '人效操盘包', '增长操盘包', '销冠 DNA 引擎', '止血明细', '找钱明细', '克隆明细',
+      '新人筛选 · 筛人漏斗', '招错一个人', '进入筛选详情页', '功能', '解决', '结果',
     ],
+  },
+  {
+    route: '/rookie',
+    expects: ['新人筛选 · 详情页', '招错一个人', '李强', `窗口 90 天`, '筛人漏斗（分层）', '留用（转正）', '累计投入', 'labor_roi', '成交流水'],
   },
   { route: '/sample/pack1', expects: ['示例数据', '人效操盘包', '王五', '¥8,900', '李强', '试看申请'] },
   { route: '/sample/pack2', expects: ['示例数据', '49.6', '11.0%', '27.0%', '价格偏高'] },
@@ -64,7 +71,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   let failed = 0;
 
-  for (const vp of [{ w: 375, h: 812, tag: 'mobile' }, { w: 1920, h: 1080, tag: 'screen' }]) {
+  for (const vp of [{ w: 375, h: 812, tag: 'mobile' }, { w: 768, h: 1024, tag: 'tablet' }, { w: 1920, h: 1080, tag: 'screen' }]) {
     const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
     for (const chk of checks) {
       await page.goto(`http://localhost:4173/#${chk.route}`, { waitUntil: 'networkidle' });

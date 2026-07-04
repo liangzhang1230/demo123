@@ -11,6 +11,7 @@ import CustomerCardPage from './pages/sales/CustomerCard';
 import ConfirmPage from './pages/sales/Confirm';
 import SamplePage from './pages/boss/SamplePages';
 import ScriptPage from './pages/script';
+import RookiePage from './pages/boss/RookiePage';
 import { FloatingControls } from './components/FloatingControls';
 
 /** 身份切换首页：所有数字现场折算自事件流（无任何硬编码汇总） */
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="/sales/confirm" element={<ConfirmPage />} />
         <Route path="/sample/:key" element={<SamplePage />} />
         <Route path="/script" element={<ScriptPage />} />
+        <Route path="/rookie" element={<RookiePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <FloatingControls />
