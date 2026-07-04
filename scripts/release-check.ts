@@ -90,7 +90,7 @@ async function main() {
   await page.click('[data-testid=reset-btn]');
   await page.waitForSelector('[data-testid=reset-confirm]');
   await page.click('[data-testid=reset-confirm]');
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(4000);
   t('一键重置：回种子态 2026-06-29', (await body()).includes('2026-06-29'));
 
   // 单文件应急版 file:// 直开

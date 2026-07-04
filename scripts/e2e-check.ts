@@ -131,7 +131,7 @@ async function main() {
   await page.click('[data-testid=reset-btn]');
   await page.waitForSelector('[data-testid=reset-confirm]');
   await page.click('[data-testid=reset-confirm]');
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(4000);
   const homeBody = (await page.textContent('body')) ?? '';
   t('重置后回到首页且日期回到 2026-06-29', homeBody.includes('2026-06-29'));
   t('重置后关键数复原（种子重生成）', homeBody.includes('¥612,000') || homeBody.includes('61.2'));

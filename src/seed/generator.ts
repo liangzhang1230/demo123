@@ -40,7 +40,6 @@ const ROOKIE_CREATE_DAYS: Record<string, number[]> = {
   zhouzhou: [17, 18, 19, 20, 21, 22, 23, 24, 26, 28],
   sunyue: [20, 23, 26],
 };
-const rookieDayCursor: Record<string, number> = { liman: 0, zhouzhou: 0, sunyue: 0 };
 
 function dayAbs(mi: number, day: number): number {
   let base = 0;
@@ -61,6 +60,7 @@ function miDayOfAbs(abs: number): [number, number] {
 
 export function generateSeed(): SeedData {
   const rng = mulberry32(RNG_SEED);
+  const rookieDayCursor: Record<string, number> = { liman: 0, zhouzhou: 0, sunyue: 0 }; // 每次生成重置（防同页二次重置游标耗尽）
   const customers: Customer[] = [];
   const events: SeedEvent[] = [];
   const live = new Map<string, LiveCustomer>();
