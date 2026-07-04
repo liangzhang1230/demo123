@@ -5,6 +5,7 @@
 import type { SeedData, Stage } from '../domain/types';
 import { ALLOWED_TRANSITIONS, LOSS_REASONS } from '../domain/types';
 import { foldEvents, type Folded } from './fold';
+import { computeAll } from '../domain/compute';
 
 export interface CheckResult {
   group: string;
@@ -99,6 +100,20 @@ export function runSeedChecks(data: SeedData): { results: CheckResult[]; folded:
   eq('复购流失', '流失总数', 92, folded.stocks.lost);
   eq('复购流失', '本月流失（6 月）', 42, folded.monthlyLossTotal['2026-06'] ?? 0);
   eq('复购流失', '本月首要流失因＝价格偏高', 18, folded.lossReasonByMonth['2026-06']?.['价格偏高'] ?? 0);
+
+  // ---- 5b. 停滞分布收敛（P8 调优目标：有火可救、不满屏着火；口径引擎零改动） ----
+  {
+    const call = computeAll(data);
+    const st = call.company.stallTotal;
+    const inRange = (name: string, v: number, lo: number, hi: number) =>
+      ok('停滞分布', name, `[${lo}, ${hi}]`, String(v), v >= lo && v <= hi);
+    inRange('濒死（红）6-10 家', st.dying, 6, 10);
+    inRange('预警（橙）20-30 家', st.warning, 20, 30);
+    inRange('关注（黄）40-60 家', st.watch, 40, 60);
+    const wangwuStall = call.owners['wangwu']?.stall ?? { dying: 0, warning: 0, watch: 0 };
+    ok('停滞分布', '王五名下濒死 ≥5（47 天钩子主载体）', '≥5', String(wangwuStall.dying), wangwuStall.dying >= 5);
+    ok('停滞分布', '王五名下预警 ≥8（老化意向池）', '≥8', String(wangwuStall.warning), wangwuStall.warning >= 8);
+  }
 
   // ---- 6. 事件流完整性 ----
   let illegal = 0;

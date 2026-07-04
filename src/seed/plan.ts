@@ -12,7 +12,7 @@ import type { Stage, LossReason } from '../domain/types';
 
 export const OPEN_DATE = '2026-04-01';
 export const ANCHOR_DATE = '2026-06-29';
-export const SEED_VERSION = 'p1-huadongxinghui-v1';
+export const SEED_VERSION = 'p8-huadongxinghui-v2';
 export const RNG_SEED = 20260629;
 
 export const MONTHS = [
@@ -76,13 +76,18 @@ export const LEAD_MATRIX: Record<string, [number, number, number]> = {
  * 月度流转配额（逐池守恒解，满足期末存量 210/96/73/42/214/92）：
  * 样品池：进入 105/63/82（本月 82）、前向转出 97/17/9（本月 9 → 11.0%，上月 17/63 → 27.0%）
  */
+/**
+ * P8 停滞收敛调优：签约池入池后移（intent/lead→signed 向 6 月集中），
+ * 配合生成器 FIFO 消耗（老客户优先转出/流失），使期末存量的「入池时间」贴近现实节奏。
+ * 各流转对总量与样品池月度进出（82/9、63/17）零改动——关键数与守恒不受影响。
+ */
 export const TRANSITION_PLAN: { from: Stage; to: Stage; byMonth: [number, number, number] }[] = [
   { from: 'lead', to: 'intent', byMonth: [160, 115, 115] }, // 390
   { from: 'intent', to: 'sample', byMonth: [90, 55, 50] }, // 195
   { from: 'lead', to: 'sample', byMonth: [15, 8, 32] }, // 55
-  { from: 'sample', to: 'signed', byMonth: [74, 12, 9] }, // 95
-  { from: 'intent', to: 'signed', byMonth: [25, 12, 8] }, // 45
-  { from: 'lead', to: 'signed', byMonth: [8, 4, 3] }, // 15
+  { from: 'sample', to: 'signed', byMonth: [74, 12, 9] }, // 95（样品池月度转出＝关键数，不动）
+  { from: 'intent', to: 'signed', byMonth: [5, 5, 35] }, // 45
+  { from: 'lead', to: 'signed', byMonth: [2, 2, 11] }, // 15
   { from: 'signed', to: 'deal', byMonth: [40, 23, 45] }, // 108
   { from: 'sample', to: 'deal', byMonth: [23, 5, 0] }, // 28
   { from: 'intent', to: 'deal', byMonth: [15, 19, 12] }, // 46

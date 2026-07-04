@@ -119,11 +119,18 @@ export function generateSeed(): SeedData {
     return lc;
   }
 
-  /** 建档日窗口：王五 4 月 1-28 / 5 月 1-12；李强 5 月 23-31 / 6 月 1-27；其余当月早段偏置 */
+  /** 建档日窗口：王五 4 月 1-28 / 5 月 1-12；李强 5 月 23-31 / 6 月 8-27；
+   * 其余 4/5 月早段偏置；6 月建档后移（P8：存量线索入池贴近现实，早段仅留当月转出所需） */
   function createDay(ownerId: string, mi: number): number {
     const last = MONTHS[mi].lastEventDay;
     if (ownerId === 'wangwu') return mi === 0 ? randInt(rng, 1, 28) : randInt(rng, 1, 12);
-    if (ownerId === 'liqiang') return mi === 1 ? randInt(rng, 23, 31) : randInt(rng, 1, Math.min(27, last));
+    if (ownerId === 'liqiang') return mi === 1 ? randInt(rng, 23, 31) : randInt(rng, 8, Math.min(27, last));
+    if (mi === 2) {
+      const r = rng();
+      if (r < 0.06) return randInt(rng, 1, 6);
+      if (r < 0.21) return randInt(rng, 7, 14);
+      return randInt(rng, 15, 27);
+    }
     // 早段偏置（留出同月后续流转空间）
     const cap = Math.max(3, last - 3);
     return 1 + Math.floor(Math.pow(rng(), 1.3) * cap);
@@ -141,13 +148,30 @@ export function generateSeed(): SeedData {
     return last - 2;
   }
 
-  /** 流转日：晚于当前阶段进入日、不超过阶梯上限；偏向紧随其后 */
+  /** 流转日：晚于当前阶段进入日、不超过阶梯上限；偏向紧随其后。
+   * P8：6 月签约/样品入池日程后移（FIFO 幸存者＝晚入池 → 期末停留天数收敛） */
   function transitionDay(c: LiveCustomer, mi: number, to: Stage): number | null {
     const last = feedCapDay(mi, to);
     const monthStartAbs = dayAbs(mi, 1);
     const minAbs = Math.max(c.stageDay + 1, monthStartAbs);
     const maxAbs = dayAbs(mi, last);
     if (minAbs > maxAbs) return null;
+    if (mi === 2 && (to === 'signed' || to === 'sample')) {
+      const minDay = Math.max(1, minAbs - dayAbs(2, 0));
+      let day: number;
+      if (to === 'signed') {
+        const r = rng();
+        day = r < 0.16 ? randInt(rng, 12, 14) : r < 0.34 ? randInt(rng, 15, 18) : r < 0.6 ? randInt(rng, 19, 22) : randInt(rng, 23, last);
+      } else {
+        const r = rng();
+        day = r < 0.25 ? randInt(rng, 2, 9) : randInt(rng, 10, last);
+      }
+      if (day < minDay) {
+        if (minDay > last) return null;
+        day = randInt(rng, minDay, last);
+      }
+      return day;
+    }
     const span = maxAbs - minAbs;
     const abs = minAbs + Math.floor(Math.pow(rng(), 1.6) * (span + 1) * 0.999);
     return miDayOfAbs(abs)[1];
@@ -226,22 +250,33 @@ export function generateSeed(): SeedData {
     return true;
   }
 
+  /** P8 FIFO：先按 owner 权重选人（保留人物塑形），组内取最老客户（老客户优先转出） */
   function runTransition(from: Stage, to: Stage, mi: number, count: number) {
     for (let k = 0; k < count; k++) {
-      const cands: LiveCustomer[] = [];
-      for (const c of live.values()) if (eligible(c, from, mi, to)) cands.push(c);
+      const byOwner = new Map<string, LiveCustomer[]>();
+      for (const c of live.values()) {
+        if (!eligible(c, from, mi, to)) continue;
+        if (!byOwner.has(c.ownerId)) byOwner.set(c.ownerId, []);
+        byOwner.get(c.ownerId)!.push(c);
+      }
+      for (const list of byOwner.values()) list.sort((a, b) => a.stageDay - b.stageDay);
       let done = false;
-      for (let attempt = 0; attempt < 40 && cands.length > 0; attempt++) {
-        const weights = cands.map((c) => ownerWeight(c.ownerId, from, to, mi) * (to === 'deal' ? dealQuota[c.ownerId][mi] : 1));
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const entries = [...byOwner.entries()].filter(([, list]) => list.length > 0);
+        if (entries.length === 0) break;
+        const weights = entries.map(
+          ([o, list]) => ownerWeight(o, from, to, mi) * list.length * (to === 'deal' ? dealQuota[o][mi] : 1),
+        );
         const idx = pickWeighted(rng, weights);
-        const c = cands[idx < 0 ? 0 : idx];
+        const [, list] = entries[idx < 0 ? 0 : idx];
+        const c = list[0];
         if (doTransition(c, to, mi)) {
           if (to === 'deal') dealQuota[c.ownerId][mi]--;
           takeQuota(from, to, mi, 1);
           done = true;
           break;
         }
-        cands.splice(cands.indexOf(c), 1); // 排期失败的候选移出，避免复抽
+        list.shift(); // 排期失败的最老候选移出，试次老
       }
       if (!done) throw new Error(`无可用客户 ${from}→${to} @${MONTHS[mi].ym}（第${k + 1}/${count}笔）`);
     }
@@ -251,11 +286,11 @@ export function generateSeed(): SeedData {
     for (let k = 0; k < count; k++) {
       const cands: LiveCustomer[] = [];
       for (const c of live.values()) if (eligible(c, pool, mi, 'lost')) cands.push(c);
-      // 偏挑老客户流失（留下的存量更「新」，停滞形态更真实）
+      // P8 强 FIFO：几乎严格最老客户先流失（留下的存量更「新」，停滞形态收敛）
       cands.sort((a, b) => a.stageDay - b.stageDay);
       let done = false;
       for (let attempt = 0; attempt < 40 && cands.length > 0; attempt++) {
-        const i = Math.floor(Math.pow(rng(), 2) * Math.min(cands.length, Math.ceil(cands.length * 0.5)));
+        const i = Math.floor(Math.pow(rng(), 3) * Math.min(cands.length, 4));
         const c = cands[i];
         if (doTransition(c, 'lost', mi, () => pickLossReason(mi))) {
           const q = lossQuota.find((l) => l.pool === pool)!;
@@ -269,16 +304,18 @@ export function generateSeed(): SeedData {
     }
   }
 
-  // ---- 王五剧本（4 月/5 月上旬，末次事件 5-13；此后 47 天零业务事件） ----
+  // ---- 王五剧本（4 月/5 月上旬，末次事件 5-13；此后 47 天零业务事件）----
+  // P8 残留形态设计：期末余 6 条线索（5 月建档 → 48-59 天，濒死）＋ 11 条意向
+  // （4-20 起入池 → 47-70 天，预警带 [45,75)，不越 75 天濒死线）——「有火可救」而非满屏红。
   function scriptWangwu(mi: number) {
     const mine = () => [...live.values()].filter((c) => c.ownerId === 'wangwu');
-    const capDay = (c: LiveCustomer, maxAbs: number): number | null => {
-      const minAbs = c.stageDay + 1;
+    const capDay = (c: LiveCustomer, maxAbs: number, minAbsFloor?: number): number | null => {
+      const minAbs = Math.max(c.stageDay + 1, minAbsFloor ?? 0);
       if (minAbs > maxAbs) return null;
       return randInt(rng, minAbs, maxAbs);
     };
-    const doOn = (c: LiveCustomer, to: Stage, maxAbs: number, reason?: LossReason) => {
-      const abs = capDay(c, maxAbs);
+    const doOn = (c: LiveCustomer, to: Stage, maxAbs: number, reason?: LossReason, minAbsFloor?: number) => {
+      const abs = capDay(c, maxAbs, minAbsFloor);
       if (abs == null) throw new Error('王五剧本排期失败');
       const [m, d] = miDayOfAbs(abs);
       emit({
@@ -290,8 +327,9 @@ export function generateSeed(): SeedData {
     };
     if (mi === 0) {
       const maxAbs = dayAbs(0, 30);
+      const intentFloor = dayAbs(0, 20); // 意向入池 ≥ 4-20：期末 ≤70 天，稳落预警带
       const leads = mine().filter((c) => c.stage === 'lead').sort((a, b) => a.stageDay - b.stageDay);
-      for (let i = 0; i < 4; i++) { doOn(leads[i], 'intent', maxAbs); takeQuota('lead', 'intent', 0); }
+      for (let i = 0; i < 8; i++) { doOn(leads[i], 'intent', maxAbs, undefined, intentFloor); takeQuota('lead', 'intent', 0); }
       const leads2 = mine().filter((c) => c.stage === 'lead').sort((a, b) => a.stageDay - b.stageDay);
       for (let i = 0; i < 4; i++) {
         doOn(leads2[i], 'lost', maxAbs, pickLossReason(0));
@@ -306,7 +344,7 @@ export function generateSeed(): SeedData {
     if (mi === 1) {
       const maxAbs = wangwuLastAbs; // 一切事件 ≤ 5-13
       const leads = mine().filter((c) => c.stage === 'lead' && c.stageDay < maxAbs).sort((a, b) => a.stageDay - b.stageDay);
-      for (let i = 0; i < 2; i++) { doOn(leads[i], 'intent', maxAbs); takeQuota('lead', 'intent', 1); }
+      for (let i = 0; i < 7; i++) { doOn(leads[i], 'intent', maxAbs); takeQuota('lead', 'intent', 1); }
       const leads2 = mine().filter((c) => c.stage === 'lead' && c.stageDay < maxAbs).sort((a, b) => a.stageDay - b.stageDay);
       for (let i = 0; i < 4; i++) {
         doOn(leads2[i], 'lost', maxAbs, pickLossReason(1));
