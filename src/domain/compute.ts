@@ -422,3 +422,104 @@ export function computeAll(data: SeedData, asOf?: string): Computed {
 
 /** 人力成本（累计，开通日起）——转发种子层实现，供页面单点引用 */
 export { laborCostOf };
+
+// ================= P9 · 看板呈现层折算辅助（纯读侧聚合，零新口径） =================
+
+/** 近 N 天逐日回款序列（可按 owner 集裁剪；账务日＝自然日） */
+export function dailyRevenueSeries(
+  data: SeedData, asOf: string, days: number, ownerIds?: Set<string>,
+): { date: string; value: number }[] {
+  const from = addDaysStr(asOf, -(days - 1));
+  const map = new Map<string, number>();
+  for (const e of data.events) {
+    if (e.type !== 'order_created' || e.date < from || e.date > asOf) continue;
+    if (ownerIds && !ownerIds.has(e.ownerId)) continue;
+    map.set(e.date, (map.get(e.date) ?? 0) + (e.amount ?? 0));
+  }
+  const out: { date: string; value: number }[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = addDaysStr(from, i);
+    out.push({ date: d, value: map.get(d) ?? 0 });
+  }
+  return out;
+}
+
+/** 成员 × 近 N 天业务事件数矩阵（团队活跃热力图；业务事件＝建档/流转/成交单） */
+export function activityMatrix(
+  data: SeedData, asOf: string, days: number, ownerIds: string[],
+): { ownerId: string; cells: number[]; total: number }[] {
+  const from = addDaysStr(asOf, -(days - 1));
+  const idx = new Map(ownerIds.map((id, i) => [id, i]));
+  const grid = ownerIds.map(() => new Array(days).fill(0) as number[]);
+  for (const e of data.events) {
+    if (e.date < from || e.date > asOf) continue;
+    const oi = idx.get(e.ownerId);
+    if (oi == null) continue;
+    const di = Math.round((Date.parse(e.date) - Date.parse(from)) / 86400000);
+    if (di >= 0 && di < days) grid[oi][di]++;
+  }
+  return ownerIds.map((ownerId, i) => ({
+    ownerId, cells: grid[i], total: grid[i].reduce((a, b) => a + b, 0),
+  }));
+}
+
+/** 个人最佳记录（本人口径：回款与过程数据，零利润口径可安全用于销售端） */
+export function personalRecords(data: SeedData, ownerId: string, asOf: string): {
+  bestDay: { date: string; value: number } | null;
+  biggestOrder: { date: string; value: number } | null;
+  bestMonth: { ym: string; value: number } | null;
+  fastestCycleDays: number | null;
+  monthDeals: number;
+} {
+  const dayMap = new Map<string, number>();
+  const monthMap = new Map<string, number>();
+  let biggest: { date: string; value: number } | null = null;
+  const created = new Map<string, string>();
+  let fastest: number | null = null;
+  let monthDeals = 0;
+  const ym = asOf.slice(0, 7);
+  for (const e of data.events) {
+    if (e.date > asOf || e.ownerId !== ownerId) continue;
+    if (e.type === 'customer_created') created.set(e.customerId, e.date);
+    if (e.type === 'stage_changed' && e.to === 'deal') {
+      const c0 = created.get(e.customerId);
+      if (c0) {
+        const cyc = Math.round((Date.parse(e.date) - Date.parse(c0)) / 86400000);
+        if (fastest == null || cyc < fastest) fastest = cyc;
+      }
+      if (e.date.slice(0, 7) === ym) monthDeals++;
+    }
+    if (e.type === 'order_created') {
+      const amt = e.amount ?? 0;
+      dayMap.set(e.date, (dayMap.get(e.date) ?? 0) + amt);
+      monthMap.set(e.date.slice(0, 7), (monthMap.get(e.date.slice(0, 7)) ?? 0) + amt);
+      if (!biggest || amt > biggest.value) biggest = { date: e.date, value: amt };
+    }
+  }
+  let bestDay: { date: string; value: number } | null = null;
+  for (const [d, v] of dayMap) if (!bestDay || v > bestDay.value) bestDay = { date: d, value: v };
+  let bestMonth: { ym: string; value: number } | null = null;
+  for (const [m, v] of monthMap) if (!bestMonth || v > bestMonth.value) bestMonth = { ym: m, value: v };
+  return { bestDay, biggestOrder: biggest, bestMonth, fastestCycleDays: fastest, monthDeals };
+}
+
+/** 当月成交单列表（下钻明细用；owner 集可选） */
+export function monthOrders(
+  data: SeedData, asOf: string, ownerIds?: Set<string>,
+): { date: string; customer: string; ownerId: string; amount: number; isRepeat: boolean }[] {
+  const ym = asOf.slice(0, 7);
+  const nameOf = new Map(data.customers.map((c) => [c.id, c.name]));
+  return data.events
+    .filter((e) => e.type === 'order_created' && e.date.slice(0, 7) === ym && e.date <= asOf && (!ownerIds || ownerIds.has(e.ownerId)))
+    .map((e) => ({
+      date: e.date, customer: nameOf.get(e.customerId) ?? e.customerId,
+      ownerId: e.ownerId, amount: e.amount ?? 0, isRepeat: !!e.isRepeat,
+    }))
+    .reverse();
+}
+
+function addDaysStr(date: string, n: number): string {
+  const d = new Date(date + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}

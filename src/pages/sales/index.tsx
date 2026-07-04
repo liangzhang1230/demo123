@@ -1,185 +1,316 @@
 /**
- * /sales · 王丽 · 销售端看板（销售端章【定稿】：置顶悬赏＋四区，行动板不是报表板）。
- * 死线②零经营口径：管理端专属数字（利润类/成本类/roi 类/诊断结论）在本页一个像素不出现；
- * 销售可见金额仅限本人回款实际与回款目标（唯一豁免）。
- * 死线③零羞辱：停滞只作待推进优先级，不显总量羞辱口径；排名只显名次与升降，不显差距。
+ * /sales · 王丽 · 销售端看板（销售端章【定稿】：置顶悬赏＋四区，行动板不是报表板）· P9 战绩中心升级。
+ * 死线②零经营口径：管理端专属数字（利润类/成本类/roi 类/诊断结论）一个像素不出现；
+ * 可见金额仅限本人回款实际与回款目标（唯一豁免）。
+ * 死线③零羞辱：排名只显自己名次与升降（榜单脱敏），停滞只作待推进优先级。
  */
-import { useMemo } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../store/AppStore';
-import { computeAll } from '../../domain/compute';
+import { computeAll, dailyRevenueSeries, personalRecords } from '../../domain/compute';
 import { addDays, dailyTarget, daysInMonth, fmtPct0, fmtYuan, paceRate, sevenLevel } from '../../domain/engine';
 import { STAGE_LABEL, FUNNEL_STAGES } from '../../domain/types';
-import { Card, CardTitle, GrayNote, LevelChip, PaceBar, Shell, STALL_DOT } from '../../components/ui';
+import { BCard, BoardShell, DarkLevelChip, DarkPaceBar, DrillRow, DrillSheet, TL } from '../../components/board';
+import { HeatGrid, Ring, Spark } from '../../components/charts';
 
 const ME = 'wangli';
+
+const LEVEL_RING: Record<string, string> = {
+  lead: '#a78bfa', excellent: '#60a5fa', good: '#34d399', pass: '#cbd5e1',
+  yellow: '#facc15', orange: '#fb923c', red: '#f87171',
+};
+
+const STAGE_GRAD: Record<string, string> = {
+  lead: 'linear-gradient(135deg,#06b6d4,#22d3ee)',
+  intent: 'linear-gradient(135deg,#6366f1,#818cf8)',
+  sample: 'linear-gradient(135deg,#8b5cf6,#a78bfa)',
+  signed: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+  deal: 'linear-gradient(135deg,#10b981,#34d399)',
+  lost: 'linear-gradient(135deg,#475569,#64748b)',
+};
 
 export default function SalesPage() {
   const { data, computed } = useApp();
   const me = data.people.find((p) => p.id === ME)!;
   const oc = computed.owners[ME];
   const stocks = computed.folded.perOwner[ME]?.stocks;
+  const [drill, setDrill] = useState<null | 'stall'>(null);
 
-  // 区一② 待推进：本人停滞列表（既有排序：红→橙→黄→ABCD→天数倒序），Top 5
   const myStalls = useMemo(() => computed.stallList.filter((s) => s.ownerId === ME), [computed]);
 
-  // 区二 单日三过程量：当日实际 vs 单日目标（月度目标÷当月自然天数），达标率落七级色
+  // 区二 · 单日三过程量（单日目标＝月度目标÷当月自然天数；达标率落七级色）
   const procTargets = data.targets.personMonthlyProcess[ME];
   const dayRows = (['lead', 'intent', 'sample'] as const).map((k) => {
     const target = dailyTarget(procTargets?.[k] ?? null, computed.ym);
     const actual = oc.dayProcess[k];
     const rate = target != null ? actual / target : null;
-    return { k, label: { lead: '线索', intent: '意向', sample: '样品' }[k], actual, target, level: sevenLevel(rate) };
+    const level = sevenLevel(rate);
+    return { k, label: { lead: '今日线索', intent: '今日意向', sample: '今日样品' }[k], actual, target, rate, level };
   });
 
-  // 区二 月回款目标 pace（销售端唯一金额豁免位）
+  // 区二 · 月回款目标（销售端唯一金额豁免位）
   const revTarget = data.targets.personMonthlyRevenue[ME];
   const elapsed = Number(computed.asOf.slice(8, 10));
   const pace = paceRate(oc.monthRevenue, revTarget, elapsed, daysInMonth(computed.ym));
   const paceLevel = sevenLevel(pace);
 
-  // 区三 排名：只显名次与升降（读昨日折算对比，非新口径）
+  // 区三 · 排名（只显名次与升降，读昨日折算对比）
   const yesterday = useMemo(() => computeAll(data, addDays(computed.asOf, -1)), [data, computed.asOf]);
   const rankNow = computed.rankings.totalByOwner[ME];
   const rankPrev = yesterday.rankings.totalByOwner[ME];
   const deptNow = computed.rankings.deptByOwner[ME];
   const deptPrev = yesterday.rankings.deptByOwner[ME];
-  const arrow = (now: number, prev: number) => (now < prev ? '↑' : now > prev ? '↓' : '—');
+
+  // 我的近 14 天回款（本人口径豁免）＋ 个人最佳 ＋ 7 日活跃
+  const my14 = useMemo(() => dailyRevenueSeries(data, computed.asOf, 14, new Set([ME])), [data, computed.asOf]);
+  const records = useMemo(() => personalRecords(data, ME, computed.asOf), [data, computed.asOf]);
+  const myHeat = useMemo(() => {
+    const from = addDays(computed.asOf, -6);
+    const cells = new Array(7).fill(0) as number[];
+    for (const e of data.events) {
+      if (e.ownerId !== ME || e.date < from || e.date > computed.asOf) continue;
+      const i = Math.round((Date.parse(e.date) - Date.parse(from)) / 86400000);
+      if (i >= 0 && i < 7) cells[i]++;
+    }
+    return cells;
+  }, [data, computed.asOf]);
+  const heatCols = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.parse(computed.asOf) - (6 - i) * 86400000);
+    return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+  });
+
+  const RankBadge = ({ now, prev }: { now: number; prev: number }) => (
+    <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${now < prev ? 'bg-emerald-500/15 text-emerald-400' : now > prev ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-slate-400'}`}>
+      {now < prev ? `↑ ${prev - now} 位` : now > prev ? `↓ ${now - prev} 位` : '— 持平'}
+    </span>
+  );
 
   return (
-    <Shell title={`${me.name}（销售）· 我的看板`} subtitle={`${data.tenant.name} ｜ 今天 ${computed.asOf}`}>
+    <BoardShell
+      title={
+        <span className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-base font-extrabold">
+            {me.name[0]}
+          </span>
+          {me.name} · 我的战绩
+        </span>
+      }
+      subtitle={
+        <>
+          <span>华东一部 · 销售</span>
+          <span>今天 {computed.asOf}</span>
+          <span className="flex items-center gap-1"><i className="live-dot" />本月成交 {records.monthDeals} 单</span>
+        </>
+      }
+    >
       {/* 置顶 · 悬赏令栏（法定落位：只显示，不判达成、不算钱） */}
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-        <div className="text-[10px] font-bold tracking-wide text-amber-600">悬赏令</div>
-        <div className="mt-0.5 text-sm font-medium text-amber-900">📣 {data.bounty}</div>
+      <div className="topline glass rounded-2xl p-3.5" style={{ ['--tl' as never]: TL.amber } as CSSProperties}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-lg">📣</span>
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.35em] text-amber-400">悬赏令</div>
+            <div className="text-sm font-semibold text-amber-100">{data.bounty}</div>
+          </div>
+        </div>
       </div>
 
-      {/* 区一 · 今日待办（固定四源固定次序） */}
-      <Card>
-        <CardTitle>区一 · 今日待办</CardTitle>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 p-3">
-            <div className="text-sm text-blue-900">
-              ① 今日确认页 <span className="font-semibold">未确认</span>
-              <span className="ml-1 text-xs text-blue-500">23:00 前完成</span>
+      <div className="space-y-3 lg:grid lg:grid-cols-12 lg:gap-3 lg:space-y-0">
+        {/* 区一 · 今日待办 */}
+        <BCard title="区一 · 今日待办" icon="✅" tl={TL.red} className="lg:col-span-7">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between rounded-xl border border-sky-500/25 bg-sky-500/10 p-3">
+              <div className="text-sm text-sky-200">
+                ① 今日确认页 <b>{(data.confirmations?.[computed.asOf] ?? []).includes(ME) ? '已确认 ✓' : '未确认'}</b>
+                <span className="ml-1.5 text-xs text-sky-400/70">23:00 前完成</span>
+              </div>
+              <Link to="/sales/confirm" className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-white active:opacity-80">
+                去确认
+              </Link>
             </div>
-            <Link to="/sales/confirm" className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white">
-              去确认
-            </Link>
-          </div>
 
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <div className="mb-1.5 flex items-center justify-between text-sm text-gray-800">
-              <span>② 待推进（今天先推这 {Math.min(5, myStalls.length)} 家）</span>
-              {myStalls.length > 5 && <span className="text-[11px] text-gray-400">还有 {myStalls.length - 5} 家</span>}
+            <div className="rounded-xl bg-white/[0.04] p-3">
+              <div className="mb-1.5 flex items-center justify-between text-sm text-slate-200">
+                <span>② 待推进（今天先推这 {Math.min(5, myStalls.length)} 家）</span>
+                {myStalls.length > 5 && (
+                  <button className="text-[11px] text-indigo-300 hover:underline" onClick={() => setDrill('stall')}>
+                    还有 {myStalls.length - 5} 家 ›
+                  </button>
+                )}
+              </div>
+              {myStalls.length === 0 ? (
+                <p className="text-xs text-slate-500">暂无停滞客户</p>
+              ) : (
+                <ul className="divide-y divide-white/5">
+                  {myStalls.slice(0, 5).map((s) => (
+                    <li key={s.customerId}>
+                      <Link to={`/sales/customer/${s.customerId}`} className="flex items-center justify-between py-1.5 text-xs hover:bg-white/5">
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <i className={`h-2 w-2 shrink-0 rounded-full ${s.level === 'dying' ? 'bg-red-500' : s.level === 'warning' ? 'bg-orange-400' : 'bg-yellow-400'}`} />
+                          <span className="truncate font-medium text-slate-200">{s.name}</span>
+                          <span className="shrink-0 rounded bg-white/10 px-1 text-[9px] text-slate-400">{s.abcd}</span>
+                        </span>
+                        <span className="shrink-0 tabular-nums text-slate-400">
+                          {STAGE_LABEL[s.stage]} · 停留 {s.days} 天 ›
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {myStalls.length === 0 ? (
-              <GrayNote>暂无停滞客户</GrayNote>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {myStalls.slice(0, 5).map((s) => (
-                  <li key={s.customerId} className="flex items-center justify-between py-1.5 text-xs">
-                    <Link to={`/sales/customer/${s.customerId}`} className="flex min-w-0 items-center gap-1.5">
-                      <i className={`h-2 w-2 shrink-0 rounded-full ${STALL_DOT[s.level]}`} />
-                      <span className="truncate font-medium text-gray-800">{s.name}</span>
-                      <span className="shrink-0 rounded bg-white px-1 text-[10px] text-gray-400 ring-1 ring-gray-200">{s.abcd}</span>
-                    </Link>
-                    <span className="shrink-0 tabular-nums text-gray-500">
-                      {STAGE_LABEL[s.stage]} · 停留 {s.days} 天
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
 
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-700">
-            ③ 带教任务：本周把你的「样品跟进节奏」带教给 1 名同事
-            <span className="ml-1 text-[11px] text-gray-400">指派人 刘敏 · 6-27 起</span>
+            <div className="rounded-xl bg-white/[0.04] p-3 text-sm text-slate-300">
+              ③ 带教任务：本周把你的「样品跟进节奏」带教给 1 名同事
+              <span className="ml-1 text-[11px] text-slate-500">指派人 刘敏 · 6-27 起</span>
+            </div>
           </div>
-        </div>
-      </Card>
+        </BCard>
 
-      {/* 区二 · 我的目标（进度即语言） */}
-      <Card>
-        <CardTitle>区二 · 我的目标</CardTitle>
+        {/* 区三 · 我的排名（荣誉位：只显名次与升降） */}
+        <BCard title="区三 · 我的排名" icon="🏆" tl={TL.amber} className="lg:col-span-5"
+          right={<span className="text-[10px] text-slate-500">榜单脱敏 · 并列跳号随全局</span>}
+        >
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/15 to-transparent p-3.5 text-center">
+              <div className="text-[11px] text-slate-400">全员总排名</div>
+              <div className={`my-1 text-4xl font-black ${rankNow === 1 ? 'gold-text' : 'text-slate-100'}`}>{rankNow}</div>
+              <RankBadge now={rankNow} prev={rankPrev} />
+              <div className="mt-1 text-[9px] text-slate-500">较昨日定版快照</div>
+            </div>
+            <div className="rounded-2xl border border-indigo-400/30 bg-gradient-to-br from-indigo-500/15 to-transparent p-3.5 text-center">
+              <div className="text-[11px] text-slate-400">部门内排名</div>
+              <div className={`my-1 text-4xl font-black ${deptNow === 1 ? 'gold-text' : 'text-slate-100'}`}>{deptNow}</div>
+              <RankBadge now={deptNow} prev={deptPrev} />
+              <div className="mt-1 text-[9px] text-slate-500">华东一部</div>
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] leading-4 text-slate-500">
+            只显示你的名次与升降——不显示与他人的差距（把注意力留给客户，不留给焦虑）。
+          </p>
+
+          {/* 个人最佳记录（本人口径） */}
+          <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+            {[
+              { icon: '🏆', k: '单日最高回款', v: records.bestDay ? fmtYuan(records.bestDay.value) : '—', d: records.bestDay?.date },
+              { icon: '💎', k: '单笔最大成交', v: records.biggestOrder ? fmtYuan(records.biggestOrder.value) : '—', d: records.biggestOrder?.date },
+              { icon: '📈', k: '最高单月回款', v: records.bestMonth ? fmtYuan(records.bestMonth.value) : '—', d: records.bestMonth?.ym },
+              { icon: '⚡', k: '最快成交周期', v: records.fastestCycleDays != null ? `${records.fastestCycleDays} 天` : '—', d: '建档→成交' },
+            ].map((r) => (
+              <div key={r.k} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-2.5 py-2">
+                <span className="text-base">{r.icon}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-bold tabular-nums text-slate-100">{r.v}</div>
+                  <div className="text-[9px] text-slate-500">{r.k} · {r.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </BCard>
+      </div>
+
+      {/* 区二 · 我的目标（进度即语言：三环＋pace 条＋趋势） */}
+      <BCard title="区二 · 我的目标" icon="🎯" tl={TL.indigo}
+        right={<span className="text-[10px] text-slate-500">单日目标＝月度目标 ÷ 自然天数 · 七级色</span>}
+      >
         <div className="grid grid-cols-3 gap-2">
           {dayRows.map((r) => (
-            <div key={r.k} className="rounded-xl bg-gray-50 p-3 text-center">
-              <div className="text-[11px] text-gray-500">今日{r.label}</div>
-              <div className="mt-0.5 text-lg font-bold tabular-nums">
-                {r.actual}
-                <span className="text-xs font-normal text-gray-400">/{r.target == null ? '—' : r.target.toFixed(1)}</span>
-              </div>
-              <div className="mt-1"><LevelChip level={r.level} /></div>
+            <div key={r.k} className="flex flex-col items-center rounded-xl bg-white/[0.04] py-3">
+              <Ring
+                pct={r.rate == null ? null : Math.min(1, r.rate)}
+                color={r.level ? LEVEL_RING[r.level.key] : '#64748b'}
+                center={<span>{r.actual}<span className="text-[10px] font-normal text-slate-400">/{r.target == null ? '—' : r.target.toFixed(1)}</span></span>}
+                sub={r.label}
+              />
+              <div className="mt-1.5"><DarkLevelChip level={r.level} /></div>
             </div>
           ))}
         </div>
-        <div className="mt-3 rounded-xl bg-gray-50 p-3">
-          <div className="flex items-baseline justify-between text-sm">
-            <span className="text-gray-600">本月回款目标</span>
-            <span className="font-bold tabular-nums">
-              {fmtYuan(oc.monthRevenue)} <span className="text-xs font-normal text-gray-400">/ {fmtYuan(revTarget)}</span>
-            </span>
-          </div>
-          <div className="mt-2"><PaceBar rate={pace} level={paceLevel} /></div>
-          <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
-            <span>{pace == null ? '目标未设' : pace >= 1 ? `进度 ${fmtPct0(pace)}，跑在日历前面` : `进度 ${fmtPct0(pace)}，加把劲`}</span>
-            <LevelChip level={paceLevel} />
-          </div>
-        </div>
-      </Card>
 
-      {/* 区三 · 我的排名（荣誉位：只显名次与升降，不显差距） */}
-      <Card>
-        <CardTitle>区三 · 我的排名</CardTitle>
-        <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="rounded-xl bg-gray-50 p-3">
-            <div className="text-[11px] text-gray-500">全员总排名</div>
-            <div className="mt-0.5 text-2xl font-bold tabular-nums">
-              第 {rankNow} 名
-              <span className={`ml-1 text-sm ${rankNow < rankPrev ? 'text-emerald-600' : rankNow > rankPrev ? 'text-red-500' : 'text-gray-400'}`}>
-                {arrow(rankNow, rankPrev)}
+        <div className="mt-3 grid gap-2.5 lg:grid-cols-2">
+          <div className="rounded-xl bg-white/[0.04] p-3">
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-slate-400">本月回款目标</span>
+              <span className="font-extrabold tabular-nums text-cyan-200">
+                {fmtYuan(oc.monthRevenue)} <span className="text-xs font-normal text-slate-500">/ {fmtYuan(revTarget)}</span>
               </span>
             </div>
-            <div className="text-[10px] text-gray-400">较昨日</div>
-          </div>
-          <div className="rounded-xl bg-gray-50 p-3">
-            <div className="text-[11px] text-gray-500">部门内排名</div>
-            <div className="mt-0.5 text-2xl font-bold tabular-nums">
-              第 {deptNow} 名
-              <span className={`ml-1 text-sm ${deptNow < deptPrev ? 'text-emerald-600' : deptNow > deptPrev ? 'text-red-500' : 'text-gray-400'}`}>
-                {arrow(deptNow, deptPrev)}
-              </span>
+            <div className="mt-2"><DarkPaceBar rate={pace} level={paceLevel} /></div>
+            <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
+              <span>{pace == null ? '目标未设' : pace >= 1 ? `进度 ${fmtPct0(pace)}，跑在日历前面` : `进度 ${fmtPct0(pace)}，加把劲`}</span>
+              <DarkLevelChip level={paceLevel} />
             </div>
-            <div className="text-[10px] text-gray-400">华东一部</div>
+          </div>
+          <div className="rounded-xl bg-white/[0.04] p-3">
+            <div className="mb-1 text-[10px] text-slate-500">我的近 14 天回款</div>
+            <Spark data={my14.map((d) => d.value)} w={300} h={44} stroke="#22d3ee" fillFrom="rgba(34,211,238,0.28)" />
+            <div className="mt-0.5 flex justify-between text-[9px] text-slate-500">
+              <span>{my14[0]?.date.slice(5)}</span><span>今天</span>
+            </div>
           </div>
         </div>
-        <GrayNote>榜单脱敏：只显示你的名次与升降（并列跳号规则随全局）。</GrayNote>
-      </Card>
+      </BCard>
 
-      {/* 区四 · 我的漏斗（干活入口） */}
-      <Card>
-        <CardTitle right={<span className="text-[10px] text-gray-400">本月回款 {fmtYuan(oc.monthRevenue)}</span>}>
-          区四 · 我的漏斗
-        </CardTitle>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          {FUNNEL_STAGES.map((s) => (
-            <Link key={s} to={`/sales/customers?stage=${s}`} className="rounded-xl bg-gray-50 py-2.5 active:bg-gray-100">
-              <div className="text-[11px] text-gray-500">{STAGE_LABEL[s]}</div>
-              <div className="text-xl font-bold tabular-nums">{stocks?.[s] ?? 0}</div>
+      <div className="space-y-3 lg:grid lg:grid-cols-12 lg:gap-3 lg:space-y-0">
+        {/* 区四 · 我的漏斗（干活入口） */}
+        <BCard title="区四 · 我的漏斗" icon="🔻" tl={TL.cyan} className="lg:col-span-7"
+          right={<span className="text-[10px] tabular-nums text-slate-400">本月回款 {fmtYuan(oc.monthRevenue)}</span>}
+        >
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {FUNNEL_STAGES.map((s) => (
+              <Link
+                key={s}
+                to={`/sales/customers?stage=${s}`}
+                className="glass-hover rounded-xl p-0.5"
+                style={{ background: STAGE_GRAD[s] }}
+              >
+                <div className="rounded-[10px] bg-[#0d1526]/90 py-2.5 text-center">
+                  <div className="text-xl font-extrabold tabular-nums text-slate-100">{stocks?.[s] ?? 0}</div>
+                  <div className="text-[10px] text-slate-400">{STAGE_LABEL[s]}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Link to="/sales/customers/new" className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 py-3 text-center text-sm font-bold text-white active:opacity-80">
+              ＋ 建档
+            </Link>
+            <Link to="/sales/customers" className="rounded-xl bg-white/10 py-3 text-center text-sm font-bold text-slate-100 ring-1 ring-white/15 active:bg-white/15">
+              推进客户 →
+            </Link>
+          </div>
+        </BCard>
+
+        {/* 我的 7 日活跃（本人口径） */}
+        <BCard title="我的 7 日活跃" icon="🔥" tl={TL.green} className="lg:col-span-5"
+          right={<span className="text-[10px] text-slate-500">业务事件＝建档/推进/成交</span>}
+        >
+          <HeatGrid cols={heatCols} rows={[{ label: '动作', cells: myHeat.map((v, i) => ({ v, hint: `${heatCols[i]} · ${v} 条` })) }]} />
+          <p className="mt-2 text-[10px] leading-4 text-slate-500">
+            打开就三眼：顶上有没有彩头、今天先推谁、我排第几——看完拿起电话。
+          </p>
+        </BCard>
+      </div>
+
+      {/* 待推进全量下钻 */}
+      <DrillSheet open={drill === 'stall'} title={`待推进全量 · ${myStalls.length} 家`} onClose={() => setDrill(null)}>
+        <div className="max-h-[50dvh] space-y-1 overflow-y-auto">
+          {myStalls.map((s) => (
+            <Link key={s.customerId} to={`/sales/customer/${s.customerId}`} className="block">
+              <DrillRow
+                l={
+                  <span className="flex items-center gap-1.5">
+                    <i className={`h-2 w-2 rounded-full ${s.level === 'dying' ? 'bg-red-500' : s.level === 'warning' ? 'bg-orange-400' : 'bg-yellow-400'}`} />
+                    {s.name}
+                    <span className="rounded bg-white/10 px-1 text-[9px] text-slate-400">{s.abcd}</span>
+                  </span>
+                }
+                sub={STAGE_LABEL[s.stage]}
+                r={`停留 ${s.days} 天 ›`}
+              />
             </Link>
           ))}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link to="/sales/customers/new" className="rounded-xl bg-gray-900 py-3 text-center text-sm font-semibold text-white active:bg-gray-700">
-            ＋ 建档
-          </Link>
-          <Link to="/sales/customers" className="rounded-xl bg-gray-100 py-3 text-center text-sm font-semibold text-gray-800 active:bg-gray-200">
-            推进客户 →
-          </Link>
-        </div>
-      </Card>
-    </Shell>
+      </DrillSheet>
+    </BoardShell>
   );
 }

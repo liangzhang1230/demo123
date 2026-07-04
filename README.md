@@ -1,6 +1,6 @@
 # AI 销售操盘手 · 演示版（纯前端 SPA）
 
-商务预售现场演示用衍生交付物。Vite ＋ React ＋ TypeScript ＋ Tailwind，零后端，
+商务预售现场演示用衍生交付物。Vite ＋ React ＋ TypeScript ＋ Tailwind，零后端、零图表库 CDN（SVG 自绘保离线），暗色驾驶舱主题、全格下钻，
 localStorage 持久，移动优先（375px）＋ PC 投屏（1080p），全程可离线。
 一切口径公式以《规格说明 v1.0》为唯一事实源，仿真租户与规模以《演示版施工包 · 第二件》为准。
 

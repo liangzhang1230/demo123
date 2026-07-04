@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 表单基元（移动优先） */
+/* 表单基元（浅色工作页：建档/客户卡/确认页） */
 .input {
   width: 100%;
   border: 1px solid #e5e7eb;
@@ -13,3 +13,80 @@
 .input:focus {
   border-color: #9ca3af;
 }
+
+/* ===== P9 暗色驾驶舱主题 ===== */
+.bg-board {
+  background-color: #0a0f1e;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 15% -10%, rgba(99, 102, 241, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 110% 20%, rgba(6, 182, 212, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 50% 120%, rgba(139, 92, 246, 0.10) 0%, transparent 55%);
+}
+
+.glass {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-hover {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.glass-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(129, 140, 248, 0.45);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+
+/* 卡片彩色顶线：--tl 自定义渐变 */
+.topline {
+  position: relative;
+  overflow: hidden;
+}
+.topline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--tl, linear-gradient(90deg, #6366f1, #22d3ee));
+}
+
+.grad-text {
+  background: linear-gradient(92deg, #a5b4fc 0%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-text {
+  background: linear-gradient(92deg, #fde68a, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes livepulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.25); }
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #34d399;
+  animation: livepulse 2s infinite;
+}
+
+@keyframes sheetup {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sheet-in { animation: sheetup 0.22s ease-out; }
+
+@keyframes growbar {
+  from { width: 0; }
+}
+.bar-anim { animation: growbar 0.9s ease-out; }
