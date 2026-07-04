@@ -7,11 +7,12 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../store/AppStore';
-import { computeAll, dailyRevenueSeries, personalRecords } from '../../domain/compute';
+import { computeAll, dailyRevenueSeries, periodOrdersList, personalRecords } from '../../domain/compute';
+import { computePeriod, type PeriodKind } from '../../domain/period';
 import { addDays, dailyTarget, daysInMonth, fmtPct0, fmtYuan, paceRate, sevenLevel } from '../../domain/engine';
 import { STAGE_LABEL, FUNNEL_STAGES } from '../../domain/types';
-import { BCard, BoardShell, DarkLevelChip, DarkPaceBar, DrillRow, DrillSheet, TL } from '../../components/board';
-import { HeatGrid, Ring, Spark } from '../../components/charts';
+import { AiHint, BCard, BoardShell, DarkLevelChip, DarkPaceBar, DrillRow, DrillSheet, PeriodTabs, TL, TrendPill } from '../../components/board';
+import { Ring, Spark } from '../../components/charts';
 
 const ME = 'wangli';
 
@@ -35,6 +36,17 @@ export default function SalesPage() {
   const oc = computed.owners[ME];
   const stocks = computed.folded.perOwner[ME]?.stocks;
   const [drill, setDrill] = useState<null | 'stall'>(null);
+  const [period, setPeriod] = useState<PeriodKind>('month');
+
+  // 周期折算（本人口径：回款/成交随日/周/月/年联动）
+  const pm = useMemo(
+    () => computePeriod(data, computed.asOf, period, data.people, new Set([ME])),
+    [data, computed.asOf, period],
+  );
+  const myOrders = useMemo(
+    () => periodOrdersList(data, computed.asOf, new Set([ME]), pm.range.from),
+    [data, computed.asOf, pm.range.from],
+  );
 
   const myStalls = useMemo(() => computed.stallList.filter((s) => s.ownerId === ME), [computed]);
 
@@ -61,23 +73,9 @@ export default function SalesPage() {
   const deptNow = computed.rankings.deptByOwner[ME];
   const deptPrev = yesterday.rankings.deptByOwner[ME];
 
-  // 我的近 14 天回款（本人口径豁免）＋ 个人最佳 ＋ 7 日活跃
+  // 我的近 14 天回款（本人口径豁免）＋ 个人最佳记录
   const my14 = useMemo(() => dailyRevenueSeries(data, computed.asOf, 14, new Set([ME])), [data, computed.asOf]);
   const records = useMemo(() => personalRecords(data, ME, computed.asOf), [data, computed.asOf]);
-  const myHeat = useMemo(() => {
-    const from = addDays(computed.asOf, -6);
-    const cells = new Array(7).fill(0) as number[];
-    for (const e of data.events) {
-      if (e.ownerId !== ME || e.date < from || e.date > computed.asOf) continue;
-      const i = Math.round((Date.parse(e.date) - Date.parse(from)) / 86400000);
-      if (i >= 0 && i < 7) cells[i]++;
-    }
-    return cells;
-  }, [data, computed.asOf]);
-  const heatCols = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.parse(computed.asOf) - (6 - i) * 86400000);
-    return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
-  });
 
   const RankBadge = ({ now, prev }: { now: number; prev: number }) => (
     <span className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${now < prev ? 'bg-emerald-500/15 text-emerald-400' : now > prev ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-slate-400'}`}>
@@ -99,10 +97,24 @@ export default function SalesPage() {
         <>
           <span>华东一部 · 销售</span>
           <span>今天 {computed.asOf}</span>
-          <span className="flex items-center gap-1"><i className="live-dot" />本月成交 {records.monthDeals} 单</span>
+          <span className="flex items-center gap-1"><i className="live-dot" />🤖 AI 操盘手在线 · 本月成交 {records.monthDeals} 单</span>
         </>
       }
+      badges={<PeriodTabs value={period} onChange={setPeriod} />}
     >
+      {/* AI 操盘手晨话（销售端行动版 · 静态话术位） */}
+      <div className="glass topline rounded-2xl p-3.5" style={{ ['--tl' as never]: TL.purple } as CSSProperties}>
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-lg">🎙</span>
+          <div>
+            <p className="text-sm leading-6 text-slate-100">
+              王丽早。悬赏还挂着——今天先推 {Math.min(5, myStalls.length)} 家停滞客户，样品池那几家别放凉。
+            </p>
+            <p className="mt-0.5 text-[10px] text-slate-500">上线后由 AI 销售操盘手按你的真实数据每日生成</p>
+          </div>
+        </div>
+      </div>
+
       {/* 置顶 · 悬赏令栏（法定落位：只显示，不判达成、不算钱） */}
       <div className="topline glass rounded-2xl p-3.5" style={{ ['--tl' as never]: TL.amber } as CSSProperties}>
         <div className="flex items-center gap-3">
@@ -280,14 +292,40 @@ export default function SalesPage() {
           </div>
         </BCard>
 
-        {/* 我的 7 日活跃（本人口径） */}
-        <BCard title="我的 7 日活跃" icon="🔥" tl={TL.green} className="lg:col-span-5"
-          right={<span className="text-[10px] text-slate-500">业务事件＝建档/推进/成交</span>}
+        {/* 我的成交流水（本人口径 · 随周期切换联动） */}
+        <BCard title={`我的${pm.range.label}成交流水`} icon="🧾" tl={TL.green} className="lg:col-span-5"
+          right={
+            <span className="flex items-center gap-1.5 text-[10px] tabular-nums text-slate-400">
+              {pm.range.label}回款 <b className="text-sm text-emerald-300">{fmtYuan(pm.revenue)}</b>
+              <TrendPill value={pm.revenueDelta} note={pm.range.prevLabel} />
+            </span>
+          }
         >
-          <HeatGrid cols={heatCols} rows={[{ label: '动作', cells: myHeat.map((v, i) => ({ v, hint: `${heatCols[i]} · ${v} 条` })) }]} />
-          <p className="mt-2 text-[10px] leading-4 text-slate-500">
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {myOrders.length === 0 ? (
+              <p className="py-6 text-center text-xs text-slate-500">{pm.range.label}暂无成交——去区四推一把黄色客户</p>
+            ) : (
+              myOrders.slice(0, 20).map((o, i) => (
+                <Link key={i} to={`/sales/customer/${o.customerId}`} className="block">
+                  <DrillRow
+                    l={
+                      <span>
+                        {o.customer}
+                        <span className={`ml-1 rounded px-1 text-[9px] ${o.isRepeat ? 'bg-purple-500/20 text-purple-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                          {o.isRepeat ? '复购' : '首购'}
+                        </span>
+                      </span>
+                    }
+                    sub={o.date}
+                    r={`${fmtYuan(o.amount)} ›`}
+                  />
+                </Link>
+              ))
+            )}
+          </div>
+          <AiHint tone="block">
             打开就三眼：顶上有没有彩头、今天先推谁、我排第几——看完拿起电话。
-          </p>
+          </AiHint>
         </BCard>
       </div>
 

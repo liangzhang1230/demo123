@@ -99,51 +99,6 @@ export function Ring({ pct, size = 88, color = '#34d399', center, sub }: {
   );
 }
 
-/** 热力格（0..4 档） */
-const HEAT = [
-  'bg-white/[0.04] text-slate-500',
-  'bg-emerald-500/20 text-emerald-300',
-  'bg-emerald-500/40 text-emerald-200',
-  'bg-emerald-500/65 text-white',
-  'bg-emerald-400/90 text-emerald-950 font-bold',
-];
-
-export function HeatGrid({ cols, rows }: {
-  cols: string[];
-  rows: { label: ReactNode; cells: { v: number; hint?: string }[]; alert?: boolean }[];
-}) {
-  const max = Math.max(1, ...rows.flatMap((r) => r.cells.map((x) => x.v)));
-  return (
-    <div className="space-y-1.5">
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `56px repeat(${cols.length}, 1fr)` }}>
-        <div />
-        {cols.map((c, i) => (
-          <div key={i} className="text-center text-[10px] text-slate-500">{c}</div>
-        ))}
-      </div>
-      {rows.map((row, ri) => (
-        <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: `56px repeat(${cols.length}, 1fr)` }}>
-          <div className={`flex items-center truncate text-[11px] ${row.alert ? 'font-semibold text-red-400' : 'text-slate-400'}`}>
-            {row.label}
-          </div>
-          {row.cells.map((cell, ci) => {
-            const lv = cell.v <= 0 ? 0 : Math.min(4, 1 + Math.floor((cell.v / max) * 3.999));
-            return (
-              <div
-                key={ci}
-                title={cell.hint}
-                className={`flex aspect-square max-h-9 items-center justify-center rounded-md text-[11px] tabular-nums transition-transform hover:scale-110 ${HEAT[lv]}`}
-              >
-                {cell.v > 0 ? cell.v : '·'}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** 月度双序列组合：柱（序列A）＋数值行 */
 export function MonthBars({ months, a, aLabel, aColor = '#38bdf8', bRows }: {
   months: string[];

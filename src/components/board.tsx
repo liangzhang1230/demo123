@@ -211,6 +211,51 @@ export function DrillSheet({ open, title, onClose, children }: {
   );
 }
 
+/** AI 操盘手提示条（白话原语回退层：静态话术位，标注上线后由 AI 每日生成） */
+export function AiHint({ children, tone = 'line' }: { children: ReactNode; tone?: 'line' | 'block' }) {
+  if (tone === 'block') {
+    return (
+      <div className="mt-2 rounded-lg border border-indigo-400/20 bg-indigo-500/[0.08] px-2.5 py-1.5">
+        <div className="flex items-start gap-1.5 text-[11px] leading-4 text-indigo-200">
+          <span className="shrink-0">🤖</span>
+          <span>{children}</span>
+        </div>
+        <div className="mt-0.5 pl-5 text-[9px] text-slate-500">AI 销售操盘手 · 上线后按你的真实数据每日生成</div>
+      </div>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/15 px-1.5 py-0.5 text-[10px] text-indigo-300" title="AI 销售操盘手 · 上线后按真实数据每日生成">
+      🤖 {children}
+    </span>
+  );
+}
+
+/** 周期切换控件（日/周/月/年 · 全看板联动重算） */
+export function PeriodTabs({ value, onChange }: { value: string; onChange: (k: 'day' | 'week' | 'month' | 'year') => void }) {
+  const items: { k: 'day' | 'week' | 'month' | 'year'; label: string }[] = [
+    { k: 'day', label: '日' }, { k: 'week', label: '周' }, { k: 'month', label: '月' }, { k: 'year', label: '年' },
+  ];
+  return (
+    <div className="flex rounded-xl bg-white/5 p-0.5 ring-1 ring-white/10" data-testid="period-tabs">
+      {items.map((it) => (
+        <button
+          key={it.k}
+          data-testid={`period-${it.k}`}
+          onClick={() => onChange(it.k)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+            value === it.k
+              ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** 下钻表格行 */
 export function DrillRow({ l, r, sub }: { l: ReactNode; r: ReactNode; sub?: ReactNode }) {
   return (

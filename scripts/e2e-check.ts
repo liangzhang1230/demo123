@@ -136,6 +136,39 @@ async function main() {
   t('重置后回到首页且日期回到 2026-06-29', homeBody.includes('2026-06-29'));
   t('重置后关键数复原（种子重生成）', homeBody.includes('¥612,000') || homeBody.includes('61.2'));
 
+  // —— P10 · 周期切换 ＋ 部门筛选 ＋ 全格下钻 ——
+  console.log(`\n${B}── P10 · 周期切换/部门筛选/下钻 ──${N}`);
+  await page.goto(`${base}/#/boss`);
+  await page.waitForSelector('[data-testid=period-day]');
+  await page.click('[data-testid=period-day]');
+  await page.waitForTimeout(300);
+  body = (await page.textContent('body')) ?? '';
+  t('切「日」→ KPI 变今日口径', body.includes('今日回款') && body.includes('今日净利'));
+  await page.click('[data-testid=period-week]');
+  await page.waitForTimeout(300);
+  body = (await page.textContent('body')) ?? '';
+  t('切「周」→ 本周口径＋周不设目标', body.includes('本周回款') && body.includes('周不设独立目标'));
+  await page.click('[data-testid=period-year]');
+  await page.waitForTimeout(300);
+  t('切「年」→ 本年口径', ((await page.textContent('body')) ?? '').includes('本年回款'));
+  await page.click('[data-testid=period-month]');
+  await page.waitForTimeout(300);
+  t('切回「月」→ 本月口径', ((await page.textContent('body')) ?? '').includes('本月回款'));
+  await page.click('[data-testid=dept-chip-d1]');
+  await page.waitForTimeout(300);
+  body = (await page.textContent('body')) ?? '';
+  t('部门筛选一部 → 全板按部门裁剪', body.includes('区四 · 团队一屏（华东一部）') && body.includes('已按 华东一部 裁剪全板数据'));
+  await page.click('[data-testid=dept-chip-all]');
+  await page.waitForTimeout(300);
+  t('切回全公司 → 部门对比可见', ((await page.textContent('body')) ?? '').includes('部门对比'));
+  // 下钻：点击回款 KPI → 出成员明细面板
+  await page.click('text=本月回款');
+  await page.waitForTimeout(400);
+  body = (await page.textContent('body')) ?? '';
+  t('KPI 下钻面板打开（回款成员明细）', body.includes('回款下钻') && body.includes('近 14 天逐日回款'));
+  await page.click('text=关闭 ✕');
+  await page.waitForTimeout(200);
+
   await browser.close();
   await new Promise<void>((res) => server.httpServer.close(() => res()));
   if (failed > 0) {

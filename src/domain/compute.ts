@@ -444,25 +444,6 @@ export function dailyRevenueSeries(
   return out;
 }
 
-/** 成员 × 近 N 天业务事件数矩阵（团队活跃热力图；业务事件＝建档/流转/成交单） */
-export function activityMatrix(
-  data: SeedData, asOf: string, days: number, ownerIds: string[],
-): { ownerId: string; cells: number[]; total: number }[] {
-  const from = addDaysStr(asOf, -(days - 1));
-  const idx = new Map(ownerIds.map((id, i) => [id, i]));
-  const grid = ownerIds.map(() => new Array(days).fill(0) as number[]);
-  for (const e of data.events) {
-    if (e.date < from || e.date > asOf) continue;
-    const oi = idx.get(e.ownerId);
-    if (oi == null) continue;
-    const di = Math.round((Date.parse(e.date) - Date.parse(from)) / 86400000);
-    if (di >= 0 && di < days) grid[oi][di]++;
-  }
-  return ownerIds.map((ownerId, i) => ({
-    ownerId, cells: grid[i], total: grid[i].reduce((a, b) => a + b, 0),
-  }));
-}
-
 /** 个人最佳记录（本人口径：回款与过程数据，零利润口径可安全用于销售端） */
 export function personalRecords(data: SeedData, ownerId: string, asOf: string): {
   bestDay: { date: string; value: number } | null;
@@ -503,16 +484,16 @@ export function personalRecords(data: SeedData, ownerId: string, asOf: string): 
   return { bestDay, biggestOrder: biggest, bestMonth, fastestCycleDays: fastest, monthDeals };
 }
 
-/** 当月成交单列表（下钻明细用；owner 集可选） */
-export function monthOrders(
-  data: SeedData, asOf: string, ownerIds?: Set<string>,
-): { date: string; customer: string; ownerId: string; amount: number; isRepeat: boolean }[] {
-  const ym = asOf.slice(0, 7);
+/** 期间成交单列表（下钻明细用；owner 集可选；from 缺省＝当月 1 日） */
+export function periodOrdersList(
+  data: SeedData, asOf: string, ownerIds?: Set<string>, from?: string,
+): { date: string; customer: string; customerId: string; ownerId: string; amount: number; isRepeat: boolean }[] {
+  const lo = from ?? `${asOf.slice(0, 7)}-01`;
   const nameOf = new Map(data.customers.map((c) => [c.id, c.name]));
   return data.events
-    .filter((e) => e.type === 'order_created' && e.date.slice(0, 7) === ym && e.date <= asOf && (!ownerIds || ownerIds.has(e.ownerId)))
+    .filter((e) => e.type === 'order_created' && e.date >= lo && e.date <= asOf && (!ownerIds || ownerIds.has(e.ownerId)))
     .map((e) => ({
-      date: e.date, customer: nameOf.get(e.customerId) ?? e.customerId,
+      date: e.date, customer: nameOf.get(e.customerId) ?? e.customerId, customerId: e.customerId,
       ownerId: e.ownerId, amount: e.amount ?? 0, isRepeat: !!e.isRepeat,
     }))
     .reverse();
