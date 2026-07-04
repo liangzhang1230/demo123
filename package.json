@@ -13,7 +13,9 @@
     "ui-check": "tsx scripts/ui-check.ts",
     "flow-check": "tsx scripts/flow-check.ts",
     "e2e-check": "tsx scripts/e2e-check.ts",
-    "demo-record": "tsx scripts/demo-record.ts"
+    "demo-record": "tsx scripts/demo-record.ts",
+    "release": "npm run build && npm run build:offline && tsx scripts/build-release.ts",
+    "release-check": "tsx scripts/release-check.ts"
   },
   "dependencies": {
     "react": "18.3.1",

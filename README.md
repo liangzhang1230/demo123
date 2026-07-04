@@ -37,6 +37,8 @@ npm run flow-check    # P5：动作层现场剧本（建档→成交 6 处联动
 npm run ui-check      # P3/P4/P6/P7：双端走查（375px/1920px 内容断言＋横向溢出＋截图）
 npm run e2e-check     # P5/P6/P7：真实浏览器点击闭环（含点亮/回锁、锁定、重置）
 npm run demo-record   # P7 终验收：按演示脚本动线完整录屏 → scripts/shots/demo-final.webm
+npm run release       # P8：组装 demo-release/ 发布包并压缩 演示版_v1.0.zip
+npm run release-check # P8：发布包自检（5188 静态服务全动线 ＋ 单文件 file:// 直开）
 ```
 
 ## 目录约定
