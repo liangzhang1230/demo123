@@ -12,7 +12,8 @@
     "domain-check": "tsx scripts/domain-check.ts",
     "ui-check": "tsx scripts/ui-check.ts",
     "flow-check": "tsx scripts/flow-check.ts",
-    "e2e-check": "tsx scripts/e2e-check.ts"
+    "e2e-check": "tsx scripts/e2e-check.ts",
+    "demo-record": "tsx scripts/demo-record.ts"
   },
   "dependencies": {
     "react": "18.3.1",

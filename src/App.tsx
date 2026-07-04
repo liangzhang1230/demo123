@@ -10,14 +10,18 @@ import NewCustomerPage from './pages/sales/NewCustomer';
 import CustomerCardPage from './pages/sales/CustomerCard';
 import ConfirmPage from './pages/sales/Confirm';
 import SamplePage from './pages/boss/SamplePages';
+import ScriptPage from './pages/script';
+import { FloatingControls } from './components/FloatingControls';
 
 /** 身份切换首页：所有数字现场折算自事件流（无任何硬编码汇总） */
 function HomePage() {
   const { data, computed, reset } = useApp();
   const { folded } = computed;
-  const jun = folded.monthlyPoolFlow[computed.ym];
-  const may = folded.monthlyPoolFlow[computed.company.momPair[1]];
-  const aov = folded.cumRevenue / folded.totalDealCnt;
+  // 空态兜底：模拟日切进入无事件月份时，分母 0/缺失一律显 —
+  const empty = { entered: 0, exited: 0, lost: 0 };
+  const jun = folded.monthlyPoolFlow[computed.ym] ?? { lead: empty, intent: empty, sample: empty, signed: empty };
+  const may = folded.monthlyPoolFlow[computed.company.momPair[1]] ?? { lead: empty, intent: empty, sample: empty, signed: empty };
+  const aov = folded.totalDealCnt > 0 ? folded.cumRevenue / folded.totalDealCnt : null;
 
   return (
     <div className="mx-auto max-w-md px-4 py-6 sm:max-w-2xl">
@@ -63,11 +67,18 @@ function HomePage() {
         <dl className="space-y-1">
           <Row k="样品池本月进入 / 转出" v={`${jun.sample.entered} / ${jun.sample.exited}（${fmtPct1(jun.sample.exited / jun.sample.entered)}，上月 ${fmtPct1(may.sample.exited / may.sample.entered)}）`} />
           <Row k="月回款" v={fmtYuan(computed.company.monthRevenue)} />
-          <Row k="平均客单 aov" v={`¥${aov.toFixed(2)}（累计回款 ÷ ${folded.totalDealCnt}）`} />
+          <Row k="平均客单 aov" v={aov == null ? '—' : `¥${aov.toFixed(2)}（累计回款 ÷ ${folded.totalDealCnt}）`} />
           <Row k="团队 labor_roi" v={fmtRoi2(folded.teamLaborRoi)} />
           <Row k="本月流失" v={`${folded.monthlyLossTotal[computed.ym] ?? 0} 家`} />
         </dl>
       </section>
+
+      <Link
+        to="/script"
+        className="mb-3 block rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800"
+      >
+        📖 演示脚本（商务 10 分钟动线与话术提词） →
+      </Link>
 
       <button
         onClick={reset}
@@ -101,8 +112,10 @@ export default function App() {
         <Route path="/sales/customer/:id" element={<CustomerCardPage />} />
         <Route path="/sales/confirm" element={<ConfirmPage />} />
         <Route path="/sample/:key" element={<SamplePage />} />
+        <Route path="/script" element={<ScriptPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <FloatingControls />
     </AppStoreProvider>
   );
 }

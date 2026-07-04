@@ -12,6 +12,8 @@ const G = '\x1b[32m', R = '\x1b[31m', B = '\x1b[1m', N = '\x1b[0m';
 interface PageCheck { route: string; expects: string[]; absents?: string[] }
 
 const DEFAULT_CHECKS: PageCheck[] = [
+  { route: '/', expects: ['三个免密演示身份', '演示脚本', '六态存量'] },
+  { route: '/script', expects: ['演示脚本 · 商务 10 分钟动线', '提词', '一键点亮全家桶', '三条底线'] },
   {
     route: '/boss',
     expects: [
@@ -62,7 +64,7 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
     for (const chk of checks) {
       await page.goto(`http://localhost:4173/#${chk.route}`, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(150);
+      await page.waitForTimeout(700);
       const text = (await page.textContent('body')) ?? '';
       console.log(`\n${B}── ${chk.route} @${vp.tag} ${vp.w}px ──${N}`);
       for (const e of chk.expects) {

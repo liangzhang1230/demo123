@@ -1,26 +1,52 @@
 # AI 销售操盘手 · 演示版（纯前端 SPA）
 
 商务预售现场演示用衍生交付物。Vite ＋ React ＋ TypeScript ＋ Tailwind，零后端，
-localStorage 持久，移动优先。一切口径公式以《规格说明 v1.0》为唯一事实源，
-仿真租户与规模以《演示版施工包 · 第二件》为准。
+localStorage 持久，移动优先（375px）＋ PC 投屏（1080p），全程可离线。
+一切口径公式以《规格说明 v1.0》为唯一事实源，仿真租户与规模以《演示版施工包 · 第二件》为准。
 
-## 命令
+## 快速开始
 
 ```bash
 npm install
-npm run dev         # 开发
-npm run build       # 生产构建
-npm run seed-check  # P1 验收：种子生成 + 漏斗守恒 + 关键数全量断言
+npm run dev             # 开发（http://localhost:5173）
+npm run build           # 生产构建 → dist/
+npm run build:offline   # 离线单文件 → dist-offline/index.html（双击可演，陌拜没网也能用）
+```
+
+## 页面动线
+
+| 路由 | 内容 |
+| --- | --- |
+| `/` | 三个免密演示身份切换 ＋ 种子关键数（实时折算）＋ 一键重置 |
+| `/boss` | 老板决策看板：晨话、今日一件事、早报样卡、心跳六数、钱事分诊条、团队一屏、武器坞（锁卡＋一键点亮全家桶）、底部固定条 |
+| `/manager` | 主管同板裁剪（本部门 ＋ 摘除购买位与投产参照） |
+| `/sales` | 销售行动板：悬赏置顶＋今日待办＋我的目标（七级色）＋我的排名（只显名次）＋我的漏斗（零利润口径） |
+| `/sales/customers*` | 客户列表 / 建档（手机号查重硬拦截显脱敏归属）/ 客户卡（六态流转、成交录回款、复购单） |
+| `/sales/confirm` | 每日确认页 ＋ 演示专属「模拟过一天」（日终定版） |
+| `/sample/:key` | 四包＋经营智库静态样例长页（零计算，「示例数据」角标常驻） |
+| `/script` | 商务 10 分钟演示脚本与话术提词 |
+
+右下浮钮：↺ 一键重置（二次确认）、🔓 防误触锁定（长按 1 秒解锁）。
+
+## 验收断言（P1–P7 全绿方可交付）
+
+```bash
+npm run seed-check    # P1：种子生成＋漏斗守恒＋关键数 41 项
+npm run domain-check  # P2：口径引擎边界用例＋对拍关键数（七级/跳号/pace/停滞/环比）
+npm run flow-check    # P5：动作层现场剧本（建档→成交 6 处联动、查重、防呆、日切）
+npm run ui-check      # P3/P4/P6/P7：双端走查（375px/1920px 内容断言＋横向溢出＋截图）
+npm run e2e-check     # P5/P6/P7：真实浏览器点击闭环（含点亮/回锁、锁定、重置）
+npm run demo-record   # P7 终验收：按演示脚本动线完整录屏 → scripts/shots/demo-final.webm
 ```
 
 ## 目录约定
 
 ```
-src/domain      口径引擎（P1 仅域类型与状态机；P2 落完整纯函数引擎）
-src/seed        种子生成器（plan 蓝图 / generator / fold 折算 / assertions / store）
-src/pages       boss｜manager｜sales 三端（P3/P4 施工位）
-src/components  通用组件
-scripts         seed-check 验收脚本
+src/domain      口径引擎（types 状态机 / engine 纯口径函数 / compute 综合折算 / actions 业务操作）
+src/seed        种子生成器（plan 蓝图 / generator / fold 折算 / assertions / store 持久层）
+src/pages       boss（含样例长页）｜manager｜sales（列表/建档/客户卡/确认页）｜script
+src/components  ui 基元 / ManagementBoard 管理端一板三裁 / FloatingControls 演示浮钮
+scripts         六套验收脚本
 ```
 
 ## 铁律（P0）
@@ -39,7 +65,7 @@ scripts         seed-check 验收脚本
 - 人物钩子：王丽（回款第 1、labor_roi 2.10、样品→签约通过率最高）｜李强（入职 38 天）｜
   王五（连续 47 天零业务事件、月固定成本 ¥8,900、零成交）｜赵敏（线索第 2、样品→签约≈9%）；
 - 守恒断言内置于生成器：任一池「新增 − 转出 − 流失 ≠ 存量」即抛错拒绝启动；
-  localStorage 加载时同样全量复检，损坏即重新生成。
+  localStorage 加载时同样复检（演示操作后降级为结构校验，关键数对拍不再适用）。
 
 > 注：施工包「客户 500 家」与其逐池期末存量之和（727）不一致，种子以逐池存量为准
 > （214 成交为 aov/数据就绪徽标的锚数，不可缩放），已在阶段报告中报备。

@@ -22,11 +22,13 @@ async function main() {
 
   // 基线：/boss 月回款
   await page.goto(`${base}/#/boss`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(900); // 开屏加载动画＋种子折算
   const bodyBefore = (await page.textContent('body')) ?? '';
   t('基线 /boss 月回款 ¥61.2万', bodyBefore.includes('¥61.2万'));
 
   // 建档
   await page.goto(`${base}/#/sales/customers/new`);
+  await page.waitForSelector('[data-testid=cust-name]');
   await page.fill('[data-testid=cust-name]', '杨浦端到端便利店');
   await page.fill('[data-testid=cust-contact]', '钱老板');
   await page.fill('[data-testid=cust-phone]', '13911112222');
@@ -37,6 +39,7 @@ async function main() {
 
   // 查重拦截
   await page.goto(`${base}/#/sales/customers/new`);
+  await page.waitForSelector('[data-testid=cust-name]');
   await page.fill('[data-testid=cust-name]', '重复号测试');
   await page.fill('[data-testid=cust-contact]', '李四');
   await page.fill('[data-testid=cust-phone]', '+86 139-1111-2222');
@@ -47,48 +50,50 @@ async function main() {
 
   // 推进：线索→意向→样品→签约→成交（¥8,000）
   await page.goto(custUrl);
+  await page.waitForSelector('[data-testid=to-intent]');
   for (const s of ['intent', 'sample', 'signed'] as const) {
     await page.click(`[data-testid=to-${s}]`);
-    await page.waitForTimeout(120);
+    await page.waitForTimeout(400);
   }
   t('推进到签约未回款', ((await page.textContent('[data-testid=cust-stage]')) ?? '').includes('签约未回款'));
   await page.click('[data-testid=to-deal]');
   await page.fill('[data-testid=deal-amount]', '8000');
   await page.click('[data-testid=deal-confirm]');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(700);
   t('成交完成（状态＝成交）', ((await page.textContent('[data-testid=cust-stage]')) ?? '').includes('成交'));
 
   // 看板联动
   await page.goto(`${base}/#/boss`);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(700);
   const bodyAfter = (await page.textContent('body')) ?? '';
   t('联动① 公司月回款 → ¥62.0万', bodyAfter.includes('¥62.0万'));
   t('联动② 本月成交 78 单（新客 66 ＋ 复购 12）', bodyAfter.includes('新客 66'));
   await page.goto(`${base}/#/sales`);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(700);
   const salesBody = (await page.textContent('body')) ?? '';
   t('联动③ 王丽本月回款 ¥108,000', salesBody.includes('¥108,000'));
   t('联动④ 今日线索 1（单日过程量）', salesBody.includes('今日线索'));
 
   // 确认页 → 提交确认 → 模拟过一天
   await page.goto(`${base}/#/sales/confirm`);
+  await page.waitForSelector('[data-testid=confirm-submit]');
   await page.click('[data-testid=confirm-submit]');
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(400);
   t('提交确认成功', ((await page.textContent('[data-testid=confirm-submit]')) ?? '').includes('已确认'));
   await page.click('[data-testid=simulate-day]');
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(700);
   const confirmBody = (await page.textContent('body')) ?? '';
   t('模拟过一天 → 2026-06-30', confirmBody.includes('2026-06-30'));
 
   // 刷新持久化（localStorage）
   await page.reload();
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(700);
   t('刷新后仍为 6-30（localStorage 持久）', ((await page.textContent('body')) ?? '').includes('2026-06-30'));
 
   // —— P6 · 一键点亮全家桶（点亮/回锁瞬时切换，示例角标常驻）——
   console.log(`\n${B}── P6 · 货架与一键点亮 ──${N}`);
   await page.goto(`${base}/#/boss`);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(700);
   let body = (await page.textContent('body')) ?? '';
   t('初始锁态：现金前瞻显 — ＋价值语', body.includes('开通增长操盘包，这里每天预告未来 30 天回款'));
   await page.click('[data-testid=unlock-toggle]');
@@ -104,9 +109,32 @@ async function main() {
   t('回锁：恢复 —＋锁标', body.includes('开通增长操盘包，这里每天预告未来 30 天回款'));
   // 锁卡点开 → 静态样例长页
   await page.goto(`${base}/#/sample/pack1`);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(700);
   body = (await page.textContent('body')) ?? '';
   t('样例长页：王五止血 ¥8,900＋示例角标', body.includes('¥8,900') && body.includes('示例数据'));
+
+  // —— P7 · 防误触锁定 ＋ 一键重置浮钮 ——
+  console.log(`\n${B}── P7 · 防误触锁定与一键重置 ──${N}`);
+  await page.goto(`${base}/#/boss`);
+  await page.waitForSelector('[data-testid=lock-btn]');
+  await page.click('[data-testid=lock-btn]');
+  await page.waitForSelector('[data-testid=unlock-hold]');
+  t('锁定后出现长按解锁条', true);
+  // 锁定态下点击被遮罩拦截：尝试点身份切换不应导航
+  await page.mouse.click(187, 400);
+  await page.waitForTimeout(400);
+  t('锁定态页面点击被拦截（仍在 /boss）', page.url().includes('/boss'));
+  await page.dispatchEvent('[data-testid=unlock-hold]', 'mousedown');
+  await page.waitForSelector('[data-testid=lock-btn]', { timeout: 3000 }); // 满 1 秒自动解锁、遮罩卸载
+  t('长按 1 秒解锁成功', true);
+  // 一键重置：数据回到种子态（6-29 · ¥61.2万）
+  await page.click('[data-testid=reset-btn]');
+  await page.waitForSelector('[data-testid=reset-confirm]');
+  await page.click('[data-testid=reset-confirm]');
+  await page.waitForTimeout(1200);
+  const homeBody = (await page.textContent('body')) ?? '';
+  t('重置后回到首页且日期回到 2026-06-29', homeBody.includes('2026-06-29'));
+  t('重置后关键数复原（种子重生成）', homeBody.includes('¥612,000') || homeBody.includes('61.2'));
 
   await browser.close();
   await new Promise<void>((res) => server.httpServer.close(() => res()));

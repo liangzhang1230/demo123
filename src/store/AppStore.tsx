@@ -3,7 +3,7 @@
  * 一切展示数字由事件流实时计算）＋ P5 业务操作（建档/流转/回款/确认/模拟过一天）。
  * P6 追加「一键点亮全家桶」，P7 追加防误触锁定。
  */
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { SeedData } from '../domain/types';
 import { computeAll, type Computed } from '../domain/compute';
 import {
@@ -34,14 +34,21 @@ const Ctx = createContext<AppState | null>(null);
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<SeedData | null>(() => {
-    try {
-      return loadSeed();
-    } catch (e) {
-      setError(String(e));
-      return null;
-    }
-  });
+  const [data, setData] = useState<SeedData | null>(null);
+  const [booting, setBooting] = useState(true);
+
+  // P7 加载动画：先绘制开屏，再同步折算 90 天事件流（loadSeed 内含守恒校验）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        setData(loadSeed());
+      } catch (e) {
+        setError(String(e));
+      }
+      setBooting(false);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
   const [unlocked, setUnlockedState] = useState(
     () => typeof localStorage !== 'undefined' && localStorage.getItem('sales-demo/unlocked') === '1',
   );
@@ -51,6 +58,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   };
 
   const computed = useMemo(() => (data ? computeAll(data) : null), [data]);
+
+  if (booting) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-gray-900 text-white">
+        <div className="text-2xl font-bold tracking-wide">AI 销售操盘手</div>
+        <div className="h-1.5 w-40 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-white/70" />
+        </div>
+        <div className="animate-pulse text-xs text-gray-400">正在折算 90 天种子事件流（守恒校验中）…</div>
+      </div>
+    );
+  }
 
   if (error || !data || !computed) {
     return (
