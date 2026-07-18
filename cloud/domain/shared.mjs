@@ -122,7 +122,7 @@ export const COEFFICIENTS = {
     rampGapShareRedline: 0.45, pipelineDecayInPriceTag: 0.35, silentMonthsDefault: 6,
     dividendPayoutDelayDays: 45, refRound: 10000, aftershockTalkDays: 7, handoverSavableShare: 0.50,
     secondPlaceRankBand: [2, 3], secondPlaceMonths: 3,
-    m28: { mentorRate: 0.05, royaltyRate: 0.02, mentorDur: 12, royaltyDur: 24 },
+    m28: { mentorRate: 0.05, royaltyRate: 0.02, mentorDur: 12, royaltyDur: 24, oneOffAmt: 50000 }, // oneOffAmt=500元 对拍算例常量（原版系数表同值）
     dependency: { warn: 0.40, danger: 0.60 }, collapseMonthIn: [10, 18],   // 🔧L-C13 权威源=2号 collapseRule
   },
   yuren: {
