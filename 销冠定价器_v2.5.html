@@ -228,6 +228,22 @@ body.mode-free .fullonly{display:none!important}
   font-weight:700;font-size:14px}
 .summary-pill.ok{background:var(--green-soft);color:#065f46}
 .summary-pill.no{background:var(--red-soft);color:#991b1b}
+.grade-tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+.grade-tbl th,.grade-tbl td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line2);vertical-align:top}
+.grade-tbl th:first-child,.grade-tbl td:first-child,.grade-tbl th:last-child,.grade-tbl td:last-child{text-align:left}
+.grade-tbl th{font-size:11.5px;color:var(--ink3);text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+.grade-row{cursor:pointer;transition:background .1s}
+.grade-row:hover{background:var(--accent-soft)}
+.grade-row.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.grade-row.on td:first-child b{color:var(--accent)}
+.grade-row.on td:first-child::after{content:"✓ 已选";color:var(--accent);font-size:11px;font-weight:700;margin-left:8px}
+.gt{color:var(--ink3);font-weight:400;font-size:12px;margin-left:2px}
+.gd{color:var(--ink2);font-size:12.5px;max-width:300px;line-height:1.5}
+.grade-custom{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.grade-custom label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:var(--ink)}
+.grade-custom input{width:150px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;margin-right:12px}
+.grade-custom input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+#gBaseOut{color:var(--accent);font-size:13px;font-weight:500}
 .banner-info{background:var(--accent-soft);border:1px solid #c7d2fe;color:#3730a3;padding:12px 16px;
   border-radius:11px;font-size:13px;line-height:1.6;margin-bottom:18px}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
@@ -588,7 +604,7 @@ const LABELS={
 const ENUMS={
   cityTier:[['tier1','一线'],['tier2','二线'],['tier34','三四线']],
   cycleTier:[['short','短期≤30天'],['regular','常规1–3月'],['midLong','中长4–6月'],['long','长期7–12月'],['ultraLong','超长>12月']],
-  tierGrade:[['effective','有效'],['efficient','高效'],['leading','领先']],
+  tierGrade:[['effective','初级（有效）'],['efficient','中级（高效）'],['leading','高级（领先）']],
   complementLevel:[['solo','各干各的'],['partial','部分协作'],['chained','环环相扣']],
   attributableLevel:[['no','说不清谁干的'],['partial','部分能分清'],['yes','能精确到人头']],
   positionType:[['pure_sales','纯销售'],['advisory','顾问建议岗'],['aftersales','售后服务岗']],
@@ -597,6 +613,17 @@ const ENUMS={
 };
 const CONTROLS=[['no_discount','不许降价'],['discount_excluded','折扣不计提成'],['old_client_excluded','老客续费不计'],
   ['heavy_monitoring','过程强监控'],['push_deadline','月底冲刺压单'],['forbid_backlog','禁止押单挪单']];
+// 档位「说人话」：内部枚举 effective/efficient/leading，界面按 初级/中级/高级 显示，并配一句说明
+const GRADE_SHORT={effective:'初级',efficient:'中级',leading:'高级'};
+const GRADE_TECH={effective:'有效',efficient:'高效',leading:'领先'};
+const GRADE_DESC={
+  effective:'能独立签单、稳定达标的常规销售——多数团队按这档定薪',
+  efficient:'持续超额、能自己带节奏的骨干',
+  leading:'团队头部标杆，产出明显高于均值' };
+const LEVEL_DESC={
+  sales:'一线销售，直接签单回款',
+  manager:'带 5–8 人的一线主管，约三成时间用于管人',
+  executive:'定战略、背全盘目标，按 1 人计' };
 
 const REAL_TODAY = new Date().toISOString().slice(0,10); // 唯一一处取真实时钟，下传（公约 C-14）
 
@@ -733,11 +760,12 @@ function pgHome(){
   p.appendChild(el('div','hero',`<h1>销售人力总算盘</h1>
     <p>输入 13 个数，5 分钟看清：定薪定多少、该招几个人、走一个人亏多少、缺几个主管、团队奖该不该发；系统同时替你把方案对一遍最低工资与劳动法红线，再送进风洞预演它会被怎么玩。</p>`));
   const groups=el('div','groups');
-  groups.appendChild(homeGroup('基本盘',['cityTier','cycleTier','tierGrade']));
+  groups.appendChild(homeGroup('基本盘',['cityTier','cycleTier']));
   groups.appendChild(homeGroup('钱与目标',['targetPersonalMonthlyGrossAmt','nextYearTargetGrossAmt','lastYearPerCapitaGrossAmt']));
   groups.appendChild(homeGroup('人',['salesCount','managerCount','attritionRate','hiringCycleDays']));
   groups.appendChild(homeGroup('生意',['blendedMarginRate','complementLevel','attributableLevel']));
   p.appendChild(groups);
+  p.appendChild(gradePicker());   // 定薪档位：看城市+周期算出的真实底薪/达标，点一行选择或输入现有底薪
   // actions
   const act=el('div','actions');
   const go=el('button','btn','开始算账'); go.onclick=()=>{ if(compute(REAL_TODAY)){ nav('dash'); } else { render(); toast('请补齐红框字段'); } };
@@ -750,6 +778,57 @@ function pgHome(){
 function homeGroup(title,fields){
   const c=el('div','card grp'); c.appendChild(el('h3',null,title));
   fields.forEach(f=>c.appendChild(fieldFor(f)));
+  return c;
+}
+// 定薪档位：把「有效/高效/领先」翻成看得懂的数——按城市+周期算出各档真实底薪/达标，点一行选定，或反查现有底薪
+function gradePicker(){
+  const c=el('div','card'); c.style.cssText='margin-bottom:2px;padding:18px';
+  const I1=app.inputs.cityTier, I2=app.inputs.cycleTier;
+  c.appendChild(el('h3','grp',`<span style="font-size:14px;color:var(--accent);font-weight:700">定薪档位</span>
+    <span class="unit" style="font-weight:400;color:var(--ink3);margin-left:6px">不用猜「有效/高效/领先」，直接看数</span>`.replace('class="grp"','')));
+  if(!I1||!I2){ c.appendChild(el('div','hint','先在上方「基本盘」选好「城市线级」与「成交周期档」，这里会自动列出销售初级/中级/高级、以及配套主管、高管的真实底薪与达标月收入，点一行即可选定档位。')); return c; }
+  const cityB=getCoef('cityBase.'+I1), cf=getCoef('cycleFactor.'+I2);
+  const Bof=(lv,idx)=>roundYuanFen(cityB*getCoef('levelMultiplier.'+lv)[idx]*cf);
+  const Tof=(lv,idx)=>getCoef('thresholdTTable.'+I1+'.'+lv)[idx]*100;
+  const cityLab=ENUMS.cityTier.find(x=>x[0]===I1)[1], cycLab=ENUMS.cycleTier.find(x=>x[0]===I2)[1];
+  c.appendChild(el('div','hint',`按你选的 ${cityLab} · ${cycLab} 算出的实际水平——「档位」= 你打算按“什么标准的人”来定薪。点一行选定销售档：`));
+  const gi=gradeIndex(app.inputs.tierGrade);
+  const tbl=el('table','grade-tbl');
+  tbl.innerHTML=`<tr><th>销售档位</th><th>底薪/月</th><th>达标月收入</th><th>这是什么人</th></tr>`;
+  ['effective','efficient','leading'].forEach(g=>{ const idx=gradeIndex(g), sel=app.inputs.tierGrade===g;
+    const tr=el('tr','grade-row'+(sel?' on':'')); tr.dataset.g=g;
+    tr.innerHTML=`<td><b>销售·${GRADE_SHORT[g]}</b><span class="gt">（${GRADE_TECH[g]}）</span></td>
+      <td class="mono">${yuan(Bof('sales',idx))}</td><td class="mono">${yuan(Tof('sales',idx))}</td><td class="gd">${GRADE_DESC[g]}</td>`;
+    tr.onclick=()=>{ app.inputs.tierGrade=g; app.gradeBaseInput=null; if(app.results)compute(REAL_TODAY); render(); };
+    tbl.appendChild(tr); });
+  c.appendChild(tbl);
+  const sub=el('table','grade-tbl'); sub.style.marginTop='12px';
+  sub.innerHTML=`<tr><th>配套层级（按销售${GRADE_SHORT[app.inputs.tierGrade]}档）</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>`;
+  ['manager','executive'].forEach(lv=>{ const tr=el('tr');
+    tr.innerHTML=`<td>${levelName(lv)}</td><td class="mono">${yuan(Bof(lv,gi))}</td><td class="mono">${yuan(Tof(lv,gi))}</td><td class="gd">${LEVEL_DESC[lv]}</td>`;
+    sub.appendChild(tr); });
+  c.appendChild(sub);
+  c.appendChild(el('div','hint','注：底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚）；达标月收入只随城市与档位变、不随周期变。'));
+  const custom=el('div','grade-custom');
+  custom.innerHTML=`<label>或：直接输入你现在给销售的月底薪（元），系统告诉你这对应哪个档 👇</label>
+    <input type="number" id="gBaseIn" placeholder="如 8000" value="${app.gradeBaseInput!=null?app.gradeBaseInput/100:''}"><span id="gBaseOut"></span>`;
+  c.appendChild(custom);
+  setTimeout(()=>{ const inp=$('#gBaseIn'), out=$('#gBaseOut'); if(!inp)return;
+    const cand=['effective','efficient','leading'].map(g=>({g,B:Bof('sales',gradeIndex(g))}));
+    const nearest=fen=>{ let best=cand[0]; cand.forEach(x=>{ if(Math.abs(x.B-fen)<Math.abs(best.B-fen)) best=x; }); return best; };
+    const noteFor=(best,fen)=>{ const lo=cand[0].B, hi=cand[2].B;
+      return fen<lo*0.98 ? `低于「初级」矩阵底薪（${yuan(lo)}）——可能偏低；已按初级档算。`
+        : fen>hi*1.02 ? `高于「高级」矩阵底薪（${yuan(hi)}）——已按高级档算。`
+        : `≈ 最接近「${GRADE_SHORT[best.g]}（${GRADE_TECH[best.g]}）」档（矩阵 ${yuan(best.B)}）。已为你选定该档。`; };
+    const preview=()=>{ const v=parseFloat(inp.value); if(isNaN(v)){ out.textContent=''; return; }
+      const best=nearest(Math.round(v*100));
+      document.querySelectorAll('.grade-tbl .grade-row').forEach(r=>r.classList.toggle('on',r.dataset.g===best.g)); // 高亮实时跟随
+      out.innerHTML='→ '+noteFor(best,Math.round(v*100)); };
+    const commit=()=>{ const v=parseFloat(inp.value); if(isNaN(v)){ app.gradeBaseInput=null; return; }
+      const fen=Math.round(v*100), best=nearest(fen); app.inputs.tierGrade=best.g; app.gradeBaseInput=fen;
+      if(app.results)compute(REAL_TODAY); render(); };
+    inp.oninput=preview; inp.onchange=commit;
+    if(app.gradeBaseInput!=null) preview(); },0);
   return c;
 }
 const REF={
@@ -847,7 +926,7 @@ function gateNode(g){
 }
 function cardA(A,free){
   const s=A.sales;
-  const {c,body}=dcardShell('A','A','账单A · 定薪回算',`好招指数 ${A.goodHire.toFixed(2)} · ${gradeName(app.inputs.tierGrade)}档`,
+  const {c,body}=dcardShell('A','A','账单A · 定薪回算',`好招指数 ${A.goodHire.toFixed(2)} · 销售按${gradeFull(app.inputs.tierGrade)}档`,
     s.r!=null?pct(s.r):DASH,'销售提成率 r');
   const inner=el('div','inner');
   if(A.anyBlocked){
@@ -962,7 +1041,8 @@ function cardE(E,free){
   body.appendChild(lockWrap(inner,free));
   return c;
 }
-function gradeName(g){ return {effective:'有效',efficient:'高效',leading:'领先'}[g]; }
+function gradeName(g){ return GRADE_SHORT[g]; }               // 初级/中级/高级
+function gradeFull(g){ return `${GRADE_SHORT[g]}（${GRADE_TECH[g]}）`; } // 初级（有效）
 function levelName(l){ return {sales:'销售',manager:'主管',executive:'高管'}[l]; }
 
 /* ---- 话术库（逐字，件五 W-00~W-31）---- */
@@ -1246,7 +1326,7 @@ function printCovenant(cv){
   z.innerHTML=`<div class="print-doc"><div class="cov">
     <div class="code">${cv.code}</div>
     <h1>销售岗位薪酬信用书</h1>
-    <div class="body">兹承诺：<b>${escapeHtml(cv.candidateName)}</b> 入职后担任<b>销售</b>（<b>${gradeName(s.tierGrade)}</b>档），
+    <div class="body">兹承诺：<b>${escapeHtml(cv.candidateName)}</b> 入职后担任<b>销售</b>（<b>${gradeFull(s.tierGrade)}</b>档），
       月度底薪 <b>${yuan(s.baseSalaryAmt)}</b>；月度达标收入 <b>${yuan(s.thresholdTAmt)}</b>（含提成，提成按毛利口径、比例 <b>${s.commissionRate!=null?pct(s.commissionRate):'—'}</b>）；
       本信用书编号 <b>${cv.code}</b>，一经签发，条款不因业绩上调而单方下调。</div>
     <div class="legal">依中国劳动法与司法实践，用人单位单方下调已约定提成/降薪，须负举证责任并经民主程序，否则劳动者可主张按原标准补发。本信用书即把这份「不可单方反悔」白纸黑字化——它保护员工，也帮你少打一场大概率会输的仲裁。</div>
