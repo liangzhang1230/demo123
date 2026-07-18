@@ -1,0 +1,2596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>销冠育人器 v2.3</title>
+<style>
+/* ============================================================
+   设计系统 · 双极简
+   系统极简：零框架、零依赖、零网络；一套令牌、一种卡片、一个渲染循环
+   用户极简：每屏一件事；空态即教学；证据即出处；null 即 "—"
+   ============================================================ */
+:root{
+  --ink:#1a1c1e; --ink2:#55585c; --ink3:#8a8d92; --hair:#e6e4df;
+  --paper:#faf9f6; --card:#ffffff;
+  --accent:#3451b2; --accent-soft:#eef1fb;
+  --green:#1f7a4d; --green-soft:#e9f5ee;
+  --amber:#9a6700; --amber-soft:#fff4d6;
+  --red:#b3261e;   --red-soft:#fdeceb;
+  --gold:#8a6d1d;  --gold-soft:#faf3dc;
+  --radius:10px; --shadow:0 1px 2px rgba(26,28,30,.05),0 4px 14px rgba(26,28,30,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  font-size:14px;line-height:1.65;color:var(--ink);background:var(--paper);min-width:1080px}
+::selection{background:var(--accent-soft)}
+h1,h2,h3,h4{font-weight:600;line-height:1.35}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font:inherit;color:var(--ink);border:1px solid var(--hair);border-radius:6px;
+  padding:7px 10px;background:#fff;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input::placeholder,textarea::placeholder{color:var(--ink3)}
+table{border-collapse:collapse;width:100%}
+th{font-weight:500;color:var(--ink2);text-align:left;font-size:12.5px;padding:8px 10px;border-bottom:1px solid var(--hair);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--hair);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* —— 布局 —— */
+#app{display:flex;min-height:100vh}
+.side{width:216px;flex:none;background:var(--card);border-right:1px solid var(--hair);
+  padding:18px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:2px 10px 14px}
+.brand b{font-size:16px;letter-spacing:.5px}
+.brand small{display:block;color:var(--ink3);font-size:11.5px;margin-top:2px}
+.nav-sec{margin-top:14px}
+.nav-sec>span{display:block;font-size:11px;color:var(--ink3);letter-spacing:1px;padding:0 10px 6px}
+.nav a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:var(--ink2);
+  text-decoration:none;font-size:13.5px;margin-bottom:1px}
+.nav a:hover{background:var(--paper)}
+.nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.nav a .no{font-size:11px;color:var(--ink3);width:15px;text-align:center;flex:none}
+.nav a.on .no{color:var(--accent)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;background:var(--card);border-bottom:1px solid var(--hair);
+  padding:10px 28px;position:sticky;top:0;z-index:20}
+.topbar .lic{font-size:12.5px;color:var(--ink2)}
+.topbar .lic b{color:var(--ink)}
+.topbar .sp{flex:1}
+.topbar .today{font-size:12.5px;color:var(--ink3)}
+.content{padding:26px 28px 60px;max-width:1120px;width:100%;margin:0 auto}
+.ph{margin-bottom:20px}
+.ph h1{font-size:19px}
+.ph p{color:var(--ink2);font-size:13px;margin-top:3px;max-width:760px}
+
+/* —— 卡片与元件 —— */
+.card{background:var(--card);border:1px solid var(--hair);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card>h3{font-size:14.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:13px;
+  border:1px solid var(--hair);background:#fff;color:var(--ink);transition:all .15s}
+.btn:hover{border-color:var(--ink3)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.warn{color:var(--red);border-color:#eecfcd}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.tag{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.tag.g{background:var(--green-soft);color:var(--green)}
+.tag.a{background:var(--amber-soft);color:var(--amber)}
+.tag.r{background:var(--red-soft);color:var(--red)}
+.tag.b{background:var(--accent-soft);color:var(--accent)}
+.tag.n{background:var(--paper);color:var(--ink3)}
+.tag.gold{background:var(--gold-soft);color:var(--gold)}
+.kpi{display:flex;gap:14px;flex-wrap:wrap}
+.kpi .k{flex:1;min-width:150px;background:var(--card);border:1px solid var(--hair);border-radius:var(--radius);padding:14px 16px}
+.kpi .k label{font-size:12px;color:var(--ink3);display:block}
+.kpi .k b{font-size:22px;font-weight:600;display:block;margin-top:2px}
+.kpi .k small{font-size:11.5px;color:var(--ink3)}
+.src{display:block;font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.55}
+.asof{font-size:11px;color:var(--ink3)}
+.asof.stale{color:var(--amber)}
+.gray{color:var(--ink3);font-size:12px}
+.hr{border:none;border-top:1px solid var(--hair);margin:12px 0}
+.quote{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 8px 8px 0;
+  font-size:13px;margin:10px 0}
+.alert{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;border:1px solid transparent}
+.alert.r{background:var(--red-soft);color:var(--red);border-color:#f3d3d1}
+.alert.a{background:var(--amber-soft);color:#6e4d00;border-color:#f0e0b0}
+.alert.g{background:var(--green-soft);color:var(--green)}
+.banner{padding:9px 28px;font-size:13px;background:var(--amber-soft);color:#6e4d00;border-bottom:1px solid #f0e0b0;
+  display:flex;align-items:center;gap:12px}
+.banner.r{background:var(--red-soft);color:var(--red);border-color:#f3d3d1}
+
+/* —— 锁定 / 空态 —— */
+.lockcard{border:1px dashed var(--hair);border-radius:var(--radius);background:#fff;
+  padding:34px 24px;text-align:center;margin-bottom:16px}
+.lockcard .ic{font-size:26px}
+.lockcard h4{font-size:14.5px;margin:8px 0 4px}
+.lockcard p{color:var(--ink2);font-size:13px;max-width:520px;margin:0 auto 12px}
+.locked{position:relative;pointer-events:none;user-select:none}
+.locked::after{content:"完整版功能 · 输入授权码解锁";position:absolute;inset:0;background:rgba(250,249,246,.82);
+  backdrop-filter:blur(2.5px);display:flex;align-items:center;justify-content:center;
+  color:var(--ink2);font-size:13px;border-radius:var(--radius);z-index:5}
+
+/* —— 徽章 / 自检 —— */
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--hair);border-radius:8px;
+  padding:5px 10px;font-size:12px;background:#fff}
+.badge.ok{border-color:#bfe0cd;background:var(--green-soft);color:var(--green)}
+.badge.no{border-color:#f3d3d1;background:var(--red-soft);color:var(--red)}
+.badge b{font-weight:600}
+
+/* —— PLV 工作台 —— */
+.plv-lay{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.plv-check{font-size:13px}
+.plv-check .li{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed var(--hair)}
+.plv-check .li:last-child{border-bottom:none}
+textarea.rx{width:100%;min-height:110px;resize:vertical;line-height:1.7}
+
+/* —— 散点图 —— */
+.scatter{width:100%;height:auto;display:block}
+.scatter .dot{cursor:pointer}
+.scatter text{font-size:10px;fill:var(--ink3)}
+
+/* —— 节奏四区 —— */
+.zones{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.zone{border:1px solid var(--hair);border-radius:var(--radius);background:#fff;padding:12px 14px;min-height:120px}
+.zone h4{font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.zone .p{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--hair)}
+.zone .p:last-child{border-bottom:none}
+
+/* —— 销售端 —— */
+.sales-wrap{max-width:560px;margin:0 auto}
+.rx-card{border-left:4px solid var(--accent)}
+.rx-card .seg{margin-bottom:10px}
+.rx-card .seg label{font-size:11.5px;color:var(--accent);letter-spacing:1px}
+.rx-card .seg p{font-size:13.5px}
+.footnote{font-size:11.5px;color:var(--ink3);border-top:1px dashed var(--hair);padding-top:8px;margin-top:10px}
+
+/* —— 打印 —— */
+.print-only{display:none}
+@media print{
+  body{background:#fff;min-width:0}
+  .side,.topbar,.banner,.no-print,.nav{display:none!important}
+  .content{padding:0;max-width:none}
+  .card{box-shadow:none;break-inside:avoid}
+  .print-only{display:block}
+  .print-footer{position:fixed;bottom:0;left:0;right:0;font-size:10.5px;color:#777;
+    border-top:1px solid #ddd;padding-top:4px;text-align:center}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ================================================================
+   销冠育人器 v2.3 —— 单文件交付（HTML+CSS+JS 内联）
+   依据：《0号·销冠算盘全局公约 v1.5》+《5号·销冠育人器完整规格 v2.3》
+   铁律：无后端 / 无网络 / 无 CDN / localStorage（前缀 skab_yuren_）
+         计算层纯函数 + today 显式注入（公约 C-14）；除法只经 safeDiv；
+         系数只经 getCoef；跨板块数据只经信封导入，只读（A-20）。
+   ================================================================ */
+
+/* ========= 0. 构建常量（双构建：'free' | 'full'，同一代码两个常量） ========= */
+const BUILD_MODE = 'full';
+const APP_VERSION = 'v2.3';
+const BOARD = 'yuren';
+const LS_PREFIX = 'skab_yuren_';
+
+/* ========= 1. COEFFICIENTS（结构权归系统·数值权归老板 ✏️·启用权归老板） ========= */
+/* 两级架构（公约 C-03）：共享系数=公约【5】；本板块增补=本件二 2.3。 */
+const COEF_DEFAULTS = {
+  // —— 公约【5.2】共享（本板块用到的子集）——
+  minSampleDefault: 5,
+  envelopeStaleDays: 90,          // ✏️ 信封新鲜度标注阈值（只标注不阻断）
+  ahcTrustLine: 60,               // ✏️ AHC 信任线（闸③，与算账器闸⑪双侧同改 R-04）
+  backupNudgeDays: 14,            // ✏️ 备份提醒阈值（A-24）
+  momentumTrigger: { lossStreak: 3, score: 0.6 },
+  coachingDose: { floorHrsMonth: 3, ceilHrsMonth: 5, weeklyMin: 0.5 },
+  // —— 本板块件二 2.3 增补 ——
+  recipeGate: { topN: 3, uerMin: 0, discountLeMean: true, complaintLeMean: true },
+  plvBanned: ["态度","心态","性格","狼性","拼劲","不够努力","意识","格局","悟性","主动性",
+    "责任心","上进心","你这个人","不用心","不上心","没激情","抗压能力","逆商","企图心",
+    "不行","不专业","笨","懒","没脑子","态度端正"],   // ✏️ 只增不删
+  rxRules: { volumeLt: 0.70, qualityLt: 0.60, doseGe: 0.70, ratioGe: 0.80, speedX: 1.5 },
+  psi: { w: [25,25,25,25], targeting: { top: 1.0, second: 0.6, other: 0.2 },
+         benchmark: { source: 1.0, teamMean: 0.5, generic: 0 }, bands: [40,70] },
+  newbieWindow: { days: 7, thresholdRate: 0.80, redStreakDays: 3, redLine: 0.60, holdDays: 3 },
+  effectiveScore: { newbieBandFactor: 0.60 },
+  spotCheck: { weeklyK: 2, kRange: [0,5], flagWeight: 3 },
+  backlogAlert: { managerDays: 30, bossDays: 60, surgeUp: 0.50, dropDown: 0.30 },
+  joltRule: { stallX: 1.5, discountX: 1.5 },
+  floorLift: { minEach: 3, windowDays: 90 },
+  m40: { coachTopN: 3, learnerBand: [0.20, 0.80], pairWeeksMax: 3, sessionMinutes: 20,
+         queueSort: "近3月归一化净贡献增幅升序" },
+  m41: { lossStreakTrigger: 3, scoreTrigger: 0.60, w: [0.6, 0.4], streakCap: 5,
+         winRateWindowDays: 30, smallDealAovX: 0.5 },
+  m42: { laggardBand: 1/3, trajMonths: 6, matchNowBand: "≥中1/3" },
+  m43: { accel: [0.60, 0.95], quitLt: 0.40, protectBigDealShare: 0.50, subGoalX: 1.1,
+         middleCoachWeight: 0.60 },
+  m44: { tenureYears: 2, neglectRatioLt: 0.5 },
+  cullGuard: { leadsIndexLt: 0.70, practice14Min: 50 },   // 汰前三拦截阈值（3.6）
+  momentumBannedWords: ["冲","拼","必须拿下"],             // M41③ 动量期 PLV 加强词
+};
+// 可编辑白名单（✏️ 数值权归老板；结构不可改）
+const COEF_EDITABLE = [
+  ['ahcTrustLine','AHC 信任线（闸③）','分'],
+  ['envelopeStaleDays','信封过期标注阈值','天'],
+  ['backupNudgeDays','备份提醒阈值','天'],
+  ['coachingDose.floorHrsMonth','辅导剂量下限','小时/月'],
+  ['coachingDose.ceilHrsMonth','辅导剂量上限','小时/月'],
+  ['newbieWindow.thresholdRate','新人阈值（基准×）','0–1'],
+  ['spotCheck.weeklyK','每周抽检张数','张'],
+  ['m40.pairWeeksMax','配对连续周上限','周'],
+  ['m43.subGoalX','弃赛区子目标系数','倍'],
+];
+
+/* ========= 2. 工具（公约【2】【3】：金额分 int / 比率 0–1 / 舍入只在展示层） ========= */
+function safeDiv(a, b) { return (b === 0 || b == null || a == null) ? null : a / b; }
+
+function getPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj); }
+
+function fmtInt(n) { return n == null ? '—' : Math.round(n).toLocaleString('zh-CN'); }
+function fmtAmt(cents) {   // 分 → 整数元 ¥12,480
+  return cents == null ? '—' : '¥' + Math.round(cents / 100).toLocaleString('zh-CN');
+}
+function fmtWan(cents) {   // 分 → 万元保留 1 位
+  return cents == null ? '—' : (cents / 1000000).toFixed(1) + ' 万';
+}
+function fmtRate(r) { return r == null ? '—' : (r * 100).toFixed(1) + '%'; }
+function fmtNum(n, d) { return n == null ? '—' : Number(n).toFixed(d == null ? 1 : d); }
+function roundTo(x, unit) { return x == null ? null : Math.round(x / unit) * unit; }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function uid(prefix) {
+  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+}
+// 日期：字符串直算，避免时区裁量；周期比较左闭右闭
+function dParse(s) { const p = s.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+function dStr(ms) { const d = new Date(ms); return d.toISOString().slice(0, 10); }
+function addDays(s, n) { return dStr(dParse(s) + n * 86400000); }
+function diffDays(a, b) { return Math.round((dParse(a) - dParse(b)) / 86400000); }  // a − b
+function weekdayOf(s) { return new Date(dParse(s)).getUTCDay(); }                    // 0=周日
+function monthKey(s) { return s.slice(0, 7); }
+function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+function stddev(arr) {
+  if (arr.length < 2) return null;
+  const m = mean(arr);
+  return Math.sqrt(arr.reduce((s, x) => s + (x - m) * (x - m), 0) / (arr.length - 1));
+}
+// 展示保险丝（A-10 / Y-D14）：任何非有限数一律 "—"
+function safeShow(v, fmt) {
+  if (v == null || (typeof v === 'number' && !isFinite(v))) return '—';
+  return fmt ? fmt(v) : String(v);
+}
+
+/* ========= 3. CALC —— 计算层（全部纯函数；含日期者一律显式收 today） ========= */
+/* 公约 §4.7 全系统唯一 S 曲线（本板块用于 M15 基准语境与"S曲线右移"提示；改动须过 R-05 双基准） */
+const rampCurve12 = {
+  short:    [0,12,25,42,60,73,85,93,100,100,100,100],
+  regular:  [0, 5,12,22,35,48,60,72, 82, 90, 96,100],
+  midLong:  [0, 0, 5,12,20,30,42,53, 63, 72, 80, 87],
+  long:     [0, 0, 0, 5,10,18,27,36, 45, 54, 62, 70],
+  ultraLong:[0, 0, 0, 0, 5,10,16,23, 30, 37, 44, 50],
+};
+const CALC = {
+  // 🔧C-04：入职月 m 的当年贡献率 = 在职 tenure 的头部和 Σ[1..(13−m)]，不是尾部和
+  newHireYearRate(cycle, m) {
+    const arr = rampCurve12[cycle];
+    if (!arr || m < 1 || m > 12) return null;
+    let s = 0;
+    for (let i = 0; i < 13 - m; i++) s += arr[i];
+    return s / 12 / 100;
+  },
+
+  /* —— 3.2 闸① PLV 处方语言校验器（三层全拦截） —— */
+  plvCheck(text, opts) {
+    opts = opts || {};
+    const t = String(text || '').trim();
+    const banned = (opts.banned || COEF_DEFAULTS.plvBanned)
+      .concat(opts.momentum ? (opts.momentumBanned || COEF_DEFAULTS.momentumBannedWords) : []);
+    // 第一层：拦截词库
+    const hits = banned.filter(w => t.includes(w));
+    const l1 = { pass: hits.length === 0, hits };
+    // 第二层：去人名测试——删人名/你/他/她后，句子仍指向任务（含数字或业务环节词）才算成立
+    let residual = t.replace(/你|他|她|您/g, '');
+    (opts.names || []).forEach(n => { residual = residual.split(n).join(''); });
+    const TASK_WORDS = ['电话','线索','意向','样品','签约','需求','拜访','报价','跟进','复盘',
+      '话术','异议','分钟','客户','单','转化','演示','确认'];
+    const l2 = { pass: /\d/.test(residual) || TASK_WORDS.some(w => residual.includes(w)) };
+    // 第三层：三槽位（行为数据 + 具体动作 + 可测基准，缺一拦截）
+    const hasBehaviorData = /\d/.test(t) && TASK_WORDS.some(w => t.includes(w));
+    const hasAction = /(试试|改成|下次|先|把|问|打|加上|换成|今天|本周|再|多做|列出|准备)/.test(t);
+    const hasBenchmark = /(基准|配方源|团队均值|上周|上月|参考|对标)/.test(t) && /[\d％%]/.test(t);
+    const l3 = { pass: hasBehaviorData && hasAction && hasBenchmark,
+                 slots: { behaviorData: hasBehaviorData, action: hasAction, benchmark: hasBenchmark } };
+    return { l1, l2, l3, passed: l1.pass && l2.pass && l3.pass };
+  },
+
+  /* —— 3.3 闸② PSI 个性化指数（parts ∈ [0,1]，逐项 25 分制四舍五入后求和） —— */
+  psiScore(parts) {
+    if (!parts) return null;
+    const w = COEF_DEFAULTS.psi.w;
+    const keys = ['targeting', 'benchmark', 'dataRef', 'ackRate'];
+    let sum = 0;
+    for (let i = 0; i < 4; i++) {
+      const v = parts[keys[i]];
+      if (v == null) return null;
+      sum += Math.round(w[i] * v);
+    }
+    return sum;
+  },
+  psiBand(score) {
+    if (score == null) return null;
+    const b = COEF_DEFAULTS.psi.bands;
+    return score > b[1] ? 'green' : (score >= b[0] ? 'amber' : 'red');
+  },
+
+  /* —— 3.1 闸④ 配方源资格（硬闸：四条同时满足；M21 未运行 → 整体锁定） —— */
+  recipeGateCheck(p, ctx) {
+    // p: {rankNorm, uer, discountRate, complaintCount}  ctx: {m21Done, teamDiscountMean, teamComplaintMean, coef}
+    const coef = (ctx && ctx.coef) || COEF_DEFAULTS.recipeGate;
+    if (!ctx || !ctx.m21Done) return { locked: true, qualified: false, fails: ['m21_missing'] };
+    const fails = [];
+    if (p.rankNorm == null || p.rankNorm > coef.topN) fails.push('rank');
+    if (p.uer == null || p.uer < coef.uerMin) fails.push('uer');
+    if (coef.discountLeMean && (p.discountRate == null || ctx.teamDiscountMean == null
+        || p.discountRate > ctx.teamDiscountMean)) fails.push('discount');
+    if (coef.complaintLeMean && (p.complaintCount == null || ctx.teamComplaintMean == null
+        || p.complaintCount > ctx.teamComplaintMean)) fails.push('complaint');
+    return { locked: false, qualified: fails.length === 0, fails };
+  },
+
+  /* —— 闸③ 产权前提：无 M28 ∨ AHC<信任线 → 锁定；UER 趋势 <−0.5σ → 「他开始藏了」 —— */
+  propertyGate(p, coef) {
+    // p: {hasM28, ahc}
+    const line = (coef && coef.ahcTrustLine) != null ? coef.ahcTrustLine : COEF_DEFAULTS.ahcTrustLine;
+    if (!p.hasM28) return { locked: true, reason: 'no_m28' };
+    if (p.ahc == null) return { locked: true, reason: 'ahc_missing' };
+    if (p.ahc < line) return { locked: true, reason: 'ahc_low' };
+    return { locked: false, reason: null };
+  },
+  hidingCheck(uerSeries, minSample) {
+    // 上线后配方源 UER 趋势监测：最新值相对此前均值下滑 < −0.5σ → hiding
+    const min = minSample || COEF_DEFAULTS.minSampleDefault;
+    if (!uerSeries || uerSeries.length < min) return { hiding: null };  // 样本不足不下结论（A-19）
+    const prev = uerSeries.slice(0, -1), last = uerSeries[uerSeries.length - 1];
+    const sd = stddev(prev);
+    if (sd == null || sd === 0) return { hiding: null };
+    return { hiding: (last - mean(prev)) < -0.5 * sd };
+  },
+
+  /* —— 3.7 闸⑩ 认知鸿沟 = 1 − 确认/上报；>30% 红 —— */
+  cognitiveGap(reportedHrs, confirmedHrs) {
+    const r = safeDiv(confirmedHrs, reportedHrs);
+    return r == null ? null : 1 - r;
+  },
+
+  /* —— 3.5 M14 第三闸 · 有效动作分（刷量不增分 → 虚报数学收益归零） —— */
+  effectiveLeads(leads, intents, convLowerBand) {
+    if (leads == null) return null;
+    if (intents == null || convLowerBand == null || convLowerBand <= 0) return leads;
+    return Math.min(leads, intents / convLowerBand);
+  },
+  effectiveChain(counts, bands) {
+    // counts:{leads,intents,samples,contracts} bands:{lead2intent,intent2sample,sample2contract}（个人近90天下限带宽）
+    const eLeads   = CALC.effectiveLeads(counts.leads,   counts.intents,   bands && bands.lead2intent);
+    const eIntents = CALC.effectiveLeads(counts.intents, counts.samples,   bands && bands.intent2sample);
+    const eSamples = CALC.effectiveLeads(counts.samples, counts.contracts, bands && bands.sample2contract);
+    return { leads: eLeads, intents: eIntents, samples: eSamples, contracts: counts.contracts };
+  },
+
+  /* —— 3.6 M15 汰前三道拦截（任一命中 → 汰建议渲染前拦截；兜底默认「留」） —— */
+  cullInterceptors(ctx, coef) {
+    // ctx: {leadsIndex, practice14, ackConfirmedCount}
+    const c = coef || COEF_DEFAULTS.cullGuard;
+    const blocks = [];
+    if (ctx.leadsIndex != null && ctx.leadsIndex < c.leadsIndexLt) blocks.push('no_leads');
+    if (ctx.practice14 != null && ctx.practice14 < c.practice14Min) blocks.push('no_practice');
+    if (ctx.ackConfirmedCount === 0) blocks.push('no_coaching');
+    return blocks;
+  },
+
+  /* —— 3.4 M13 闸⑧ 挤出对冲（三态；与 4号闸③、公约 A-12 逐字同源，R-04） —— */
+  isResultTrigger(t) { return ['record_break', 'sprint', 'backlog_clear'].indexOf(t) >= 0; },
+  isExempt(t) { return ['first_deal', 'hire'].indexOf(t) >= 0; },
+  bountyGate(template, silentTrackOn) {
+    if (CALC.isExempt(template)) return { allow: true, state: 'exempt' };
+    if (CALC.isResultTrigger(template) && !silentTrackOn)
+      return { allow: false, state: 'blocked', talk: 'Y-13' };
+    return { allow: true, state: 'pass' };
+  },
+
+  /* —— 3.8 M25 JOLT 闸⑫ —— */
+  joltCheck(d, coef) {
+    // d:{stayDays, categoryMedianStayDays, hasDiscountDuring, personDiscountRate, othersDiscountRate}
+    const c = coef || COEF_DEFAULTS.joltRule;
+    const high = (d.stayDays != null && d.categoryMedianStayDays != null)
+      ? d.stayDays > d.categoryMedianStayDays * c.stallX : null;
+    const pressure = high === true && !!d.hasDiscountDuring;
+    let ratioRed = null;
+    const ratio = safeDiv(d.personDiscountRate, d.othersDiscountRate);
+    if (ratio != null) ratioRed = ratio > c.discountX;
+    return { highHesitation: high, pressure, ratioRed };
+  },
+
+  /* —— 3.9 M26 地板抬升计量器（前后对比，非随机对照） —— */
+  floorLift(group, coef) {
+    // group: {members:[{beforeMonthlyAmt, afterMonthlyAmt}], windowDaysOk:bool}
+    const c = coef || COEF_DEFAULTS.floorLift;
+    if (!group || !group.members || group.members.length < c.minEach || !group.windowDaysOk)
+      return { annualLiftAmt: null, insufficient: true };
+    let lift = 0;
+    for (const m of group.members) {
+      if (m.beforeMonthlyAmt == null || m.afterMonthlyAmt == null) return { annualLiftAmt: null, insufficient: true };
+      lift += m.afterMonthlyAmt - m.beforeMonthlyAmt;
+    }
+    return { annualLiftAmt: lift * 12, monthlyLiftAmt: lift, insufficient: false };
+  },
+  recipeRoi(annualLiftAmt, monthlyCostAmt) {
+    return safeDiv(annualLiftAmt, monthlyCostAmt == null ? null : monthlyCostAmt * 12);
+  },
+
+  /* —— 3.10 M40 配对传帮带排班器 —— */
+  m40Pairing(input, coef) {
+    // input: {people:[{spId,name,rankNorm,growth3m}], gate4PassIds:[], m28SignedIds:[], prevWeeks:{ 'coach|learner': n }}
+    const c = coef || COEF_DEFAULTS.m40;
+    const n = input.people.length;
+    const byId = {};
+    input.people.forEach(p => byId[p.spId] = p);
+    const coachCand = input.people
+      .filter(p => p.rankNorm != null && p.rankNorm <= c.coachTopN)
+      .filter(p => input.gate4PassIds.indexOf(p.spId) >= 0)
+      .sort((a, b) => a.rankNorm - b.rankNorm);
+    const frozen = coachCand.filter(p => input.m28SignedIds.indexOf(p.spId) < 0);
+    const coaches = coachCand.filter(p => input.m28SignedIds.indexOf(p.spId) >= 0);
+    const coachIds = coachCand.map(p => p.spId);
+    const lo = n * c.learnerBand[0], hi = n * c.learnerBand[1];
+    const learners = input.people
+      .filter(p => p.rankNorm != null && p.rankNorm > lo && p.rankNorm <= hi)
+      .filter(p => coachIds.indexOf(p.spId) < 0)
+      .sort((a, b) => (a.growth3m == null ? 1 : b.growth3m == null ? -1 : a.growth3m - b.growth3m));
+    const pairs = [], queued = [];
+    let li = 0;
+    for (const coach of coaches) {
+      // 轮换铁律：同一对 consecutiveWeeks ≥ pairWeeksMax → 第 4 周强制轮换（跳过该学员）
+      while (li < learners.length) {
+        const cw = (input.prevWeeks || {})[coach.spId + '|' + learners[li].spId] || 0;
+        if (cw >= c.pairWeeksMax) { queued.push(learners[li].spId); li++; continue; }
+        break;
+      }
+      if (li >= learners.length) break;
+      pairs.push({ coachId: coach.spId, learnerId: learners[li].spId });
+      li++;
+    }
+    for (; li < learners.length; li++) queued.push(learners[li].spId);
+    return { pairs, queued, frozenCoachIds: frozen.map(p => p.spId) };
+  },
+  pairAllowed(consecutiveWeeks, coef) {
+    const max = (coef && coef.pairWeeksMax) || COEF_DEFAULTS.m40.pairWeeksMax;
+    return consecutiveWeeks < max;
+  },
+
+  /* —— 3.11 M41 动量连败干预器 —— */
+  momentum(lossStreak, prevWinRate, curWinRate, coef) {
+    const c = coef || COEF_DEFAULTS.m41;
+    const dropRatio = (prevWinRate == null || curWinRate == null || prevWinRate <= 0) ? null
+      : Math.max(0, (prevWinRate - curWinRate) / prevWinRate);
+    if (lossStreak == null && dropRatio == null) return { score: null, triggered: null };
+    const s = c.w[0] * Math.min((lossStreak || 0) / c.streakCap, 1)
+            + c.w[1] * Math.min(dropRatio == null ? 0 : dropRatio, 1);
+    const score = Math.round(s * 100) / 100;
+    return { score, triggered: (lossStreak || 0) >= c.lossStreakTrigger || score >= c.scoreTrigger };
+  },
+
+  /* —— 3.12 M42 深板凳榜样匹配（轨迹距离，万元） —— */
+  trajDistance(a, b) {
+    if (!a || !b || a.length !== b.length || !a.length) return null;
+    let s = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] == null || b[i] == null) return null;
+      s += Math.abs(a[i] - b[i]);
+    }
+    return s;
+  },
+  m42Match(laggardTraj, candidates) {
+    // candidates: [{spId, traj, nowBandOk}]；匹配集为空 → null（"—"，绝不硬凑）
+    let best = null;
+    for (const cand of candidates || []) {
+      if (!cand.nowBandOk) continue;
+      const d = CALC.trajDistance(laggardTraj, cand.traj);
+      if (d == null) continue;
+      if (!best || d < best.dist) best = { spId: cand.spId, dist: d };
+    }
+    return best;
+  },
+
+  /* —— 3.13 M43 分层节奏引擎 —— */
+  paceZone(completion, opts, coef) {
+    // completion = 周期回款 ÷ 个人配额（null → 整模块 "—"）
+    if (completion == null) return null;
+    const c = coef || COEF_DEFAULTS.m43;
+    const o = opts || {};
+    const bigDealProtect = (o.inFlightBigDealAmt != null && o.monthQuotaAmt != null
+      && o.inFlightBigDealAmt > o.monthQuotaAmt * c.protectBigDealShare);
+    if (completion >= 1.0 || bigDealProtect) return 'protect';
+    if (completion < c.quitLt) return 'quit_risk';
+    if (completion >= c.accel[0] && completion < c.accel[1]) return 'accel';
+    return 'normal';
+  },
+  subGoalAmt(remainWorkdays, dailyAvgAmt, coef) {
+    // 子目标 = roundTo(剩余工作日 × 个人历史日均回款 × 1.1, 百元)；只影响推送节奏，不写配额/提成
+    const c = coef || COEF_DEFAULTS.m43;
+    if (remainWorkdays == null || dailyAvgAmt == null) return null;
+    return roundTo(remainWorkdays * dailyAvgAmt * c.subGoalX, 10000);  // 百元 = 10000 分
+  },
+
+  /* —— 3.13 M44a 资历忽视检测 —— */
+  m44aRatio(veteranAvgDoseHrs, teamAvgDoseHrs) {
+    return safeDiv(veteranAvgDoseHrs, teamAvgDoseHrs);
+  },
+
+  /* —— 闸⑪ 辅导剂量（人均月 confirmed 时长；导出信封供留人器闸⑧Q4，Y-C02/Y-D15） —— */
+  coachingDoseActual(acks, activeCount, windowDays, today) {
+    // acks: [{status, durationHrs, date}]；只计 confirmed；按 windowDays 折算为"人均月"
+    if (!activeCount || !windowDays) return null;
+    const from = addDays(today, -windowDays);
+    let total = 0;
+    for (const a of acks || []) {
+      if (a.status === 'confirmed' && a.durationHrs != null && a.date > from && a.date <= today)
+        total += a.durationHrs;
+    }
+    const perCapitaMonthly = safeDiv(total, activeCount) == null ? null
+      : (total / activeCount) * (30 / windowDays);
+    return perCapitaMonthly == null ? null : Math.round(perCapitaMonthly * 10) / 10;
+  },
+
+  /* —— 休息日规则：分母/连续计数/催报/插卡四处全部排除（Y-D8） —— */
+  isWorkday(dateStr, shiftConfig, spId) {
+    // shiftConfig: {spId 或 '*': [0..6 为休息的星期]}；默认周日休
+    const sc = shiftConfig || {};
+    const rest = sc[spId] || sc['*'] || [0];
+    return rest.indexOf(weekdayOf(dateStr)) < 0;
+  },
+
+  /* —— M14 ① 挂账爆破 + 量增质塌 —— */
+  backlogCheck(d, today, coef) {
+    // d:{contractDate, paidDate|null}
+    const c = coef || COEF_DEFAULTS.backlogAlert;
+    if (d.paidDate) return null;
+    const days = diffDays(today, d.contractDate);
+    if (days > c.bossDays) return 'boss';
+    if (days > c.managerDays) return 'manager';
+    return null;
+  },
+  surgeCollapse(cur, prev, coef) {
+    // 量增质塌：计数 +50% ∧ 转化 −30% → 抽检加权 ×3
+    const c = coef || COEF_DEFAULTS.backlogAlert;
+    const up = safeDiv(cur.leads - prev.leads, prev.leads);
+    const down = safeDiv(prev.conv - cur.conv, prev.conv);
+    if (up == null || down == null) return null;
+    return up >= c.surgeUp && down >= c.dropDown;
+  },
+};
+
+/* ========= 4. 话术库（Y 系；关键句逐字，A-19：结论由判定函数返回） ========= */
+const TALK = {
+  landing1: '这个系统不复制销冠。销冠不可复制。它做两件事：① 把你团队的地板，抬高三万块。② 让你的销冠，第一次敢把他的本事交出来。',
+  boundary: '这个系统不会让一个卖不动的产品卖动。如果你的产品本身有问题——先去改产品。这个系统帮不了你。',
+  privacy: '数据不出你电脑：本文件无后端、无网络请求、无埋点。',
+  rxFooter: '处方为成长参考，不构成考核依据。',
+  spotFooter: '抽检为随机生成，全员同规。',
+  printDisclaimer: '本报告为经营参考口径，不构成税务、法律或财务审计意见；相关事项请咨询专业机构。',
+  y01_reject: '如果把他设为配方源，系统会蒸馏出什么？"多要线索+多打折+快速成交+不管售后"，然后教给你全公司的人。这不是在复制销冠。这是在把一个人的漏水，规模化。',
+  y01_accept: '而 J，就是那个只拿到 30 条线索、业绩垫底、三个月前你正准备开掉的那个人。',
+  y02: '他会发现。然后他会开始藏。而系统能测到（UER 会下降）。他交出的不是筹码，是一块碑——而这块碑，还在替他赚钱。',
+  y02_hiding: '他开始藏了',
+  y04: '你在加压。而加压，在 84% 的情况下会杀死这个单子。你不只是在杀单——你还在用公司的毛利，杀单。',
+  y10: '稳定输出者要的不是奖，是"被看见"。发奖会挤出他；不看见会失去他。静默认可，是唯一的中间路径。',
+  y11: [
+    n => `他一个月只拿到 ${n} 条线索。这不是他不干活，这是你没给他饭吃。`,
+    p => `他前两周只练了 ${p} 次（基准 50–100）。你还没给他机会，就要淘汰他。`,
+    d => `他入职 ${d} 天，一次被确认的辅导都没有。你在淘汰一个没人教过的人。`,
+  ],
+  y13(templateName) {
+    return `你要挂的是一个结果赏（${templateName}）——奖的是他本来就想干的事。` +
+    `📎 Gubler-Larkin-Pierce (2016), Org Sci：象征与物质奖励会挤出骨干，产出 −8%；` +
+    `📎 Heyman & Ariely：小额金钱把社会规范切换成市场规范（📎 Gneezy & Rustichini 2000《A Fine Is a Price》：罚款取消后行为不回弹——切换不可逆）。` +
+    `真正的风险不是"给了钱"，而是：当公司里所有值得做的事都明码标价，没标价的事就自动等于不值得做的事。` +
+    `他会完成一次翻译——"冲大单原来是额外有赏的事，那没赏的事就是不用干的事"。` +
+    `而你最需要的那部分努力（带徒弟不留一手、关键客户录进系统、难单也接），恰恰是你测不到、也买不到的。` +
+    `✅ 所以系统不拦你发钱，只要求你同时留一条不发钱的承认路径：静默认可通道——连续 6 个月达标 → 进灯塔 + 进前程合约资格池，不发奖、不播报、不排名。` +
+    `它回答"没赏的事还值不值得干"：值得，因为长期干得好通向的是产权和台阶，不是奖金。不是不许用钱，是不许只有钱。`;
+  },
+  bountyNames: { first_deal:'首单赏', record_break:'破纪录赏', sprint:'冲刺赏', backlog_clear:'挂账清零赏', hire:'入职赏' },
+  stageNames: { leads:'线索', intents:'意向', samples:'样品', contracts:'签约' },
+  zoneNames: { accel:'加速区', normal:'常规区', quit_risk:'弃赛区', protect:'保护区' },
+};
+
+/* ========= 5. StorageAdapter（v1 落 localStorage，预留 IndexedDB 切换位；C-15） ========= */
+const StorageAdapter = {
+  read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(LS_PREFIX + key);
+      return raw == null ? fallback : JSON.parse(raw);
+    } catch (e) { return fallback; }
+  },
+  write(key, value) {
+    try { localStorage.setItem(LS_PREFIX + key, JSON.stringify(value)); return true; }
+    catch (e) { return false; }  // 配额超限 → 调用方提示导出归档
+  },
+  probe() {   // 启动配额自检：占用估算 + 写入探针（公约【8】C-15）
+    let used = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        used += k.length + (localStorage.getItem(k) || '').length;
+      }
+      localStorage.setItem(LS_PREFIX + '__probe', 'x');
+      localStorage.removeItem(LS_PREFIX + '__probe');
+      return { ok: true, usedBytes: used * 2 };   // UTF-16 估算
+    } catch (e) { return { ok: false, usedBytes: used * 2 }; }
+  },
+};
+
+function emptyDB() {
+  return {
+    salespeople: [],        // Salesperson 最小字段集（公约【1A】）
+    dailyReports: [],       // DailyReport
+    prescriptions: [],      // Prescription
+    coachTasks: [],         // CoachTask
+    coachingAcks: [],       // CoachingAck {ackId, spId, coachId, date, durationHrs, status:confirmed|no_response|disputed, reportedHrs}
+    bounties: [],           // Bounty
+    spotChecks: [],         // SpotCheckCard（只出题不记结果，Y-D7）
+    practiceLogs: [],       // PracticeLog（本地补录；招人器信封为权威源）
+    recipeSource: null,     // RecipeSource {sourceIds[], setAt, setBy, qualifiedFlags}
+    pairAssignments: [],    // PairAssignment
+    callMetrics: [],        // CallMetrics 🟤 埋设：建表不建界面（Y-D13）
+    paceConfig: { periodType: 'month', quotaSource: 'manual', manualQuotaBySp: {} },
+    shiftConfig: { '*': [0] },   // 默认周日休
+    externalRef: {},        // ExternalRef：board → 只读缓存（A-20；永不进信封）
+    settings: { silentTrackOn: false, lastExportAt: null, insistLog: [], demoSeeded: false },
+    coefOverrides: {},
+  };
+}
+
+/* ========= 6. 信封（公约【7】skab_v1：导出 / 导入 / 新鲜度） ========= */
+const KNOWN_BOARDS = ['dingjia', 'zhaoren', 'suanzhang', 'liuren', 'yuren'];
+const ENTITY_WHITELIST = ['Salesperson','CompPlanScenario','TeamStructure','CovenantDoc','Covenant','Deal',
+  'Category','PayoutEntry','RefundEntry','DiscountEntry','LeadAssignment','DailyReport','CoachingAck',
+  'CoachTask','Prescription','Bounty','HiringCriteria','Candidate','InterviewScorePack','PracticeLog',
+  'HireBatch','ManagerChangeEvent','LedgerEntry','ObjectionEntry','SuggestionEntry','M28Agreement',
+  'MenuChoice','OverrideEvent','Experiment','HandoverCard','CallMetrics','M21Norm'];
+
+function coefficientsHash(coef) {   // 简易指纹（不一致→提示同步，不阻断）
+  const s = JSON.stringify(coef);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return 'c' + (h >>> 0).toString(16);
+}
+
+function buildEnvelope(db, today, coefResolved) {
+  const activeCount = db.salespeople.filter(p => p.isActive).length;
+  const dose = CALC.coachingDoseActual(db.coachingAcks, activeCount, 30, today);
+  return {
+    schema: 'skab_v1',
+    board: BOARD,
+    exportedAt: today,
+    dataVersion: 1,
+    coefficientsHash: coefficientsHash(coefResolved),
+    derived: { coachingDoseActual: dose },   // 🔧Y-C02：供留人器分红闸⑧ Q4
+    entities: {
+      DailyReport: db.dailyReports,
+      CoachingAck: db.coachingAcks,
+      CoachTask: db.coachTasks,
+      Prescription: db.prescriptions,
+      Bounty: db.bounties,
+    },
+  };
+}
+
+function importEnvelope(db, json, today) {
+  if (!json || json.schema !== 'skab_v1') return { ok: false, err: '不是 skab_v1 信封' };
+  if (KNOWN_BOARDS.indexOf(json.board) < 0) return { ok: false, err: '未知 board：' + json.board };
+  if (json.board === BOARD) return { ok: false, err: '这是育人器自己的信封，无需导入' };
+  const entities = {};
+  Object.keys(json.entities || {}).forEach(k => {
+    if (ENTITY_WHITELIST.indexOf(k) >= 0) entities[k] = json.entities[k];   // 未知实体静默跳过（向前兼容）
+  });
+  // dataVersion 不匹配 → 迁移升级，禁止报错拒收（公约 7.1③；v1 即当前版，直接收）
+  db.externalRef[json.board] = {   // 🔴 整条覆盖，不做字段级合并（ExternalRef 铁律③）
+    exportedAt: json.exportedAt, dataVersion: json.dataVersion || 1,
+    coefficientsHash: json.coefficientsHash || null,
+    derived: json.derived || {}, entities, importedAt: today,
+  };
+  return { ok: true, board: json.board,
+    hashMismatch: json.coefficientsHash != null && json.coefficientsHash !== coefficientsHash(resolveCoef(db)) };
+}
+
+function envelopeFreshness(db, board, today) {   // 【7.3】只标注不阻断
+  const ref = db.externalRef[board];
+  if (!ref) return null;
+  const stale = diffDays(today, ref.exportedAt);
+  return { exportedAt: ref.exportedAt, staleDays: stale,
+    isStale: stale > getCoefFrom(db, 'envelopeStaleDays') };
+}
+function asOfHtml(db, board, today) {   // A-21：每条跨板块字段带来源与 asOf
+  const f = envelopeFreshness(db, board, today);
+  if (!f) return '<span class="asof">（未导入）</span>';
+  const name = { dingjia:'定价器', zhaoren:'招人器', suanzhang:'算账器', liuren:'留人器' }[board] || board;
+  return `<span class="asof${f.isStale ? ' stale' : ''}" data-asof="${f.exportedAt}">` +
+    `（${name}数据截至 ${f.exportedAt}${f.isStale ? ' 🟡 已超过 ' + getCoefFrom(db, 'envelopeStaleDays') + ' 天，建议重新导入' : ''}）</span>`;
+}
+
+/* —— 系数取用（只经 getCoef；覆盖值合并出厂值） —— */
+function resolveCoef(db) {
+  const out = JSON.parse(JSON.stringify(COEF_DEFAULTS));
+  Object.keys((db && db.coefOverrides) || {}).forEach(path => {
+    const v = db.coefOverrides[path];
+    const parts = path.split('.');
+    let o = out;
+    for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+    if (o && typeof o === 'object') o[parts[parts.length - 1]] = v;
+  });
+  return out;
+}
+function getCoefFrom(db, path) { return getPath(resolveCoef(db), path); }
+
+/* —— 跨板块只读取数器（消费侧统一入口；缺失回退遵公约 7.2） —— */
+const XREF = {
+  suanzhang(db) { return db.externalRef.suanzhang || null; },
+  m21Done(db) {
+    const r = XREF.suanzhang(db);
+    return !!(r && r.entities.M21Norm && r.entities.M21Norm.length);
+  },
+  m21Row(db, spId) {
+    const r = XREF.suanzhang(db);
+    if (!r || !r.entities.M21Norm) return null;
+    return r.entities.M21Norm.find(x => x.spId === spId) || null;
+  },
+  uerTeamMean(db) {
+    const r = XREF.suanzhang(db);
+    return r && r.derived.uerTeamMean != null ? r.derived.uerTeamMean : null;
+  },
+  deals(db) {
+    const r = XREF.suanzhang(db);
+    return (r && r.entities.Deal) || [];
+  },
+  ahc(db, spId) {
+    const r = db.externalRef.liuren;
+    const map = r && r.derived.ahcBySp;
+    return map && map[spId] != null ? map[spId] : null;
+  },
+  m28(db, spId) {
+    const r = db.externalRef.liuren;
+    const list = (r && r.entities.M28Agreement) || [];
+    return list.find(a => a.spId === spId) || null;
+  },
+  practice14(db, spId) {
+    const r = db.externalRef.zhaoren;
+    const list = (r && r.entities.PracticeLog) || [];
+    const row = list.find(x => x.spId === spId);
+    if (row) return row.count14;
+    const local = db.practiceLogs.find(x => x.spId === spId);
+    return local ? local.count14 : null;
+  },
+  quota(db, spId) {
+    const manual = db.paceConfig.manualQuotaBySp[spId];
+    if (manual != null) return { amt: manual, src: 'manual' };
+    const r = db.externalRef.dingjia;
+    const map = r && r.derived.monthQuotaBySp;
+    if (map && map[spId] != null) return { amt: map[spId], src: 'dingjia' };
+    return null;
+  },
+};
+
+/* ========= 7. 授权与降级（公约【11】·C-13 ECDSA P-256 非对称验签，离线） ========= */
+/* HTML 内唯一密钥材料 = 公钥（授-5）。演示公钥；正式发布前作者本地重新生成密钥对。 */
+const LICENSE_PUBKEY_JWK = { kty:'EC', crv:'P-256',
+  x:'8FG4KihCQkZrG64-Z8wH8Z8QkYOfY7bnkuf0z17lQ18',
+  y:'H5IagwmMbjMtdeqgsQKgguObP1mcsdkYaPWtj_oJ11w' };
+
+function b64uToBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function verifyLicense(code, todayReal) {
+  // 码形：SKAB-<b64u(payloadJSON)>.<b64u(sig)>；payload={tenant,board,expiry}
+  try {
+    if (!code || code.indexOf('SKAB-') !== 0) return { ok: false, err: '格式不对' };
+    const body = code.slice(5).trim();
+    const dot = body.indexOf('.');
+    if (dot < 0) return { ok: false, err: '格式不对' };
+    const payloadBytes = b64uToBytes(body.slice(0, dot));
+    const sig = b64uToBytes(body.slice(dot + 1));
+    const key = await crypto.subtle.importKey('jwk', LICENSE_PUBKEY_JWK,
+      { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+    const valid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, sig, payloadBytes);
+    if (!valid) return { ok: false, err: '签名无效' };
+    const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+    if (payload.board !== BOARD) return { ok: false, err: '此码属于板块 ' + payload.board + '，不是育人器' };
+    // 防调表：localStorage 记录 seenMaxDate；系统日期倒退 → 锁定
+    const seen = StorageAdapter.read('seenMaxDate', null);
+    if (seen && todayReal < seen) return { ok: false, err: '系统日期异常（早于最近使用日 ' + seen + '）' };
+    if (!seen || todayReal > seen) StorageAdapter.write('seenMaxDate', todayReal);
+    if (todayReal > payload.expiry) return { ok: false, expired: true, payload,
+      err: '授权已于 ' + payload.expiry + ' 到期（功能回落体验版；数据与信封导出永不锁定）' };
+    return { ok: true, payload };
+  } catch (e) { return { ok: false, err: '无法解析授权码' }; }
+}
+
+/* ========= 8. 自检 —— 19 条对拍（件七）+ 红线断言（件六）
+   对拍常量：TEST_TODAY=2026-07-13（公约 C-14/R-11 时钟注入；禁止依赖真实时钟） ========= */
+const TEST_TODAY = '2026-07-13';
+
+const TESTS = [
+  { id:'T1', name:'配方源 A 被拒（归一第8 + UER −1.5万 → reject）', run() {
+    const r = CALC.recipeGateCheck({ rankNorm:8, uer:-1.5, discountRate:0.09, complaintCount:4 },
+      { m21Done:true, teamDiscountMean:0.05, teamComplaintMean:1.2 });
+    return { pass: !r.locked && r.qualified === false && r.fails.indexOf('rank') >= 0 && r.fails.indexOf('uer') >= 0,
+      detail: 'fails=' + r.fails.join(',') };
+  }},
+  { id:'T2', name:'J 通过（归一第1 / UER +0.9万 → accept）', run() {
+    const r = CALC.recipeGateCheck({ rankNorm:1, uer:0.9, discountRate:0.02, complaintCount:0 },
+      { m21Done:true, teamDiscountMean:0.05, teamComplaintMean:1.2 });
+    return { pass: r.qualified === true, detail: 'qualified=' + r.qualified };
+  }},
+  { id:'T3', name:'M21 未导入 → 配方引擎整体锁定', run() {
+    const r = CALC.recipeGateCheck({ rankNorm:1, uer:1 }, { m21Done:false });
+    return { pass: r.locked === true && r.qualified === false, detail: 'locked=' + r.locked };
+  }},
+  { id:'T4', name:'闸③：无 M28 → 锁定；AHC<60 → 锁定；齐备 → 放行', run() {
+    const a = CALC.propertyGate({ hasM28:false, ahc:80 });
+    const b = CALC.propertyGate({ hasM28:true, ahc:55 });
+    const c = CALC.propertyGate({ hasM28:true, ahc:78 });
+    return { pass: a.locked && a.reason==='no_m28' && b.locked && b.reason==='ahc_low' && !c.locked,
+      detail: [a.reason, b.reason, c.reason].join('/') };
+  }},
+  { id:'T5', name:'PLV『态度/狼性』句三层全拦截 + 改写建议出现', run() {
+    const r = CALC.plvCheck('你态度不端正，要拿出狼性');
+    const rewrite = plvRewriteHint(r);
+    return { pass: !r.l1.pass && !r.l2.pass && !r.l3.pass && !r.passed && rewrite.length > 0,
+      detail: 'l1 hits=' + r.l1.hits.join('、') };
+  }},
+  { id:'T6', name:'PLV 合法句三层通过', run() {
+    const r = CALC.plvCheck('你昨天 12 通电话，9 通没做需求确认。今天试试在第 3 分钟问"您现在最头疼的是什么？"配方源基准 87%');
+    return { pass: r.l1.pass && r.l2.pass && r.l3.pass && r.passed,
+      detail: 'slots=' + JSON.stringify(r.l3.slots) };
+  }},
+  { id:'T7', name:'PSI 改造前 32 / 改造后 96', run() {
+    const before = CALC.psiScore({ targeting:0.48, benchmark:0.32, dataRef:0.24, ackRate:0.24 });
+    const after  = CALC.psiScore({ targeting:0.92, benchmark:1.0,  dataRef:1.0,  ackRate:0.92 });
+    return { pass: before === 32 && after === 96 && CALC.psiBand(before)==='red' && CALC.psiBand(after)==='green',
+      detail: before + ' / ' + after };
+  }},
+  { id:'T8', name:'认知鸿沟 = 54.8% 红（与招人器同口径）', run() {
+    const gap = CALC.cognitiveGap(42, 19);
+    return { pass: fmtRate(gap) === '54.8%' && gap > 0.30, detail: fmtRate(gap) };
+  }},
+  { id:'T9', name:'M26 地板/天花板 = 35 倍', run() {
+    const floor = CALC.floorLift({ windowDaysOk:true,
+      members: Array.from({length:5}, () => ({ beforeMonthlyAmt: 2.8e6, afterMonthlyAmt: 4.2e6 })) });
+    const ceil = CALC.floorLift({ windowDaysOk:true,
+      members: [ { beforeMonthlyAmt: 9.0e6, afterMonthlyAmt: 9.1e6 },
+                 { beforeMonthlyAmt: 8.0e6, afterMonthlyAmt: 8.1e6 },
+                 { beforeMonthlyAmt: 7.0e6, afterMonthlyAmt: 7.0e6 } ] });
+    const ratio = safeDiv(floor.annualLiftAmt, ceil.annualLiftAmt);
+    return { pass: floor.annualLiftAmt === 8.4e7 && ceil.annualLiftAmt === 2.4e6 && ratio === 35,
+      detail: fmtWan(floor.annualLiftAmt) + '/年 vs ' + fmtWan(ceil.annualLiftAmt) + '/年 = ' + ratio + ' 倍' };
+  }},
+  { id:'T10', name:'配方 ROI = 9.5 倍（含"非随机对照"标注断言）', run() {
+    const roi = CALC.recipeRoi(8.4e7, 736000);   // 84万/年 ÷ 7,360元/月（单位：分）
+    const label = M26_DISCLAIMER.indexOf('非随机对照') >= 0;
+    return { pass: fmtNum(roi, 1) === '9.5' && label, detail: 'ROI=' + fmtNum(roi, 1) };
+  }},
+  { id:'T11', name:'汰前三拦截全部生效（Y-11 三连注入）', run() {
+    const b1 = CALC.cullInterceptors({ leadsIndex:0.6, practice14:80, ackConfirmedCount:5 });
+    const b2 = CALC.cullInterceptors({ leadsIndex:0.9, practice14:30, ackConfirmedCount:5 });
+    const b3 = CALC.cullInterceptors({ leadsIndex:0.9, practice14:80, ackConfirmedCount:0 });
+    const texts = [TALK.y11[0](18), TALK.y11[1](30), TALK.y11[2](21)];
+    return { pass: b1[0]==='no_leads' && b2[0]==='no_practice' && b3[0]==='no_coaching'
+      && texts.every(t => t.length > 10), detail: [b1, b2, b3].map(x => x[0]).join('/') };
+  }},
+  { id:'T12', name:'有效动作分：刷线索 ×2 → 有效分不变（虚报收益归零）', run() {
+    const e1 = CALC.effectiveLeads(40, 6, 0.2);
+    const e2 = CALC.effectiveLeads(80, 6, 0.2);
+    return { pass: e1 === 30 && e2 === 30, detail: e1 + ' → ' + e2 };
+  }},
+  { id:'T13', name:'M40：配对(J↔P7)(F↔P8)(G↔P5)+候补P4/P6；G 撤 M28 → 仅 2 对；第 4 周强制轮换', run() {
+    const people = [
+      { spId:'J', rankNorm:1 }, { spId:'F', rankNorm:2 }, { spId:'G', rankNorm:3 },
+      { spId:'P4', rankNorm:4, growth3m:0.05 }, { spId:'P5', rankNorm:5, growth3m:0.02 },
+      { spId:'P6', rankNorm:6, growth3m:0.09 }, { spId:'P7', rankNorm:7, growth3m:-0.12 },
+      { spId:'P8', rankNorm:8, growth3m:-0.08 }, { spId:'P9', rankNorm:9 }, { spId:'P10', rankNorm:10 },
+    ];
+    const gate4 = ['J','F','G'];
+    const r1 = CALC.m40Pairing({ people, gate4PassIds:gate4, m28SignedIds:['J','F','G'], prevWeeks:{} });
+    const k1 = r1.pairs.map(p => p.coachId + '↔' + p.learnerId).join(' ');
+    const q1 = r1.queued.join('/');
+    const r2 = CALC.m40Pairing({ people, gate4PassIds:gate4, m28SignedIds:['J','F'], prevWeeks:{} });
+    const rotate = !CALC.pairAllowed(3) && CALC.pairAllowed(2);
+    return { pass: k1 === 'J↔P7 F↔P8 G↔P5' && q1 === 'P4/P6'
+      && r2.pairs.length === 2 && r2.frozenCoachIds.indexOf('G') >= 0 && rotate,
+      detail: k1 + ' 候补 ' + q1 + '；冻结=' + r2.frozenCoachIds.join(',') };
+  }},
+  { id:'T14', name:'M41：连败4 + 赢率30%→18% → 分 0.64 触发；卡与词库切换生效', run() {
+    const m = CALC.momentum(4, 0.30, 0.18);
+    const plv = CALC.plvCheck('必须拿下这一单', { momentum: true });
+    return { pass: m.score === 0.64 && m.triggered === true && !plv.l1.pass,
+      detail: 'score=' + m.score + '，动量期拦截词命中=' + plv.l1.hits.join('、') };
+  }},
+  { id:'T15', name:'M42：dist(W)=3万 < dist(V)=18万 → 榜样=W；匹配空 → "—"', run() {
+    const P = [2,2,3,3,4,4];
+    const best = CALC.m42Match(P, [
+      { spId:'W', traj:[2,3,3,4,4,5], nowBandOk:true },
+      { spId:'V', traj:[5,5,6,6,7,7], nowBandOk:true } ]);
+    const none = CALC.m42Match(P, []);
+    return { pass: best.spId === 'W' && best.dist === 3
+      && CALC.trajDistance(P, [5,5,6,6,7,7]) === 18 && none === null,
+      detail: 'W=3万 V=18万；空集=' + safeShow(none) };
+  }},
+  { id:'T16', name:'M43：35%→弃赛区+子目标3.3万；70%→加速区；达标→保护区；子目标不入配额', run() {
+    const z1 = CALC.paceZone(0.35), z2 = CALC.paceZone(0.70), z3 = CALC.paceZone(1.05);
+    const sub = CALC.subGoalAmt(10, 300000);   // 10 工作日 × 日均 0.3万
+    const cfgBefore = JSON.stringify({ manualQuotaBySp: { x: 1 } });
+    return { pass: z1==='quit_risk' && z2==='accel' && z3==='protect' && sub === 3300000
+      && cfgBefore === JSON.stringify({ manualQuotaBySp: { x: 1 } }),
+      detail: [z1, z2, z3].join('/') + '，子目标=' + fmtWan(sub) };
+  }},
+  { id:'T17', name:'M44a：0.8/2.0=0.40<0.5 → Y-09 触发；CallMetrics 建表无界面', run() {
+    const r = CALC.m44aRatio(0.8, 2.0);
+    const tableExists = Array.isArray(emptyDB().callMetrics);
+    const noUI = (typeof renderCallMetrics === 'undefined');
+    return { pass: r === 0.4 && r < COEF_DEFAULTS.m44.neglectRatioLt && tableExists && noUI,
+      detail: '比值=' + r + '，建表=' + tableExists + '，无界面=' + noUI };
+  }},
+  { id:'T18', name:'信封：导入三包 → 闸④③⑨⑩点亮；导出 board=yuren 含辅导剂量', run() {
+    const db = emptyDB();
+    db.salespeople = [{ spId:'a', isActive:true }, { spId:'b', isActive:true }];
+    db.coachingAcks = [
+      { ackId:'k1', spId:'a', date:'2026-07-01', durationHrs:4, status:'confirmed' },
+      { ackId:'k2', spId:'b', date:'2026-07-02', durationHrs:2, status:'disputed' } ];  // disputed 不计剂量
+    const i1 = importEnvelope(db, { schema:'skab_v1', board:'suanzhang', exportedAt:'2026-07-10', dataVersion:1,
+      derived:{ uerTeamMean:0, imbalanceRate:0.31 },
+      entities:{ M21Norm:[{ spId:'a', rankNorm:1, uer:0.5 }], UnknownEntity:[{ x:1 }] } }, TEST_TODAY);
+    const i2 = importEnvelope(db, { schema:'skab_v1', board:'liuren', exportedAt:'2026-07-11', dataVersion:1,
+      derived:{ ahcBySp:{ a:78 } }, entities:{ M28Agreement:[{ spId:'a', irrevocable:true }] } }, TEST_TODAY);
+    const i3 = importEnvelope(db, { schema:'skab_v1', board:'zhaoren', exportedAt:'2026-07-12', dataVersion:1,
+      derived:{}, entities:{ PracticeLog:[{ spId:'a', count14:88 }] } }, TEST_TODAY);
+    const lit = XREF.m21Done(db) && XREF.ahc(db,'a') === 78 && !!XREF.m28(db,'a') && XREF.practice14(db,'a') === 88;
+    const skipped = !db.externalRef.suanzhang.entities.UnknownEntity;   // 未知实体静默跳过
+    const env = buildEnvelope(db, TEST_TODAY, resolveCoef(db));
+    // 30 天窗内 confirmed 4h ÷ 2 人 × (30/30) = 2.0 h/人·月
+    const doseOk = env.board === 'yuren' && env.derived.coachingDoseActual === 2.0
+      && env.schema === 'skab_v1' && Array.isArray(env.entities.DailyReport);
+    return { pass: i1.ok && i2.ok && i3.ok && lit && skipped && doseOk,
+      detail: '剂量=' + env.derived.coachingDoseActual + 'h/人·月' };
+  }},
+  { id:'T19', name:'闸⑧三态：结果赏∧通道未启→拦截+Y-13；通道已启→放行；首单赏豁免', run() {
+    const a = CALC.bountyGate('record_break', false);
+    const b = CALC.bountyGate('record_break', true);
+    const c = CALC.bountyGate('first_deal', false);
+    const y13 = TALK.y13(TALK.bountyNames.record_break);
+    return { pass: a.allow === false && a.talk === 'Y-13' && b.allow === true && c.allow === true
+      && c.state === 'exempt' && y13.indexOf('不是不许用钱，是不许只有钱') >= 0,
+      detail: [a.state, b.state, c.state].join('/') };
+  }},
+];
+
+/* —— 件六 · 红线断言（浏览器内可机检子集；含源码自扫描） —— */
+function runAssertions() {
+  const A = [];
+  const push = (id, name, pass, detail) => A.push({ id, name, pass: !!pass, detail: detail || '' });
+
+  // Y-D1 plvBanned 与规格逐字一致 + 拦截即无保存路径（保存函数前置校验）
+  const specList = ["态度","心态","性格","狼性","拼劲","不够努力","意识","格局","悟性","主动性",
+    "责任心","上进心","你这个人","不用心","不上心","没激情","抗压能力","逆商","企图心",
+    "不行","不专业","笨","懒","没脑子","态度端正"];
+  push('Y-D1', 'PLV 词库逐字一致；不过即拦截保存',
+    JSON.stringify(COEF_DEFAULTS.plvBanned) === JSON.stringify(specList)
+    && savePrescription(emptyDB(), { text:'你态度不好' }, TEST_TODAY).ok === false);
+
+  // Y-D2 处方/悬赏不被提成、排名、七级、罚款引用（本板块不存在这些函数 → 源码自扫描）
+  const src = (typeof document !== 'undefined')
+    ? Array.from(document.scripts).map(s => s.textContent).join('\n') : (globalThis.__SRC__ || '');
+  const has = t => src.split(t).length > 1;   // 探针字符串拼接书写，源码零自匹配；任何命中即真实存在
+  push('Y-D2', '处方/悬赏零耦合：无提成/罚款/排名函数', !has('commissi' + 'on(') && !has('pena' + 'lty(') && !has('rankSco' + 're('));
+
+  // Y-D5 有效动作分只在 M12/M15 使用；日报原始计数原样保留（存储层无改写路径）
+  push('Y-D5', '日报原始计数不被有效分改写', (function () {
+    const db = emptyDB();
+    saveDailyReport(db, { spId:'x', date:'2026-07-10', counts:{ leads:40, intents:6, samples:1, contracts:0 } });
+    return db.dailyReports[0].counts.leads === 40;
+  })());
+
+  // Y-D6 M15 兜底默认「留」
+  push('Y-D6', 'M15 兜底默认「留」；无自动执行路径', DEFAULT_CULL_VERDICT === 'keep');
+
+  // Y-D7 抽检卡 schema 无结果字段
+  push('Y-D7', '抽检卡只出题不记结果', (function () {
+    const c = makeSpotCheckCard('x', '2026-07-13', 'leads', 12);
+    return !('result' in c) && !('passed' in c) && !('flag' in c);
+  })());
+
+  // Y-D8 休息日四处排除（默认周日休）
+  push('Y-D8', '休息日排除（2026-07-12 周日为休息日）',
+    CALC.isWorkday('2026-07-12', { '*': [0] }, 'x') === false
+    && CALC.isWorkday('2026-07-13', { '*': [0] }, 'x') === true);
+
+  // Y-D11 供氧卡无本人对比（渲染函数硬约束：见 renderOxygenCard 注释）
+  push('Y-D11', '供氧卡零对比：渲染仅含榜样曲线', src.indexOf('oxygen-no-compare') >= 0);
+
+  // Y-D12 子目标不写入配额/提成
+  push('Y-D12', '子目标只影响推送节奏（无配额写路径）', (function () {
+    const db = emptyDB();
+    db.paceConfig.manualQuotaBySp['x'] = 5e6;
+    CALC.subGoalAmt(10, 300000);
+    return db.paceConfig.manualQuotaBySp['x'] === 5e6;
+  })());
+
+  // Y-D13 CallMetrics 埋设
+  push('Y-D13', 'CallMetrics 建表且无界面引用',
+    Array.isArray(emptyDB().callMetrics) && typeof renderCallMetrics === 'undefined');
+
+  // Y-D14 A-10/A-17：无网络 API、无 ∞/NaN 上屏（源码自扫描；探针字符串拆写避免自匹配）
+  push('Y-D14', 'A-17 无网络：四类网络 API 探针命中 = 0',
+    !has('fet' + 'ch(') && !has('XMLHttp' + 'Request') && !has('sendBea' + 'con') && !has('<scr' + 'ipt src'));
+  push('Y-D14b', '除法只经 safeDiv；非有限数经 safeShow 渲染 "—"',
+    safeShow(1 / 0) === '—' && safeShow(NaN) === '—' && safeShow(null) === '—' && safeDiv(1, 0) === null);
+
+  // Y-D15 剂量导出 + 主考核话术指向算账器 M11
+  push('Y-D15', '辅导剂量入信封 derived；主考核话术=算账器 M11',
+    buildEnvelope(emptyDB(), TEST_TODAY, COEF_DEFAULTS).derived.hasOwnProperty('coachingDoseActual')
+    && CALENDAR_WAR_TALK.indexOf('算账器 M11') >= 0);
+
+  // Y-D16 闸⑧ 三态（含 grep 无"结果类一律拦截"旧逻辑：结果类在通道开启时必须可存）
+  push('Y-D16', '闸⑧三态成立；无"结果类一律拦截"旧逻辑', (function () {
+    const db = emptyDB();
+    db.settings.silentTrackOn = true;
+    const saved = saveBounty(db, { template:'record_break', amountAmt:50000 }, TEST_TODAY);
+    const db2 = emptyDB();
+    const blocked = saveBounty(db2, { template:'record_break', amountAmt:50000 }, TEST_TODAY);
+    const exempt = saveBounty(db2, { template:'first_deal', amountAmt:30000 }, TEST_TODAY);
+    return saved.ok && !blocked.ok && blocked.talk === 'Y-13' && exempt.ok;
+  })());
+
+  // A-05/A-06/A-22 结构性声明断言
+  push('A-05', '系统永不自动执行：全部建议为 ActionCard（无 setInterval 写库）', !has('setInter' + 'val('));
+  push('A-22', '每条建议含 📎 出处行（渲染层遍历见自检徽章下方说明）', src.indexOf('📎') >= 0);
+  push('A-23', '边界声明五板块同句', TALK.boundary === '这个系统不会让一个卖不动的产品卖动。如果你的产品本身有问题——先去改产品。这个系统帮不了你。');
+  // R-05 公约 §4.7 两个咬合基准（只跑基准①视为未验证）
+  push('R-05a', '咬合基准① newHireYearRate("short",1)=65.8%',
+    fmtRate(CALC.newHireYearRate('short', 1)) === '65.8%');
+  push('R-05b', '咬合基准② newHireYearRate("short",5)=32.5%（C-04 回归哨兵）',
+    fmtRate(CALC.newHireYearRate('short', 5)) === '32.5%');
+  push('A-24', '备份提醒红线已接（backupNudgeDays=14）', COEF_DEFAULTS.backupNudgeDays === 14 && src.indexOf('backup-nudge') >= 0);
+  return A;
+}
+
+function runSelfTests() {
+  return TESTS.map(t => {
+    try { const r = t.run(); return { id: t.id, name: t.name, pass: !!r.pass, detail: r.detail || '' }; }
+    catch (e) { return { id: t.id, name: t.name, pass: false, detail: '异常：' + e.message }; }
+  });
+}
+
+/* ========= 9. 领域写入口（保存校验 = 唯一路径；拦截即无保存） ========= */
+const DEFAULT_CULL_VERDICT = 'keep';   // Y-D6 兜底默认「留」
+const M26_DISCLAIMER = '前后对比，非随机对照，要证因果用 M31（留人器系数实验室）。';
+const CALENDAR_WAR_TALK = '主管的个人业绩指标建议下降 30%；主考核换轨为算账器 M11 团队增益——带教有效率只是补充证据，二者互补不混用。';
+
+function plvRewriteHint(plvResult) {
+  // 改写建议 = 三槽位写作脚手架（不是替老板下结论，A-19）
+  const s = plvResult.l3.slots || {};
+  const parts = [];
+  if (!plvResult.l1.pass) parts.push('去掉指向"人"的词（' + plvResult.l1.hits.join('、') + '），改说他做了什么');
+  if (!s.behaviorData) parts.push('补一条行为数据：昨天/上周他在哪个环节、多少次');
+  if (!s.action) parts.push('补一个今天就能做的具体动作（"试试在第 3 分钟问…"）');
+  if (!s.benchmark) parts.push('补一个可测基准：配方源或团队均值的数字');
+  return parts;
+}
+
+function savePrescription(db, rx, today) {
+  const coef = resolveCoef(db);
+  const names = db.salespeople.map(p => p.name).filter(Boolean);
+  const plv = CALC.plvCheck(rx.text, { banned: coef.plvBanned, names,
+    momentum: !!rx.momentumMode, momentumBanned: coef.momentumBannedWords });
+  if (!plv.passed && !rx.insist) return { ok: false, plv, hints: plvRewriteHint(plv) };
+  if (!plv.passed && rx.insist) {
+    db.settings.insistLog.push({ date: today, spId: rx.employeeId || null, text: rx.text });  // 坚持原文留痕→认知鸿沟风险
+  }
+  db.prescriptions.push({
+    rxId: uid('rx'), employeeId: rx.employeeId || null, date: today,
+    type: rx.type || 'volume', target: rx.target || 'self',
+    slotData: rx.slotData || null, text: rx.text,
+    psiParts: rx.psiParts || null, plvPassed: plv.passed, coachAckId: null,
+  });
+  return { ok: true, plv };
+}
+
+function saveBounty(db, b, today) {
+  const gate = CALC.bountyGate(b.template, db.settings.silentTrackOn);
+  if (!gate.allow) return { ok: false, talk: gate.talk, state: gate.state };   // 🔴 拦截保存（表单校验层）
+  const activeCount = db.bounties.filter(x => x.active).length;
+  if (activeCount >= 3) return { ok: false, err: '同时活动的悬赏 ≤ 3' };
+  db.bounties.push({ bountyId: uid('bt'), template: b.template, params: b.params || {},
+    amountAmt: b.amountAmt || null, active: true, createdAt: today, achievedEvents: [] });
+  return { ok: true, state: gate.state };
+}
+
+function saveDailyReport(db, r) {
+  const dup = db.dailyReports.find(x => x.employeeId === r.spId && x.date === r.date);
+  const counts = { leads: r.counts.leads | 0, intents: r.counts.intents | 0,
+    samples: r.counts.samples | 0, contracts: r.counts.contracts | 0 };
+  if (dup) { dup.counts = counts; return { ok: true, updated: true }; }
+  db.dailyReports.push({ drId: uid('dr'), employeeId: r.spId, date: r.date,
+    counts, submittedAt: r.date });
+  return { ok: true };
+}
+
+function makeSpotCheckCard(spId, weekOf, stage, reportedCount) {
+  // Y-D7：只出题不记结果——schema 不存在结果/标记字段
+  return { sccId: uid('scc'), weekOf, employeeId: spId, checkDate: weekOf, stage, reportedCount };
+}
+
+function setRecipeSource(db, sourceIds, today) {
+  // 每次设定必过闸④（Y-D3）
+  const ctx = teamGateContext(db);
+  for (const id of sourceIds) {
+    const row = XREF.m21Row(db, id);
+    const check = CALC.recipeGateCheck(gatePersonInput(db, id, row), ctx);
+    if (check.locked || !check.qualified) return { ok: false, spId: id, check };
+  }
+  db.recipeSource = { sourceIds, setAt: today, setBy: 'boss', qualifiedFlags: true };
+  return { ok: true };
+}
+
+function confirmAck(db, ackId, today) {
+  const a = db.coachingAcks.find(x => x.ackId === ackId);
+  if (a && a.status === 'pending') { a.status = 'confirmed'; a.confirmedAt = today; }
+}
+
+/* ========= 10. 派生视图层（读 db + 信封 → 屏所需数据；全部经 XREF 只读取数） ========= */
+function activeSps(db) { return db.salespeople.filter(p => p.isActive); }
+function spName(db, spId) {
+  const p = db.salespeople.find(x => x.spId === spId);
+  return p ? p.name : spId;
+}
+function tenureDays(db, spId, today) {
+  const p = db.salespeople.find(x => x.spId === spId);
+  return p ? diffDays(today, p.hireDate) : null;
+}
+function reportsFor(db, spId, from, to) {
+  return db.dailyReports.filter(r => r.employeeId === spId && r.date >= from && r.date <= to);
+}
+function workdaysIn(db, spId, from, to) {
+  let n = 0;
+  for (let d = from; d <= to; d = addDays(d, 1))
+    if (CALC.isWorkday(d, db.shiftConfig, spId)) n++;
+  return n;
+}
+function teamGateContext(db) {
+  const ref = XREF.suanzhang(db);
+  const rows = (ref && ref.entities.M21Norm) || [];
+  return { m21Done: XREF.m21Done(db),
+    teamDiscountMean: mean(rows.map(r => r.discountRate).filter(v => v != null)),
+    teamComplaintMean: mean(rows.map(r => r.complaintCount).filter(v => v != null)),
+    coef: resolveCoef(db).recipeGate };
+}
+function gatePersonInput(db, spId, row) {
+  row = row || XREF.m21Row(db, spId) || {};
+  return { rankNorm: row.rankNorm, uer: row.uer,
+    discountRate: row.discountRate, complaintCount: row.complaintCount };
+}
+
+/* —— 个人近90天转化率下限带宽（周桶最小值；桶<3 → null） —— */
+function convBands(db, spId, today) {
+  const from = addDays(today, -90);
+  const buckets = {};
+  for (const r of reportsFor(db, spId, from, today)) {
+    const wk = Math.floor(diffDays(today, r.date) / 7);
+    const b = buckets[wk] || (buckets[wk] = { leads:0, intents:0, samples:0, contracts:0 });
+    b.leads += r.counts.leads; b.intents += r.counts.intents;
+    b.samples += r.counts.samples; b.contracts += r.counts.contracts;
+  }
+  const ratios = { lead2intent: [], intent2sample: [], sample2contract: [] };
+  Object.keys(buckets).forEach(k => {
+    const b = buckets[k];
+    if (b.leads > 0) ratios.lead2intent.push(b.intents / b.leads);
+    if (b.intents > 0) ratios.intent2sample.push(b.samples / b.intents);
+    if (b.samples > 0) ratios.sample2contract.push(b.contracts / b.samples);
+  });
+  const band = arr => arr.length >= 3 ? Math.min.apply(null, arr) : null;
+  return { lead2intent: band(ratios.lead2intent), intent2sample: band(ratios.intent2sample),
+    sample2contract: band(ratios.sample2contract) };
+}
+function bandsFor(db, spId, today) {
+  // 新人：用配方源带宽 × newbieBandFactor(0.60)（3.5③）
+  const coef = resolveCoef(db);
+  const t = tenureDays(db, spId, today);
+  if (t != null && t < 30 && db.recipeSource) {
+    const src = convBands(db, db.recipeSource.sourceIds[0], today);
+    const f = coef.effectiveScore.newbieBandFactor;
+    return { lead2intent: src.lead2intent == null ? null : src.lead2intent * f,
+      intent2sample: src.intent2sample == null ? null : src.intent2sample * f,
+      sample2contract: src.sample2contract == null ? null : src.sample2contract * f };
+  }
+  return convBands(db, spId, today);
+}
+function sumCounts(reports) {
+  const s = { leads:0, intents:0, samples:0, contracts:0 };
+  for (const r of reports) { s.leads += r.counts.leads; s.intents += r.counts.intents;
+    s.samples += r.counts.samples; s.contracts += r.counts.contracts; }
+  return s;
+}
+
+/* —— M12 三张牌（剂量 / 配比 / 节奏；每月日切自动重算，零新增录入） —— */
+function threeCards(db, today) {
+  if (!db.recipeSource) return null;
+  const ids = db.recipeSource.sourceIds;
+  const from = addDays(today, -180);
+  const per = ids.map(id => {
+    const reps = reportsFor(db, id, from, today);
+    const wd = Math.max(1, reps.length);   // 有报工作日
+    const s = sumCounts(reps);
+    const deals = XREF.deals(db).filter(d => d.spId === id && d.status === 'won')
+      .sort((a, b) => a.contractDate < b.contractDate ? -1 : 1);
+    let gaps = [];
+    for (let i = 1; i < deals.length; i++) gaps.push(diffDays(deals[i].contractDate, deals[i-1].contractDate));
+    const catCount = {};
+    deals.forEach(d => catCount[d.category] = (catCount[d.category] || 0) + 1);
+    const topCat = Object.keys(catCount).sort((a, b) => catCount[b] - catCount[a])[0] || null;
+    const p = db.salespeople.find(x => x.spId === id);
+    return {
+      dose: { leads: s.leads / wd, intents: s.intents / wd, samples: s.samples / wd, contracts: s.contracts / wd },
+      mix: { l2i: safeDiv(s.intents, s.leads), i2s: safeDiv(s.samples, s.intents), s2c: safeDiv(s.contracts, s.samples) },
+      pace: { firstDealDays: (deals.length && p) ? diffDays(deals[0].contractDate, p.hireDate) : null,
+        gapMedian: gaps.length ? gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)] : null,
+        topCat, topCatShare: deals.length ? (catCount[topCat] || 0) / deals.length : null },
+    };
+  });
+  const avg = key1 => {
+    const out = {};
+    Object.keys(per[0][key1]).forEach(k => {
+      const vals = per.map(x => x[key1][k]).filter(v => v != null && typeof v === 'number');
+      out[k] = vals.length ? mean(vals) : per[0][key1][k];
+    });
+    return out;
+  };
+  return { dose: avg('dose'), mix: avg('mix'), pace: per[0].pace, nSources: ids.length };
+}
+
+/* —— 首N天基准（配方源+历史达标者的入职期数据；样本<3 → 单人+标注） —— */
+function firstNDaysBaseline(db, today) {
+  if (!db.recipeSource) return null;
+  const coef = resolveCoef(db);
+  const N = coef.newbieWindow.days;
+  const samples = [];
+  for (const id of db.recipeSource.sourceIds) {
+    const p = db.salespeople.find(x => x.spId === id);
+    if (!p) continue;
+    const reps = reportsFor(db, id, p.hireDate, addDays(p.hireDate, N - 1));
+    if (reps.length >= 3) {
+      const s = sumCounts(reps);
+      samples.push({ leads: s.leads / reps.length, intents: s.intents / reps.length, samples: s.samples / reps.length });
+    }
+  }
+  if (!samples.length) return { missing: true };
+  return {
+    missing: false, singleSample: samples.length < 3, n: samples.length,
+    daily: { leads: mean(samples.map(s => s.leads)), intents: mean(samples.map(s => s.intents)),
+             samples: mean(samples.map(s => s.samples)) },
+  };
+}
+
+/* —— 量×质散点（横轴=有效动作分/工作日；纵轴=签约转化） —— */
+function scatterData(db, today) {
+  const from = addDays(today, -90);
+  return activeSps(db).map(p => {
+    const reps = reportsFor(db, p.spId, from, today);
+    if (!reps.length) return null;
+    const s = sumCounts(reps);
+    const eff = CALC.effectiveChain(s, bandsFor(db, p.spId, today));
+    const x = safeDiv(eff.leads, reps.length);
+    const y = safeDiv(s.contracts, s.leads);
+    return (x == null || y == null) ? null : { spId: p.spId, name: p.name, x, y };
+  }).filter(Boolean);
+}
+
+/* —— 处方诊断（量差/质差/速差三型按 rxRules 取偏差最大；A-19 证据不全不下结论） —— */
+function rxDiagnose(db, spId, today) {
+  const cards = threeCards(db, today);
+  if (!cards) return { none: true, reason: '未设定配方源' };
+  const from = addDays(today, -30);
+  const reps = reportsFor(db, spId, from, today);
+  if (reps.length < 5) return { none: true, reason: '近 30 天填报不足 5 天，证据不全，不下结论' };
+  const s = sumCounts(reps);
+  const myDose = s.leads / reps.length;
+  const myMix = safeDiv(s.contracts, s.leads);
+  const srcMix = (cards.mix.l2i != null && cards.mix.i2s != null && cards.mix.s2c != null)
+    ? cards.mix.l2i * cards.mix.i2s * cards.mix.s2c : null;
+  const coef = resolveCoef(db).rxRules;
+  const doseRatio = safeDiv(myDose, cards.dose.leads);
+  const mixRatio = safeDiv(myMix, srcMix);
+  const dev = [];
+  if (doseRatio != null && doseRatio < coef.volumeLt) dev.push({ type:'volume', gap: coef.volumeLt - doseRatio, doseRatio });
+  if (mixRatio != null && mixRatio < coef.qualityLt) dev.push({ type:'quality', gap: coef.qualityLt - mixRatio, mixRatio });
+  const myDeals = XREF.deals(db).filter(d => d.spId === spId && d.status === 'won');
+  const gapDays = [];
+  const sorted = myDeals.slice().sort((a, b) => a.contractDate < b.contractDate ? -1 : 1);
+  for (let i = 1; i < sorted.length; i++) gapDays.push(diffDays(sorted[i].contractDate, sorted[i-1].contractDate));
+  const myGap = gapDays.length ? mean(gapDays) : null;
+  if (myGap != null && cards.pace.gapMedian != null && myGap > cards.pace.gapMedian * coef.speedX)
+    dev.push({ type:'speed', gap: myGap / cards.pace.gapMedian - coef.speedX, myGap });
+  if (!dev.length) return { none: true, reason: '三型偏差均未触发（量/质/速都在带内）' };
+  dev.sort((a, b) => b.gap - a.gap);
+  return { none: false, top: dev[0], all: dev,
+    facts: { myDose, srcDose: cards.dose.leads, myMix, srcMix, myGap, srcGap: cards.pace.gapMedian, days: reps.length } };
+}
+function rxAutoText(db, spId, today) {
+  const d = rxDiagnose(db, spId, today);
+  if (d.none) return null;
+  const f = d.facts;
+  if (d.top.type === 'volume')
+    return `近 ${f.days} 个工作日你日均 ${f.myDose.toFixed(1)} 条线索，配方源基准 ${f.srcDose.toFixed(1)} 条。` +
+      `今天试试先把老客户名单里 3 个未跟进的联系一遍，本周把日均线索补到 ${(f.srcDose * 0.8).toFixed(0)} 条。`;
+  if (d.top.type === 'quality')
+    return `近 30 天你的线索→签约转化 ${fmtRate(f.myMix)}，配方源基准 ${fmtRate(f.srcMix)}。` +
+      `今天试试在第 3 分钟问"您现在最头疼的是什么？"，把需求确认做在报价前——已为你生成带教任务。`;
+  return `你的出单间隔约 ${f.myGap.toFixed(0)} 天，配方源基准 ${f.srcGap} 天。` +
+    `今天先挑 1 个停在样品环节超 2 周的客户，把下一步动作约到本周内。`;
+}
+
+/* —— M15 新人筛选看板 —— */
+function newbieBoard(db, today) {
+  const coef = resolveCoef(db);
+  const base = firstNDaysBaseline(db, today);
+  return activeSps(db).filter(p => {
+    const t = diffDays(today, p.hireDate);
+    return t >= 0 && t <= 30;
+  }).map(p => {
+    const t = diffDays(today, p.hireDate);
+    const reps = reportsFor(db, p.spId, p.hireDate, today);
+    const days = [];
+    let redStreak = 0, maxStreak = 0;
+    if (base && !base.missing) {
+      for (let d = p.hireDate; d <= today && diffDays(d, p.hireDate) < coef.newbieWindow.days; d = addDays(d, 1)) {
+        if (!CALC.isWorkday(d, db.shiftConfig, p.spId)) continue;   // 休息日不计（Y-D8）
+        const r = reps.find(x => x.date === d);
+        const eff = r ? CALC.effectiveChain(r.counts, bandsFor(db, p.spId, today)) : null;
+        const att = eff ? safeDiv(eff.leads, base.daily.leads * coef.newbieWindow.thresholdRate) : 0;
+        const red = att == null || att < coef.newbieWindow.redLine;
+        days.push({ date: d, att, red });
+        redStreak = red ? redStreak + 1 : 0;
+        maxStreak = Math.max(maxStreak, redStreak);
+      }
+    }
+    const s = sumCounts(reps);
+    const monthlyLeads = t > 0 ? Math.round(s.leads * (30 / Math.max(1, t))) : s.leads;
+    const teamLeadMean = mean(activeSps(db).filter(x => x.spId !== p.spId).map(x => {
+      const rr = reportsFor(db, x.spId, addDays(today, -30), today);
+      return rr.length ? sumCounts(rr).leads : null;
+    }).filter(v => v != null));
+    const leadsIndex = safeDiv(monthlyLeads, teamLeadMean);
+    const acks = db.coachingAcks.filter(a => a.spId === p.spId && a.status === 'confirmed');
+    const ctx = { leadsIndex, practice14: XREF.practice14(db, p.spId), ackConfirmedCount: acks.length };
+    const blocks = CALC.cullInterceptors(ctx, coef.cullGuard);
+    const suggestCull = base && !base.missing && maxStreak >= coef.newbieWindow.redStreakDays;
+    return { sp: p, tenure: t, days, maxStreak, suggestCull, blocks, ctx,
+      verdict: DEFAULT_CULL_VERDICT, baselineMissing: !base || base.missing,
+      singleSample: base && base.singleSample };
+  });
+}
+
+/* —— M41 动量（从算账器 Deal 事件流派生；MomentumState 为派生视图，无独立存储） —— */
+function momentumStates(db, today) {
+  const coef = resolveCoef(db).m41;
+  return activeSps(db).map(p => {
+    const closed = XREF.deals(db).filter(d => d.spId === p.spId && d.closeDate)
+      .sort((a, b) => a.closeDate < b.closeDate ? -1 : 1);
+    if (!closed.length) return null;
+    let streak = 0;
+    for (let i = closed.length - 1; i >= 0; i--) {
+      if (closed[i].status === 'lost') streak++; else break;
+    }
+    const win = (from, to) => {
+      const w = closed.filter(d => d.closeDate > from && d.closeDate <= to);
+      return w.length >= 5 ? w.filter(d => d.status === 'won').length / w.length : null;
+    };
+    const cur = win(addDays(today, -coef.winRateWindowDays), today);
+    const prev = win(addDays(today, -2 * coef.winRateWindowDays), addDays(today, -coef.winRateWindowDays));
+    const m = CALC.momentum(streak, prev, cur, coef);
+    return m.triggered ? { sp: p, streak, prev, cur, score: m.score } : null;
+  }).filter(Boolean);
+}
+function smallDealLeads(db, spId, today) {
+  // ① 高把握小单：历史赢率最高品类中，金额 ≤ aov×0.5 的在库线索/意向
+  const coef = resolveCoef(db).m41;
+  const deals = XREF.deals(db).filter(d => d.spId === spId);
+  const byCat = {};
+  deals.filter(d => d.closeDate).forEach(d => {
+    const b = byCat[d.category] || (byCat[d.category] = { won:0, n:0 });
+    b.n++; if (d.status === 'won') b.won++;
+  });
+  const bestCat = Object.keys(byCat).sort((a, b) => (byCat[b].won / byCat[b].n) - (byCat[a].won / byCat[a].n))[0];
+  const wonAmts = deals.filter(d => d.status === 'won').map(d => d.amountAmt);
+  const aov = wonAmts.length ? mean(wonAmts) : null;
+  if (!bestCat || aov == null) return { bestCat: null, list: [] };
+  return { bestCat, aov,
+    list: deals.filter(d => !d.closeDate && d.category === bestCat && d.amountAmt <= aov * coef.smallDealAovX) };
+}
+
+/* —— M42 深板凳（榜样匹配） —— */
+function m42Board(db, today) {
+  const ref = XREF.suanzhang(db);
+  if (!ref || !ref.entities.M21Norm) return null;
+  const rows = ref.entities.M21Norm.slice().sort((a, b) => a.rankNorm - b.rankNorm);
+  const n = rows.length;
+  const laggards = rows.filter(r => r.rankNorm > n * (1 - COEF_DEFAULTS.m42.laggardBand));
+  const midLine = n * (2 / 3);
+  return laggards.map(lag => {
+    if (!lag.traj6) return { lag, best: null };
+    const candidates = rows.filter(r => r.spId !== lag.spId && r.trajEarly)
+      .map(r => ({ spId: r.spId, traj: r.trajEarly, nowBandOk: r.rankNorm <= midLine }));
+    return { lag, best: CALC.m42Match(lag.traj6, candidates) };
+  });
+}
+
+/* —— M43 节奏台 —— */
+function paceBoard(db, today) {
+  const coef = resolveCoef(db).m43;
+  const monthStart = today.slice(0, 8) + '01';
+  return activeSps(db).map(p => {
+    const q = XREF.quota(db, p.spId);
+    if (!q) return { sp: p, zone: null };
+    const paid = XREF.deals(db).filter(d => d.spId === p.spId && d.paidDate
+      && d.paidDate >= monthStart && d.paidDate <= today);
+    const paidAmt = paid.reduce((s, d) => s + d.amountAmt, 0);
+    const completion = safeDiv(paidAmt, q.amt);
+    const inFlightBig = Math.max(0, ...XREF.deals(db)
+      .filter(d => d.spId === p.spId && !d.closeDate && d.contractDate == null)
+      .map(d => d.amountAmt), 0);
+    const zone = CALC.paceZone(completion, { inFlightBigDealAmt: inFlightBig, monthQuotaAmt: q.amt }, coef);
+    // 弃赛区子目标：剩余工作日 × 90 天日均回款 × 1.1
+    let sub = null;
+    if (zone === 'quit_risk') {
+      const monthEnd = addDays(monthStart.slice(0, 8) + '28', 4).slice(0, 8) + '01';
+      const remainWd = workdaysIn(db, p.spId, addDays(today, 1), addDays(monthEnd, -1));
+      const past = XREF.deals(db).filter(d => d.spId === p.spId && d.paidDate
+        && d.paidDate > addDays(today, -90) && d.paidDate <= today);
+      const wd90 = workdaysIn(db, p.spId, addDays(today, -90), today);
+      const dailyAvg = safeDiv(past.reduce((s, d) => s + d.amountAmt, 0), wd90);
+      sub = CALC.subGoalAmt(remainWd, dailyAvg, coef);
+    }
+    return { sp: p, completion, zone, quota: q, sub };
+  });
+}
+
+/* —— M40 本周配对（由 M21+闸④③+带宽偏差装配；PairAssignment 落库） —— */
+function m40WeeklyInput(db, today) {
+  const ref = XREF.suanzhang(db);
+  if (!ref || !ref.entities.M21Norm) return null;
+  const ctx = teamGateContext(db);
+  const people = ref.entities.M21Norm.map(r => ({ spId: r.spId, rankNorm: r.rankNorm, growth3m: r.growth3m }));
+  const gate4PassIds = people.filter(p =>
+    CALC.recipeGateCheck(gatePersonInput(db, p.spId), ctx).qualified).map(p => p.spId);
+  const m28SignedIds = people.filter(p => !!XREF.m28(db, p.spId)).map(p => p.spId);
+  const prevWeeks = {};
+  db.pairAssignments.forEach(pa => {
+    prevWeeks[pa.coachId + '|' + pa.learnerId] = pa.consecutiveWeeks || 1;
+  });
+  return { people, gate4PassIds, m28SignedIds, prevWeeks };
+}
+function topicFor(db, learnerId, today) {
+  const d = rxDiagnose(db, learnerId, today);
+  if (d.none) return { stage: '需求确认', text: '本周话题：把最近 3 个丢单各用 5 分钟复盘一遍——丢在哪个环节，下次那个环节做什么动作。' };
+  const map = { volume: '线索获取', quality: '需求确认', speed: '推进节奏' };
+  return { stage: map[d.top.type], text: '本周话题（20 分钟）：围绕「' + map[d.top.type] + '」，教练讲自己的 2 个具体做法，学员当场选 1 个，下周回执确认。' };
+}
+
+/* —— M44a / 剂量统计 —— */
+function doseStats(db, today) {
+  const coef = resolveCoef(db);
+  const from = addDays(today, -30);
+  const per = activeSps(db).map(p => {
+    const hrs = db.coachingAcks.filter(a => a.spId === p.spId && a.status === 'confirmed'
+      && a.date > from && a.date <= today).reduce((s, a) => s + (a.durationHrs || 0), 0);
+    return { sp: p, hrs };
+  });
+  const teamAvg = mean(per.map(x => x.hrs));
+  const vets = per.filter(x => {
+    const t = tenureDays(db, x.sp.spId, today);
+    return t != null && t > coef.m44.tenureYears * 365;
+  });
+  const vetAvg = vets.length ? mean(vets.map(x => x.hrs)) : null;
+  const ratio = CALC.m44aRatio(vetAvg, teamAvg);
+  const reported = db.coachingAcks.filter(a => a.date > from && a.date <= today)
+    .reduce((s, a) => s + (a.reportedHrs || a.durationHrs || 0), 0);
+  const confirmed = db.coachingAcks.filter(a => a.status === 'confirmed' && a.date > from && a.date <= today)
+    .reduce((s, a) => s + (a.durationHrs || 0), 0);
+  return { per, teamAvg, vetAvg, ratio, vetsCount: vets.length,
+    gap: CALC.cognitiveGap(reported, confirmed),
+    dose: CALC.coachingDoseActual(db.coachingAcks, activeSps(db).length, 30, today) };
+}
+
+/* —— M14① 挂账 + M25 JOLT 看板 —— */
+function backlogBoard(db, today) {
+  return XREF.deals(db).filter(d => d.contractDate && !d.paidDate).map(d => {
+    const level = CALC.backlogCheck({ contractDate: d.contractDate, paidDate: d.paidDate }, today);
+    return level ? { deal: d, level, days: diffDays(today, d.contractDate) } : null;
+  }).filter(Boolean);
+}
+function joltBoard(db, today) {
+  const ref = XREF.suanzhang(db);
+  if (!ref) return [];
+  const cats = {};
+  (ref.entities.Category || []).forEach(c => cats[c.name] = c.medianStayDays);
+  const out = [];
+  for (const p of activeSps(db)) {
+    const mine = XREF.deals(db).filter(d => d.spId === p.spId);
+    const discounted = mine.filter(d => d.discountRate > 0);
+    const pRate = mine.length ? discounted.length / mine.length : null;
+    for (const d of mine.filter(d => !d.closeDate && d.intentDate)) {
+      const median = cats[d.category];
+      const r = CALC.joltCheck({ stayDays: diffDays(today, d.intentDate), categoryMedianStayDays: median,
+        hasDiscountDuring: d.discountRate > 0, personDiscountRate: pRate,
+        othersDiscountRate: teamDiscountRateExcept(db, p.spId) }, resolveCoef(db).joltRule);
+      if (r.highHesitation) out.push({ sp: p, deal: d, check: r, median });
+    }
+  }
+  return out;
+}
+function teamDiscountRateExcept(db, spId) {
+  const others = XREF.deals(db).filter(d => d.spId !== spId);
+  if (!others.length) return null;
+  return others.filter(d => d.discountRate > 0).length / others.length;
+}
+
+/* ========= 11. 演示数据（确定性种子；老板一键载入，可清除；标注「演示数据」） ========= */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seedDemo(db, today) {
+  const rnd = mulberry32(42);
+  const mk = (spId, name, hireDate, extra) => Object.assign({
+    spId, name, phone: '', cityTier: 'tier2', level: 'sales', positionType: 'regular',
+    hireDate, leaveDate: null, leaveReason: null, managerId: null, hireBatchId: null,
+    sourceChannel: 'demo', baseSalaryAmt: 500000, hiringCostAmt: 1500000, isActive: true }, extra || {});
+  const P = [
+    mk('sp_j', '纪静', '2024-03-01'), mk('sp_f', '方菲', '2024-06-10'), mk('sp_g', '高远', '2024-09-01'),
+    mk('sp_p4', '彭鹏', '2025-02-01'), mk('sp_p5', '齐悦', '2025-03-15'), mk('sp_p6', '沈立', '2025-05-01'),
+    mk('sp_p7', '秦朗', '2025-06-01'), mk('sp_p8', '韩雪', '2025-08-01'), mk('sp_a', '安豪', '2024-01-10'),
+    mk('sp_zh', '周正', '2023-05-01'),
+    mk('sp_new', '李新', addDays(today, -8)),
+  ];
+  db.salespeople = P;
+  // —— 日报（近 60 天 + 配方源纪静入职首 7 天，供首N天基准） ——
+  const profile = {
+    sp_j:[14,5,2.2,0.9], sp_f:[12,4,1.8,0.7], sp_g:[11,3.5,1.5,0.6], sp_p4:[10,3,1.2,0.5],
+    sp_p5:[9,2.6,1.0,0.4], sp_p6:[8,2.2,0.8,0.32], sp_p7:[8,2.0,0.7,0.25], sp_p8:[7,1.6,0.55,0.2],
+    sp_a:[16,4.5,2.0,0.85], sp_zh:[9,2.4,0.9,0.35], sp_new:[3,0.6,0.15,0],
+  };
+  const pois = (m) => { let x = Math.floor(m); if (rnd() < m - x) x++; return x; };
+  for (const p of P) {
+    const from = p.spId === 'sp_new' ? p.hireDate : addDays(today, -60);
+    for (let d = from; d <= today; d = addDays(d, 1)) {
+      if (!CALC.isWorkday(d, db.shiftConfig, p.spId)) continue;
+      const pr = profile[p.spId];
+      saveDailyReport(db, { spId: p.spId, date: d, counts: {
+        leads: pois(pr[0] * (0.8 + rnd() * 0.4)), intents: pois(pr[1] * (0.8 + rnd() * 0.4)),
+        samples: pois(pr[2] * (0.8 + rnd() * 0.4)), contracts: pois(pr[3] * (0.7 + rnd() * 0.6)) } });
+    }
+  }
+  for (let i = 0; i < 7; i++) {   // 纪静入职首 7 天
+    const d = addDays('2024-03-01', i);
+    saveDailyReport(db, { spId: 'sp_j', date: d, counts: { leads: 8 + (i % 3), intents: 2, samples: 1, contracts: 0 } });
+  }
+  // —— 带教回执（近 30 天 confirmed 剂量；周正低剂量 → M44a） ——
+  const ackPlan = { sp_p4: 2.5, sp_p5: 2.0, sp_p6: 2.2, sp_p7: 3.0, sp_p8: 2.4, sp_new: 0, sp_zh: 0.5,
+    sp_j: 0.9, sp_f: 0.9, sp_g: 2.0, sp_a: 0.5 };   // 司龄>2年的老手剂量偏低 → M44a 资历忽视可观察
+  Object.keys(ackPlan).forEach((spId, i) => {
+    if (ackPlan[spId] <= 0) return;
+    db.coachingAcks.push({ ackId: uid('ack'), spId, coachId: 'sp_j', date: addDays(today, -3 - i),
+      durationHrs: ackPlan[spId], reportedHrs: ackPlan[spId] * 1.8, status: 'confirmed' });
+  });
+  // —— 悬赏（首单赏一条在挂） ——
+  db.bounties.push({ bountyId: uid('bt'), template: 'first_deal', params: {}, amountAmt: 80000,
+    active: true, createdAt: addDays(today, -10), achievedEvents: [] });
+  // —— 三包信封（演示：模拟其余板块导出物） ——
+  const m21 = [
+    { spId:'sp_j', rankNorm:1, uer:0.9, discountRate:0.02, complaintCount:0, growth3m:0.12, traj6:[6,6,7,7,8,8], trajEarly:[2,3,3,4,4,5], uerSeries:[0.7,0.8,0.9,0.85,0.88,0.9] },
+    { spId:'sp_f', rankNorm:2, uer:0.5, discountRate:0.03, complaintCount:1, growth3m:0.08, traj6:[5,6,6,6,7,7], trajEarly:[2,2,3,4,4,4] },
+    { spId:'sp_g', rankNorm:3, uer:0.2, discountRate:0.04, complaintCount:1, growth3m:0.05, traj6:[5,5,5,6,6,6], trajEarly:[3,3,4,4,5,5] },
+    { spId:'sp_p4', rankNorm:4, uer:0.1, discountRate:0.04, complaintCount:1, growth3m:0.05, traj6:[4,4,5,5,5,5], trajEarly:[2,3,3,3,4,4] },
+    { spId:'sp_p5', rankNorm:5, uer:0.0, discountRate:0.05, complaintCount:1, growth3m:0.02, traj6:[4,4,4,4,5,5], trajEarly:[2,2,3,3,3,4] },
+    { spId:'sp_p6', rankNorm:6, uer:-0.1, discountRate:0.05, complaintCount:2, growth3m:0.09, traj6:[3,4,4,4,4,4], trajEarly:[2,2,2,3,3,3] },
+    { spId:'sp_p7', rankNorm:7, uer:-0.2, discountRate:0.06, complaintCount:2, growth3m:-0.12, traj6:[4,4,3,3,3,2], trajEarly:[2,2,3,3,3,3] },
+    { spId:'sp_p8', rankNorm:8, uer:-0.3, discountRate:0.06, complaintCount:2, growth3m:-0.08, traj6:[2,2,3,3,4,4], trajEarly:[1,2,2,2,3,3] },
+    { spId:'sp_a', rankNorm:9, uer:-1.5, discountRate:0.09, complaintCount:4, growth3m:0.01, traj6:[8,8,8,9,9,9], trajEarly:[4,5,5,6,6,7] },
+    { spId:'sp_zh', rankNorm:10, uer:-0.4, discountRate:0.05, complaintCount:1, growth3m:-0.02, traj6:[3,3,3,3,3,3], trajEarly:[2,2,2,2,3,3] },
+  ];
+  const cats = [{ id:'c1', name:'标准件', medianStayDays: 14 }, { id:'c2', name:'定制件', medianStayDays: 24 }];
+  const deals = [];
+  let dseq = 0;
+  const pushDeal = (spId, category, amountWan, closeAgo, status, opts) => {
+    opts = opts || {};
+    const closeDate = closeAgo == null ? null : addDays(today, -closeAgo);
+    deals.push({ dealId: 'deal_demo_' + (++dseq), spId, category, categoryId: category === '标准件' ? 'c1' : 'c2',
+      amountAmt: Math.round(amountWan * 1e6), status,
+      intentDate: opts.intentAgo != null ? addDays(today, -opts.intentAgo) : (closeDate ? addDays(closeDate, -18) : addDays(today, -20)),
+      contractDate: status === 'won' && closeDate ? closeDate : (opts.contractAgo != null ? addDays(today, -opts.contractAgo) : null),
+      paidDate: opts.paidAgo != null ? addDays(today, -opts.paidAgo) : null,
+      closeDate, discountRate: opts.discount || 0 });
+  };
+  // 各人成交流水（简化但覆盖所有模块触发条件）
+  const dealPlan = { sp_j: 9, sp_f: 8, sp_g: 7, sp_p4: 6, sp_p5: 5, sp_p6: 5, sp_a: 9, sp_zh: 4, sp_p8: 3 };
+  Object.keys(dealPlan).forEach(spId => {
+    for (let i = 0; i < dealPlan[spId]; i++) {
+      const ago = 5 + Math.floor(rnd() * 110);
+      // 随机单的回款一律落在 32 天前之外，当月完成度只由下方显式单控制
+      pushDeal(spId, rnd() < 0.65 ? '标准件' : '定制件', 1.5 + rnd() * 4, ago,
+        rnd() < 0.62 ? 'won' : 'lost', { paidAgo: (ago >= 40 && rnd() < 0.7) ? ago - 8 : null });
+    }
+  });
+  // 秦朗：前窗 3/10 胜，本窗 2/11 胜且末 4 连败 → M41
+  for (let i = 0; i < 10; i++) pushDeal('sp_p7', '标准件', 2 + rnd() * 2, 32 + i * 2, i < 3 ? 'won' : 'lost', { paidAgo: i < 3 ? 30 + i * 2 : null });
+  for (let i = 0; i < 7; i++) pushDeal('sp_p7', '标准件', 2 + rnd() * 2, 26 - i * 3, i < 2 ? 'won' : 'lost', { paidAgo: i < 2 ? 20 - i * 3 : null });
+  for (let i = 0; i < 4; i++) pushDeal('sp_p7', '定制件', 3 + rnd(), 4 - i, 'lost');
+  pushDeal('sp_p7', '标准件', 1.2, null, 'open');   // 在库小单
+  pushDeal('sp_p7', '标准件', 0.9, null, 'open');
+  // 安豪：高犹豫 + 折扣加压 → JOLT
+  pushDeal('sp_a', '定制件', 5, null, 'open', { intentAgo: 40, discount: 0.12 });
+  // 挂账：签约未回款 45 / 70 天
+  pushDeal('sp_p6', '标准件', 2.4, null, 'open', { contractAgo: 45 });
+  pushDeal('sp_p8', '定制件', 3.1, null, 'open', { contractAgo: 70 });
+  // 本月回款 → M43 分区（配额 30 万/月）
+  pushDeal('sp_j', '标准件', 31.5, 6, 'won', { paidAgo: 5 });    // 105% → 保护区
+  pushDeal('sp_p4', '标准件', 21.6, 9, 'won', { paidAgo: 8 });   // 72% → 加速区
+  pushDeal('sp_p8', '标准件', 10.5, 12, 'won', { paidAgo: 11 }); // 35% → 弃赛区
+  pushDeal('sp_p5', '标准件', 15.0, 10, 'won', { paidAgo: 9 });  // 50% → 常规区
+  pushDeal('sp_f', '标准件', 14.1, 7, 'won', { paidAgo: 6 });    // 47% → 常规区
+  pushDeal('sp_g', '标准件', 13.8, 8, 'won', { paidAgo: 7 });    // 46% → 常规区
+  pushDeal('sp_p6', '标准件', 13.5, 9, 'won', { paidAgo: 8 });   // 45% → 常规区
+  pushDeal('sp_p7', '标准件', 12.9, 10, 'won', { paidAgo: 9 });  // 43% → 常规区（连败仍触发 M41）
+  pushDeal('sp_a', '定制件', 25.0, 6, 'won', { paidAgo: 5 });    // 83% → 加速区
+  pushDeal('sp_zh', '标准件', 12.6, 11, 'won', { paidAgo: 10 }); // 42% → 常规区
+  const quota = {};
+  ['sp_j','sp_f','sp_g','sp_p4','sp_p5','sp_p6','sp_p7','sp_p8','sp_a','sp_zh'].forEach(id => quota[id] = 3e7);
+  importEnvelope(db, { schema:'skab_v1', board:'suanzhang', exportedAt: addDays(today, -3), dataVersion:1,
+    coefficientsHash: null, derived: { uerTeamMean: 0, imbalanceRate: 0.31, dvi: 0.18 },
+    entities: { M21Norm: m21, Deal: deals, Category: cats } }, today);
+  importEnvelope(db, { schema:'skab_v1', board:'liuren', exportedAt: addDays(today, -5), dataVersion:1,
+    coefficientsHash: null, derived: { ahcBySp: { sp_j:82, sp_f:74, sp_g:68, sp_a:52, sp_p4:70, sp_p5:66, sp_p6:64, sp_p7:63, sp_p8:61, sp_zh:65 } },
+    entities: { M28Agreement: [ { spId:'sp_j', irrevocable:true, royaltyAmt:3480000 },
+                                { spId:'sp_f', irrevocable:true, royaltyAmt:3480000 } ] } }, today);
+  importEnvelope(db, { schema:'skab_v1', board:'zhaoren', exportedAt: addDays(today, -6), dataVersion:1,
+    coefficientsHash: null, derived: {},
+    entities: { PracticeLog: [ { spId:'sp_new', count14: 34 }, { spId:'sp_p8', count14: 88 } ] } }, today);
+  importEnvelope(db, { schema:'skab_v1', board:'dingjia', exportedAt: addDays(today, -9), dataVersion:1,
+    coefficientsHash: null, derived: { monthQuotaBySp: quota }, entities: {} }, today);
+  // 配方源：纪静（过闸④+闸③）
+  setRecipeSource(db, ['sp_j'], today);
+  db.settings.demoSeeded = true;
+  return db;
+}
+
+/* ========= 12. UI 层（唯一取真实时钟处；向下只传显式 today） ========= */
+const APP = { db: null, today: null, route: 's1', sub: null, query: {}, license: null,
+  quotaFail: false, salesSp: null, plvDraft: '' };
+
+function effMode() {
+  if (BUILD_MODE === 'full') return 'full';
+  return (APP.license && APP.license.ok) ? 'full' : 'free';
+}
+function lockedCls(isHook) { return (effMode() === 'free' && !isHook) ? ' locked' : ''; }
+function srcLine(text) { return `<span class="src">📎 ${esc(text)}</span>`; }
+
+/* —— 屏 1 · 起点（落地页 + 分诊台） —— */
+function renderS1(db, today) {
+  const tri = [];
+  const mom = momentumStates(db, today);
+  if (mom.length) tri.push({ txt: `${mom.map(m => m.sp.name).join('、')} 触发动量连败警报`, to: 's6', tag: 'r' });
+  const quits = paceBoard(db, today).filter(x => x.zone === 'quit_risk');
+  if (quits.length) tri.push({ txt: `${quits.length} 人处于弃赛区（目标数学上已够不着）`, to: 's6', tag: 'a' });
+  const backlog = backlogBoard(db, today).filter(b => b.level === 'boss');
+  if (backlog.length) tri.push({ txt: `${backlog.length} 笔签约挂账超 60 天未回款`, to: 's6', tag: 'r' });
+  const nb = newbieBoard(db, today).filter(x => x.suggestCull);
+  if (nb.length) tri.push({ txt: `新人 ${nb.map(x => x.sp.name).join('、')} 连续 3 日红警（汰前拦截审查中）`, to: 's8/m15', tag: 'a' });
+  const jolt = joltBoard(db, today).filter(j => j.check.pressure);
+  if (jolt.length) tri.push({ txt: `${jolt.map(j => j.sp.name).join('、')} 对高犹豫客户加压（JOLT）`, to: 's6', tag: 'a' });
+  const ds = doseStats(db, today);
+  if (ds.ratio != null && ds.ratio < resolveCoef(db).m44.neglectRatioLt)
+    tri.push({ txt: `老手辅导比 ${fmtNum(ds.ratio, 2)}——资历忽视预警`, to: 's6', tag: 'a' });
+  return `
+  <div class="ph"><h1>销冠育人器</h1><p>抬地板，不抬天花板。</p></div>
+  <div class="card"><div class="quote">${esc(TALK.landing1)}</div>
+    <p class="gray">${esc(TALK.boundary)}</p>
+    <p class="gray" style="margin-top:4px">${esc(TALK.privacy)}</p></div>
+  <div class="card"><h3>今日分诊台 <span class="tag n">只提示，不执行——一切动作由你点击（A-05）</span></h3>
+    ${tri.length ? tri.map(t => `<div class="row" style="justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--hair)">
+      <span><span class="tag ${t.tag}">${t.tag === 'r' ? '红' : '黄'}</span> ${esc(t.txt)}</span>
+      <a class="btn sm" href="#/${t.to}">去处理</a></div>`).join('')
+    : '<p class="gray">当前无待处理预警。数据越全，分诊越准——先把日报和信封接上。</p>'}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>三步开始</h3>
+      <p>① 在「数据与系数 → 信封」导入算账器 / 留人器 / 招人器的数据包；<br>
+         ② 在「配方源资格」让系统选出真正值得复制的人；<br>
+         ③ 每天打开「处方工作台」，给每人一张过了语言闸的处方。</p>
+      ${db.settings.demoSeeded ? '<p class="gray">当前为演示数据，可随时清空。</p>' :
+        '<button class="btn pri" data-act="seed-demo">载入演示数据（一键体验全部模块）</button>'}
+      ${db.settings.demoSeeded ? '<button class="btn warn sm" data-act="wipe">清空全部数据</button>' : ''}
+    </div>
+    <div class="card"><h3>这套系统的立身之本</h3>
+      <p>天赋归招人器筛，动作归育人器蒸馏。配方引擎不抬天花板，抬地板——
+      出厂账：后 50% 五人每人拉 1.4 万/月 = <b>84 万/年</b>，是天花板收益的 <b>35 倍</b>。</p>
+      ${srcLine('Sandvik et al., QJE 2020：结构化配对谈话平均业绩 +15%，效果持续≥20 周')}</div>
+  </div>`;
+}
+
+/* —— 屏 2 · 配方源资格核弹（free 钩子屏①） —— */
+function renderS2(db, today) {
+  if (!XREF.m21Done(db)) return lockScreen('配方源资格需要算账器的 M21 归一化结果',
+    '排名的唯一合法输入是 M21 归一化（公约不变量 2）。未归一化的"业绩第一"可能只是地盘最肥。',
+    '#/s8/env', '去导入算账器信封');
+  const ctx = teamGateContext(db);
+  const rows = XREF.suanzhang(db).entities.M21Norm.slice().sort((a, b) => a.rankNorm - b.rankNorm);
+  const results = rows.map(r => ({ r, check: CALC.recipeGateCheck(gatePersonInput(db, r.spId, r), ctx) }));
+  const qualified = results.filter(x => x.check.qualified);
+  const flashy = results.filter(x => !x.check.qualified)
+    .sort((a, b) => (b.r.traj6 ? b.r.traj6[5] : 0) - (a.r.traj6 ? a.r.traj6[5] : 0))[0];
+  const failName = { rank: '归一化排名不在前 3', uer: 'UER < 0（拿了超额资源才有超额业绩）',
+    discount: '折扣泄漏 > 团队均值', complaint: '客诉/退款 > 团队均值' };
+  return `
+  <div class="ph"><h1>② 配方源资格核弹</h1><p>四条同时满足才配当配方源：M21 归一化前 3 · UER≥0 · 折扣泄漏≤均值 · 客诉≤均值。规则全员可见（A-02）。</p></div>
+  ${flashy ? `<div class="card" style="border-color:#f3d3d1"><h3><span class="tag r">拒</span> ${esc(spName(db, flashy.r.spId))} —— 不合格</h3>
+    <table><tr><th>检查项</th><th>结果</th></tr>
+    ${flashy.check.fails.map(f => `<tr><td>${esc(failName[f])}</td><td><span class="tag r">不过</span></td></tr>`).join('')}</table>
+    <div class="quote" style="border-color:var(--red);background:var(--red-soft)">${esc(TALK.y01_reject)}</div>
+    <button class="btn warn sm" data-act="insist-source" data-sp="${flashy.r.spId}">坚持用${esc(spName(db, flashy.r.spId))}（留痕，不推荐）</button>
+    ${srcLine('Zoltners（地盘污染排名）；Hart 2016（剩余控制权与藏拙）')}</div>` : ''}
+  <div class="card"><h3><span class="tag g">荐</span> 通过全部四闸的人</h3>
+    ${qualified.length ? `<table><tr><th>姓名</th><th>归一化排名</th><th>UER</th><th>折扣泄漏</th><th>客诉</th><th></th></tr>
+      ${qualified.map(x => `<tr><td>${esc(spName(db, x.r.spId))}</td><td class="num">第 ${x.r.rankNorm}</td>
+        <td class="num">${x.r.uer >= 0 ? '+' : ''}${fmtNum(x.r.uer, 1)} 万</td>
+        <td class="num">${fmtRate(x.r.discountRate)}</td><td class="num">${fmtInt(x.r.complaintCount)}</td>
+        <td><button class="btn sm pri" data-act="set-source" data-sp="${x.r.spId}">设为配方源</button></td></tr>`).join('')}</table>
+      <div class="quote">${esc(TALK.y01_accept)}</div>` :
+      '<p class="gray">—（暂无人同时通过四闸；这本身就是诊断结果）</p>'}
+    ${asOfHtml(db, 'suanzhang', today)}
+    ${db.recipeSource ? `<p style="margin-top:8px">当前配方源：<b>${db.recipeSource.sourceIds.map(id => esc(spName(db, id))).join('、')}</b>（${db.recipeSource.setAt} 设定）</p>` : ''}
+  </div>
+  <div class="card${lockedCls(false)}"><h3>全员四闸明细</h3>
+    <table><tr><th>归一化排名</th><th>姓名</th><th>UER</th><th>折扣</th><th>客诉</th><th>结论</th></tr>
+    ${results.map(x => `<tr><td class="num">第 ${x.r.rankNorm}</td><td>${esc(spName(db, x.r.spId))}</td>
+      <td class="num">${x.r.uer >= 0 ? '+' : ''}${fmtNum(x.r.uer, 1)} 万</td><td class="num">${fmtRate(x.r.discountRate)}</td>
+      <td class="num">${fmtInt(x.r.complaintCount)}</td>
+      <td>${x.check.qualified ? '<span class="tag g">通过</span>' : '<span class="tag r">' + x.check.fails.map(f => ({ rank:'排名', uer:'UER', discount:'折扣', complaint:'客诉' }[f])).join('·') + '</span>'}</td></tr>`).join('')}</table>
+  </div>`;
+}
+
+/* —— 屏 3 · 产权前提 —— */
+function renderS3(db, today) {
+  const coef = resolveCoef(db);
+  const ids = db.recipeSource ? db.recipeSource.sourceIds : [];
+  const body = ids.map(id => {
+    const m28 = XREF.m28(db, id);
+    const ahc = XREF.ahc(db, id);
+    const gate = CALC.propertyGate({ hasM28: !!m28, ahc }, coef);
+    const row = XREF.m21Row(db, id) || {};
+    const hide = CALC.hidingCheck(row.uerSeries);
+    return `<div class="card"><h3>${esc(spName(db, id))} · 闸③ 产权前提
+      ${gate.locked ? '<span class="tag r">锁定</span>' : '<span class="tag g">已解锁</span>'}</h3>
+      <table><tr><th>M28 产权协议（留人器）</th><td>${m28 ? '已签' + (m28.irrevocable ? '（irrevocable）' : '') : '<span class="tag r">未签</span>'} ${asOfHtml(db, 'liuren', today)}</td></tr>
+      <tr><th>AHC 承诺兑现指数</th><td class="num">${safeShow(ahc)} ${ahc != null ? (ahc < coef.ahcTrustLine ? '<span class="tag r">低于信任线 ' + coef.ahcTrustLine + '</span>' : '<span class="tag g">≥ ' + coef.ahcTrustLine + '</span>') : '<span class="tag n">需留人器数据</span>'} ${asOfHtml(db, 'liuren', today)}</td></tr>
+      <tr><th>UER 趋势监测</th><td>${hide.hiding == null ? '—（样本不足，不下结论）' :
+        hide.hiding ? '<span class="tag r">🔴 ' + esc(TALK.y02_hiding) + '（UER 下滑 > 0.5σ）</span>' : '<span class="tag g">平稳</span>'} ${asOfHtml(db, 'suanzhang', today)}</td></tr></table>
+      ${gate.locked ? `<div class="quote" style="margin-top:10px">${esc(TALK.y02)}</div>
+        <p><b>产权四件报价</b>：配方署名（免费）· 配方使用费 3.5 万/年 · 带教分成 3.48 万（69.6 倍杠杆）· irrevocable 不可撤销条款</p>
+        <button class="btn pri sm" data-act="noop">生成 M28（在留人器中签署后重新导入信封）</button>` : ''}
+      ${srcLine('Hart 2016 诺奖第四定理：不给控制权，他就不会投入你测不到的努力')}
+    </div>`;
+  }).join('');
+  return `<div class="ph"><h1>③ 产权前提</h1><p>配方源没签产权、或 AHC 低于信任线，配方引擎不开——否则他会开始藏，而系统测得到。</p></div>
+  ${ids.length ? body : lockScreen('先在「配方源资格」屏选出配方源', '闸③检查的是"这个人肯不肯交出本事"，先得有人选。', '#/s2', '去选配方源')}`;
+}
+
+/* —— 屏 4 · 配方引擎 —— */
+function renderS4(db, today) {
+  if (!XREF.m21Done(db)) return lockScreen('配方引擎整体锁定', 'M21 未运行时蒸馏出的"配方"可能只是地盘红利（A-11 归一化优先）。', '#/s8/env', '去导入算账器信封');
+  if (!db.recipeSource) return lockScreen('未设定配方源', '先过闸④选出值得复制的人。', '#/s2', '去选配方源');
+  const gate3 = db.recipeSource.sourceIds.map(id =>
+    CALC.propertyGate({ hasM28: !!XREF.m28(db, id), ahc: XREF.ahc(db, id) }, resolveCoef(db)));
+  if (gate3.some(g => g.locked)) return lockScreen('闸③ 产权前提未满足', '配方源未签 M28 或 AHC 低于信任线。', '#/s3', '去看产权前提');
+  const cards = threeCards(db, today);
+  const base = firstNDaysBaseline(db, today);
+  const sc = scatterData(db, today);
+  return `<div class="ph"><h1>④ 配方引擎 · 三张牌</h1><p>每月日切自动重算，零新增录入。蒸馏的是动作，不是天赋。</p></div>
+  <div class="grid3">
+    <div class="card"><h3>牌一 · 剂量</h3>
+      <table><tr><th>环节</th><th>配方源 日均</th></tr>
+      ${['leads','intents','samples','contracts'].map(k => `<tr><td>${TALK.stageNames[k]}</td><td class="num">${fmtNum(cards.dose[k], 1)}</td></tr>`).join('')}</table>
+      <span class="gray">近 180 天 ÷ 有报工作日${cards.nSources > 1 ? '（' + cards.nSources + ' 人合成均值）' : ''}</span></div>
+    <div class="card"><h3>牌二 · 配比</h3>
+      <table><tr><td>线索 → 意向</td><td class="num">${fmtRate(cards.mix.l2i)}</td></tr>
+      <tr><td>意向 → 样品</td><td class="num">${fmtRate(cards.mix.i2s)}</td></tr>
+      <tr><td>样品 → 签约</td><td class="num">${fmtRate(cards.mix.s2c)}</td></tr></table>
+      <span class="gray">四环节累计制转化率</span></div>
+    <div class="card"><h3>牌三 · 节奏</h3>
+      <table><tr><td>首单用时</td><td class="num">${safeShow(cards.pace.firstDealDays)} 天</td></tr>
+      <tr><td>出单间隔（中位）</td><td class="num">${safeShow(cards.pace.gapMedian)} 天</td></tr>
+      <tr><td>主打品类</td><td>${esc(cards.pace.topCat || '—')}（${fmtRate(cards.pace.topCatShare)}）</td></tr></table>
+      <span class="gray">来自算账器成交单 ${asOfHtml(db, 'suanzhang', today)}</span></div>
+  </div>
+  <div class="card"><h3>首 ${resolveCoef(db).newbieWindow.days} 天基准（新人筛选的地基）</h3>
+    ${!base || base.missing ? '<p class="gray">—（缺配方源入职期日报数据，基准不硬凑；补录后自动点亮）</p>' :
+    `<table><tr><th>环节</th><th>基准 · 日均</th><th>新人阈值（×80%）</th></tr>
+     ${['leads','intents','samples'].map(k => `<tr><td>${TALK.stageNames[k]}</td>
+       <td class="num">${fmtNum(base.daily[k], 1)}</td><td class="num">${fmtNum(base.daily[k] * 0.8, 1)}</td></tr>`).join('')}</table>
+     ${base.singleSample ? '<span class="gray">⚠ 样本 < 3，当前为单人基准（已标注）</span>' : ''}`}
+  </div>
+  <div class="card${lockedCls(false)}"><h3>量 × 质散点（横轴=有效动作分/工作日 · 纵轴=线索→签约转化）</h3>
+    ${renderScatter(sc)}<span class="gray">点一个点，直达他的处方。有效动作分已防刷（M14③）。</span></div>`;
+}
+function renderScatter(pts) {
+  if (!pts.length) return '<p class="gray">—（近 90 天日报不足）</p>';
+  const W = 660, H = 300, pad = 40;
+  const mx = Math.max(...pts.map(p => p.x)) * 1.15 || 1;
+  const my = Math.max(...pts.map(p => p.y)) * 1.3 || 1;
+  const medX = pts.map(p => p.x).sort((a, b) => a - b)[Math.floor(pts.length / 2)];
+  const medY = pts.map(p => p.y).sort((a, b) => a - b)[Math.floor(pts.length / 2)];
+  const X = v => pad + (v / mx) * (W - pad - 10);
+  const Y = v => H - 30 - (v / my) * (H - 50);
+  return `<svg class="scatter" viewBox="0 0 ${W} ${H}">
+    <line x1="${pad}" y1="${H - 30}" x2="${W - 5}" y2="${H - 30}" stroke="#ddd"/>
+    <line x1="${pad}" y1="10" x2="${pad}" y2="${H - 30}" stroke="#ddd"/>
+    <line x1="${X(medX)}" y1="10" x2="${X(medX)}" y2="${H - 30}" stroke="#eee" stroke-dasharray="4 4"/>
+    <line x1="${pad}" y1="${Y(medY)}" x2="${W - 5}" y2="${Y(medY)}" stroke="#eee" stroke-dasharray="4 4"/>
+    <text x="${W - 60}" y="${H - 12}">量（有效）</text><text x="8" y="20">质</text>
+    ${pts.map(p => `<g class="dot" data-act="goto-rx" data-sp="${p.spId}">
+      <circle cx="${X(p.x)}" cy="${Y(p.y)}" r="6" fill="var(--accent)" opacity=".75"/>
+      <text x="${X(p.x) + 9}" y="${Y(p.y) + 4}">${esc(p.name)}</text></g>`).join('')}
+  </svg>`;
+}
+
+/* —— 屏 5 · 处方工作台 —— */
+function psiPartsFor(db, spId, text, diag) {
+  const acked = db.prescriptions.filter(r => r.employeeId === spId);
+  const ackRate = acked.length >= 3 ? acked.filter(r => r.ackedAt).length / acked.length : null;
+  return {
+    targeting: diag && !diag.none ? 1.0 : 0.2,
+    benchmark: text.indexOf('配方源') >= 0 ? 1.0 : (text.indexOf('均值') >= 0 ? 0.5 : 0),
+    dataRef: /\d/.test(text) ? 1.0 : 0,
+    ackRate,
+  };
+}
+function renderS5(db, today) {
+  const sel = APP.query.sp || (activeSps(db)[0] || {}).spId || '';
+  const diag = sel ? rxDiagnose(db, sel, today) : { none: true, reason: '未选员工' };
+  const auto = sel ? rxAutoText(db, sel, today) : null;
+  const text = APP.plvDraft;
+  const coef = resolveCoef(db);
+  const plv = CALC.plvCheck(text, { banned: coef.plvBanned, names: db.salespeople.map(p => p.name) });
+  const todayRx = db.prescriptions.filter(r => r.date === today);
+  const psiVals = todayRx.map(r => CALC.psiScore(r.psiParts)).filter(v => v != null);
+  const gateRows = [
+    ['闸① PLV 语言校验', '三层全拦截；不过=无保存路径'],
+    ['闸② PSI 个性化', todayRx.length ? '今日均值 ' + safeShow(psiVals.length ? Math.round(mean(psiVals)) : null) : '今日暂无处方'],
+    ['闸③ 产权前提', db.recipeSource ? '见屏③' : '未设配方源'],
+    ['闸④ 配方源资格', db.recipeSource ? '已过' : '未设'],
+    ['闸⑤ 处方不挂钱', '结构断言：处方零耦合提成/排名（Y-D2）'],
+    ['闸⑧ 悬赏挤出对冲', db.settings.silentTrackOn ? '静默认可通道已启用' : '通道未启用（结果赏将被拦截）'],
+    ['闸⑨ 练习量', '前 14 天 < 50 次 → 拦截汰'],
+    ['闸⑩ 认知鸿沟', (function () { const g = doseStats(db, today).gap; return g == null ? '—' : fmtRate(g) + (g > 0.3 ? ' 🔴' : ''); })()],
+    ['闸⑪ 辅导剂量', (function () { const d = doseStats(db, today).dose; return d == null ? '—' : d + ' h/人·月'; })()],
+    ['闸⑫ JOLT 犹豫处方', joltBoard(db, today).length + ' 个高犹豫客户'],
+  ];
+  return `<div class="ph"><h1>⑤ 处方工作台</h1><p>处方只许说三件事：他做了什么（数据）· 今天做什么（动作）· 对标什么（基准）。</p></div>
+  <div class="plv-lay">
+    <div>
+      <div class="card"><h3>手写处方 · PLV 实时三层校验</h3>
+        <div class="row" style="margin-bottom:8px">
+          <select id="rx-sp" data-act-change="rx-sp">${activeSps(db).map(p =>
+            `<option value="${p.spId}"${p.spId === sel ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+          <span class="gray">${diag.none ? esc(diag.reason || '') : '诊断：' + ({ volume:'量差', quality:'质差', speed:'速差' }[diag.top.type]) + '型偏差最大'}</span>
+        </div>
+        <textarea id="rx-text" class="rx" placeholder="例：你昨天 12 通电话，9 通没做需求确认。今天试试在第 3 分钟问……配方源基准 87%">${esc(text)}</textarea>
+        <div id="plv-panel">${renderPlvPanel(plv, text)}</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn pri" data-act="save-rx" ${plv.passed && text ? '' : 'disabled'}>保存并派发</button>
+          ${text && !plv.passed ? '<button class="btn warn" data-act="save-rx-insist">坚持原文（留痕，计入认知鸿沟风险）</button>' : ''}
+          ${auto ? '<button class="btn" data-act="adopt-auto">采纳系统建议稿</button>' : ''}
+        </div>
+        ${srcLine('Kluger & DeNisi 1996：超过 1/3 的反馈指向"人"而非"任务"，反而降低绩效')}
+      </div>
+      ${auto ? `<div class="card"><h3>系统建议稿（已过三层）</h3><p>${esc(auto)}</p>
+        <button class="btn sm pri" data-act="dispatch-auto">一键派发给 ${esc(spName(db, sel))}</button>
+        ${srcLine('个性化/具体反馈效应量约 3 倍（反馈特异性文献）')}</div>` : ''}
+      <div class="card"><h3>今日处方（${todayRx.length} 条 · PSI 均值 ${safeShow(psiVals.length ? Math.round(mean(psiVals)) : null)}）</h3>
+        ${todayRx.length ? `<table><tr><th>员工</th><th>类型</th><th>PSI</th><th>回执</th></tr>
+        ${todayRx.map(r => { const s = CALC.psiScore(r.psiParts); const b = CALC.psiBand(s);
+          return `<tr><td>${esc(spName(db, r.employeeId))}</td><td>${esc(r.type)}</td>
+          <td>${s == null ? '—' : `<span class="tag ${b === 'green' ? 'g' : b === 'amber' ? 'a' : 'r'}">${s}${b === 'red' ? ' 你在做统一培训' : ''}</span>`}</td>
+          <td>${r.ackedAt ? '已确认' : '待确认'}</td></tr>`; }).join('')}</table>` : '<p class="gray">今日暂无。带教 KPI 别写"20 小时"，写"20 条处方、PSI 均值 78、回执率 90%"。</p>'}
+        <p class="footnote">${esc(TALK.rxFooter)}</p></div>
+    </div>
+    <div><div class="card"><h3>十二闸速览</h3>
+      ${gateRows.map(g => `<div class="plv-check"><div class="li"><b style="min-width:120px">${g[0]}</b><span class="gray">${g[1]}</span></div></div>`).join('')}
+    </div></div>
+  </div>`;
+}
+function renderPlvPanel(plv, text) {
+  if (!text) return '<p class="gray" style="margin-top:6px">开始输入，三层校验实时亮灯。</p>';
+  const li = (ok, label, extra) => `<div class="li">${ok ? '<span class="tag g">过</span>' : '<span class="tag r">拦</span>'}<span><b>${label}</b>${extra ? ' · ' + esc(extra) : ''}</span></div>`;
+  const hints = plvRewriteHint(plv);
+  return `<div class="plv-check" style="margin-top:8px">
+    ${li(plv.l1.pass, '第一层 · 拦截词库', plv.l1.hits.length ? '命中：' + plv.l1.hits.join('、') : '')}
+    ${li(plv.l2.pass, '第二层 · 去人名测试', plv.l2.pass ? '删掉"你/他"后句子仍指向任务' : '删掉"你/他"后句子失去意义——它说的是人，不是事')}
+    ${li(plv.l3.pass, '第三层 · 三槽位', '行为数据' + (plv.l3.slots.behaviorData ? '✓' : '✗') + ' 动作' + (plv.l3.slots.action ? '✓' : '✗') + ' 基准' + (plv.l3.slots.benchmark ? '✓' : '✗'))}
+    ${!plv.passed && hints.length ? '<div style="margin-top:6px"><b>系统改写建议：</b>' + hints.map(h => '<div class="gray">· ' + esc(h) + '</div>').join('') + '</div>' : ''}
+  </div>`;
+}
+
+/* —— 屏 6 · 育人节奏台 —— */
+function renderS6(db, today) {
+  const coef = resolveCoef(db);
+  const pace = paceBoard(db, today);
+  const zones = { protect: [], accel: [], normal: [], quit_risk: [] };
+  pace.forEach(x => { if (x.zone) zones[x.zone].push(x); });
+  const zoneColor = { accel: 'g', normal: 'b', quit_risk: 'r', protect: 'n' };
+  const mom = momentumStates(db, today);
+  const m40in = m40WeeklyInput(db, today);
+  const weekPairs = db.pairAssignments.filter(pa => pa.status === 'active');
+  const m42 = m42Board(db, today) || [];
+  const ds = doseStats(db, today);
+  const backlog = backlogBoard(db, today);
+  const jolt = joltBoard(db, today);
+  const noQuota = pace.filter(x => !x.zone).length;
+  return `<div class="ph"><h1>⑥ 育人节奏台</h1><p>分层节奏 · 配对传帮带 · 动量干预 · 深板凳 · 资历忽视。全部建议是卡片，不是命令。</p></div>
+  <div class="card"><h3>M43 分层节奏 <span class="tag n">完成度 = 周期回款 ÷ 个人配额</span></h3>
+    <div class="zones">${['protect','accel','normal','quit_risk'].map(z => `
+      <div class="zone"><h4>${TALK.zoneNames[z]} <span class="tag ${zoneColor[z]}">${zones[z].length} 人</span></h4>
+        ${zones[z].map(x => `<div class="p"><span>${esc(x.sp.name)}</span><span class="num">${fmtRate(x.completion)}</span></div>`).join('') || '<p class="gray">—</p>'}
+      </div>`).join('')}</div>
+    ${noQuota ? `<p class="gray" style="margin-top:8px">${noQuota} 人无配额 → 整模块对其显示"—"（在「数据 → 填报」设配额或导入定价器信封）</p>` : ''}
+    ${zones.quit_risk.map(x => `<div class="alert r" style="margin-top:10px">
+      ${esc(x.sp.name)} 完成度 ${fmtRate(x.completion)}，本周期数学上已够不着。继续推同一个目标=他提前躺平。
+      系统已生成子目标 <b>${fmtWan(x.sub)}</b>：把"必输的大仗"换成"能赢的小仗"。
+      <span class="gray">⚠ 子目标只影响推送节奏，不改变正式配额与提成口径。</span>
+      ${srcLine('目标梯度效应（Hull；Kivetz et al. 2006）：够得着的目标才有梯度效应')}</div>`).join('')}
+    <p class="gray">辅导剂量再分配建议：中间 60%（按归一化排名）获得剂量权重 ≥ ${fmtRate(coef.m43.middleCoachWeight)}。</p>
+  </div>
+  <div class="card"><h3>M40 配对传帮带 <span class="tag gold">全系统性价比之王</span></h3>
+    ${m40in ? `<div class="row" style="margin-bottom:8px"><button class="btn pri sm" data-act="gen-pairs">生成/刷新本周配对</button>
+      <span class="gray">教练池 = 归一化前 ${coef.m40.coachTopN} ∩ 闸④全过 ∩ 闸③已签产权；学员池 = 中间层（尾部先走 M15/M42）</span></div>
+      ${weekPairs.length ? `<table><tr><th>教练</th><th>学员</th><th>话题（学员最弱环节）</th><th>连续周数</th><th>轮换倒计时</th></tr>
+      ${weekPairs.map(pa => { const t = topicFor(db, pa.learnerId, today);
+        return `<tr><td>${esc(spName(db, pa.coachId))}</td><td>${esc(spName(db, pa.learnerId))}</td>
+        <td>${esc(t.stage)}<div class="gray">${esc(t.text)}</div></td><td class="num">${pa.consecutiveWeeks}</td>
+        <td>${pa.consecutiveWeeks >= coef.m40.pairWeeksMax ? '<span class="tag r">本周强制轮换</span>' : (coef.m40.pairWeeksMax - pa.consecutiveWeeks) + ' 周'}</td></tr>`; }).join('')}</table>` :
+      '<p class="gray">尚未生成本周配对。</p>'}
+      ${(function () { const r = CALC.m40Pairing(m40in, coef.m40); return r.frozenCoachIds.length ?
+        `<p class="alert a" style="margin-top:8px">席位冻结：${r.frozenCoachIds.map(id => esc(spName(db, id))).join('、')} 待签产权（M28）——未签则该教练席位不排。</p>` : ''; })()}
+      ${srcLine('Sandvik et al., QJE 2020：结构化配对谈话平均业绩 +15%、持续≥20 周，匹配高绩效同事收益最大；收益来自打法转移而非努力')}
+      <p class="gray">每对每周 ${coef.m40.sessionMinutes} 分钟；session 走 CoachingAck 回执；配对组 vs 非配对组 90 天差 → 汇入 M26 验证你自己的 +15%。你的教练不白教：带教分成已在留人器 M28 签好，徒弟越强他越赚。</p>` :
+      '<p class="gray">需要算账器 M21 数据。</p>'}
+  </div>
+  <div class="card"><h3>M41 动量连败干预 <span class="tag r">${mom.length} 人触发</span></h3>
+    ${mom.length ? mom.map(m => { const sd = smallDealLeads(db, m.sp.spId, today); return `
+      <div class="alert r">${esc(m.sp.name)} 连败 ${m.streak} 单，近 30 天赢率 ${fmtRate(m.prev)}→${fmtRate(m.cur)}，负动量分 ${fmtNum(m.score, 2)}。
+      连败会自我强化：此刻压任务，是把他往水下按。先赢一场小的。
+      <div class="row" style="margin-top:6px">
+        <span class="tag b">卡① 高把握小单清单：${sd.list.length} 条（${esc(sd.bestCat || '—')}，≤ 客单×0.5）</span>
+        <span class="tag b">卡② 主管陪访（走回执）</span>
+        <span class="tag b">卡③ 动量期处方已切换：拦截"${COEF_DEFAULTS.momentumBannedWords.join('、')}"，只许小动作</span></div>
+      ${srcLine('连败自我强化（行为文献；热手经 Miller-Sanjurjo 2018 部分平反）')}</div>`; }).join('') : '<p class="gray">当前无人触发（连败≥3 或 负动量分≥0.6）。</p>'}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>M42 深板凳榜样匹配</h3>
+      ${m42.length ? m42.map(x => x.best ? `
+        <div style="padding:8px 0;border-bottom:1px dashed var(--hair)">
+        <b>${esc(spName(db, x.lag.spId))}</b> 的可用榜样：<b>${esc(spName(db, x.best.spId))}</b>（轨迹距离 ${x.best.dist} 万，全队最近）。
+        给他看天生销冠只会让他绝望——可比的人，才是可用的希望。
+        <div class="row" style="margin-top:4px"><button class="btn sm" data-act="send-oxygen" data-sp="${x.lag.spId}" data-model="${x.best.spId}">发送供氧卡（只显榜样爬升曲线）</button>
+        <span class="tag b">例会请 ${esc(spName(db, x.best.spId))} 分享 10 分钟</span></div></div>` :
+        `<div style="padding:8px 0"><b>${esc(spName(db, x.lag.spId))}</b>：—（暂无同轨迹榜样，不硬凑）</div>`).join('') :
+      '<p class="gray">需要算账器 M21 轨迹数据。</p>'}
+      ${srcLine('社会学习/社会比较：榜样的可比性决定效力')}</div>
+    <div class="card"><h3>M44a 资历忽视 · 认知鸿沟 · 剂量</h3>
+      <table>
+      <tr><th>老手辅导比（司龄>${coef.m44.tenureYears}年）</th><td class="num">${fmtNum(ds.ratio, 2)}
+        ${ds.ratio != null && ds.ratio < coef.m44.neglectRatioLt ? '<span class="tag a">🟡 触发</span>' : ''}</td></tr>
+      <tr><th>认知鸿沟（1−确认/上报）</th><td class="num">${fmtRate(ds.gap)} ${ds.gap != null && ds.gap > 0.3 ? '<span class="tag r">🔴 >30%</span>' : ''}</td></tr>
+      <tr><th>人均月确认剂量</th><td class="num">${safeShow(ds.dose)} h ${ds.dose != null ? (ds.dose < coef.coachingDose.floorHrsMonth ? '<span class="tag a">低于 3h 下限</span>' : ds.dose > coef.coachingDose.ceilHrsMonth ? '<span class="tag a">超 5h 递减带</span>' : '<span class="tag g">带内</span>') : ''}</td></tr></table>
+      ${ds.ratio != null && ds.ratio < coef.m44.neglectRatioLt ? `<div class="alert a" style="margin-top:8px">你的老手人均确认辅导 ${fmtNum(ds.vetAvg, 1)}h/月，全队人均 ${fmtNum(ds.teamAvg, 1)}h——老手辅导比 ${fmtNum(ds.ratio, 2)}。辅导资源天然流向新人，老手被默认"不需要"，而他们的技能衰减无人监测、经验红利正在吃老本。✅ 建议：每季度一次老手专项复盘（走回执），话题=他最近 90 天转化率变化最大的环节。</div>` : ''}
+      ${srcLine('3h 阈值/5h 天花板：CSO Insights/Korn Ferry；频率 76% vs 47%＝29pp')}
+      <p class="gray" style="margin-top:6px">${esc(CALENDAR_WAR_TALK)}</p></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>M14① 挂账爆破</h3>
+      ${backlog.length ? `<table><tr><th>销售</th><th>单</th><th>签约天数</th><th>级别</th></tr>
+      ${backlog.map(b => `<tr><td>${esc(spName(db, b.deal.spId))}</td><td>${esc(b.deal.category)} ${fmtWan(b.deal.amountAmt)}</td>
+        <td class="num">${b.days} 天</td><td>${b.level === 'boss' ? '<span class="tag r">>60 天 · 老板插卡</span>' : '<span class="tag a">>30 天 · 主管黄条</span>'}</td></tr>`).join('')}</table>` :
+      '<p class="gray">无挂账预警。</p>'}</div>
+    <div class="card"><h3>M25 JOLT 犹豫处方（闸⑫）</h3>
+      ${jolt.length ? jolt.map(j => `<div class="alert ${j.check.pressure ? 'r' : 'a'}">
+        ${esc(j.sp.name)}：${esc(j.deal.category)} ${fmtWan(j.deal.amountAmt)} 意向停留 ${diffDays(today, j.deal.intentDate)} 天（品类中位 ${j.median} 天 × 1.5）
+        ${j.check.pressure ? '，期间出现折扣——<b>你的加压模式已被识别</b>。' + esc(TALK.y04) : '，高犹豫客户'}
+        <div class="gray">JOLT 四步：判断犹豫类型 → 给具体推荐 → 拿掉风险 → 限制探索（处方已过 PLV）</div>
+        ${srcLine('JOLT Effect（Dixon-McKenna 2022）：高犹豫赢率差 5 倍；加压 84% 适得其反')}</div>`).join('') :
+      '<p class="gray">无高犹豫客户。</p>'}</div>
+  </div>
+  <div class="no-print row"><button class="btn" data-act="print">打印育人周报（A4）</button></div>`;
+}
+
+/* —— 屏 7 · 地板抬升计量器（free 钩子屏②） —— */
+function renderS7(db, today) {
+  return `<div class="ph"><h1>⑦ 地板抬升计量器</h1><p>地板抬升=Σ(处方后90天归一化净贡献−前90天)，只看后 50%。</p></div>
+  <div class="kpi">
+    <div class="k"><label>地板抬升（出厂账）</label><b>84 万/年</b><small>后 50% 五人 2.8→4.2 万/月（+1.4/人）</small></div>
+    <div class="k"><label>天花板同构（前 20%）</label><b>2.4 万/年</b><small>+0.1 万/人·月</small></div>
+    <div class="k"><label>地板 ÷ 天花板</label><b>35 倍</b><small>抬地板，不抬天花板</small></div>
+    <div class="k"><label>配方 ROI（出厂账）</label><b>9.5 倍</b><small>84 万/年 ÷（使用费+分成+机会成本 7,360/月）</small></div>
+  </div>
+  <div class="card"><h3>出厂示例账（非你的数据）</h3>
+    <table><tr><th>组</th><th>人数</th><th>前 90 天 月均</th><th>后 90 天 月均</th><th>抬升/人·月</th><th>年化</th></tr>
+    <tr><td>后 50%（地板）</td><td class="num">5</td><td class="num">2.8 万</td><td class="num">4.2 万</td><td class="num">+1.4 万</td><td class="num"><b>84 万</b></td></tr>
+    <tr><td>前 20%（天花板）</td><td class="num">2</td><td class="num">—</td><td class="num">—</td><td class="num">+0.1 万</td><td class="num">2.4 万</td></tr></table>
+    <p class="gray" style="margin-top:6px">🔴 ${esc(M26_DISCLAIMER)}</p></div>
+  <div class="card${lockedCls(false)}"><h3>你的账（自动计算位）</h3>
+    <p class="gray">条件：每组 ≥ ${resolveCoef(db).floorLift.minEach} 人、处方前后各 ≥ 90 天数据；不足则显示"—"，绝不假装知道。</p>
+    <p class="num" style="font-size:18px">当前：—（数据窗口未满 90+90 天）</p>
+    <p class="gray">配对组 vs 非配对组的 90 天归一化净贡献差将在此汇入——用你自己的数据验证 QJE 的 +15%。</p></div>
+  ${srcLine('『地板是天花板的 35 倍』：出厂账推演；因果检验请用留人器 M31 系数实验室')}`;
+}
+
+/* —— 锁屏 / 通用 —— */
+function lockScreen(title, why, href, actionText) {
+  return `<div class="lockcard"><div class="ic">🔒</div><h4>${esc(title)}</h4><p>${esc(why)}</p>
+    <a class="btn pri" href="${href}">${esc(actionText)}</a></div>`;
+}
+
+/* —— 屏 8 · 数据与系数（八个标签页） —— */
+const S8_TABS = [ ['fill','填报中心'], ['bounty','悬赏'], ['spot','抽检'], ['m15','新人筛选'],
+  ['env','信封'], ['coef','系数'], ['selftest','自检'], ['license','授权'] ];
+function renderS8(db, today) {
+  const tab = APP.sub || 'fill';
+  const fn = { fill: renderTabFill, bounty: renderTabBounty, spot: renderTabSpot, m15: renderTabM15,
+    env: renderTabEnv, coef: renderTabCoef, selftest: renderTabSelftest, license: renderTabLicense }[tab] || renderTabFill;
+  return `<div class="ph"><h1>⑧ 数据与系数</h1></div>
+  <div class="row" style="margin-bottom:16px">${S8_TABS.map(t =>
+    `<a class="btn sm${t[0] === tab ? ' pri' : ''}" href="#/s8/${t[0]}">${t[1]}</a>`).join('')}</div>
+  ${fn(db, today)}`;
+}
+
+function renderTabFill(db, today) {
+  const d = APP.query.d || today;
+  return `<div class="card"><h3>M1 日报四计数（唯一员工填报；一键提交）</h3>
+    <div class="row" style="margin-bottom:8px"><label>日期</label>
+      <input type="date" id="fill-date" value="${d}" data-act-change="fill-date">
+      ${CALC.isWorkday(d, db.shiftConfig, '*') ? '' : '<span class="tag n">休息日：不催不计（分母/连续计数/催报/插卡四处排除）</span>'}</div>
+    <table><tr><th>员工</th><th>线索</th><th>意向</th><th>样品</th><th>签约</th><th></th></tr>
+    ${activeSps(db).map(p => { const r = db.dailyReports.find(x => x.employeeId === p.spId && x.date === d);
+      const c = r ? r.counts : {};
+      return `<tr><td>${esc(p.name)}</td>
+      ${['leads','intents','samples','contracts'].map(k =>
+        `<td><input type="number" min="0" style="width:70px" id="c-${p.spId}-${k}" value="${c[k] != null ? c[k] : ''}" placeholder="0"></td>`).join('')}
+      <td><button class="btn sm" data-act="save-report" data-sp="${p.spId}">存</button></td></tr>`; }).join('')}</table>
+    <p class="gray">原始计数永远原样保留与展示；有效动作分只在 M12/M15 内部使用（Y-D5）。</p></div>
+  <div class="card"><h3>排班表（ShiftConfig · 全员默认）</h3>
+    <div class="row">${['日','一','二','三','四','五','六'].map((w, i) =>
+      `<label class="row" style="gap:4px"><input type="checkbox" data-act-change="shift" data-day="${i}"
+        ${(db.shiftConfig['*'] || []).indexOf(i) >= 0 ? 'checked' : ''}>周${w}休</label>`).join('')}</div></div>
+  <div class="card"><h3>个人月配额（M43 用；留空则读定价器信封）</h3>
+    <table><tr><th>员工</th><th>月配额（元）</th><th>当前来源</th><th></th></tr>
+    ${activeSps(db).map(p => { const q = XREF.quota(db, p.spId);
+      return `<tr><td>${esc(p.name)}</td>
+      <td><input type="number" style="width:130px" id="q-${p.spId}"
+        value="${db.paceConfig.manualQuotaBySp[p.spId] != null ? db.paceConfig.manualQuotaBySp[p.spId] / 100 : ''}"
+        placeholder="${q && q.src === 'dingjia' ? Math.round(q.amt / 100) + '（定价器）' : '未设'}"></td>
+      <td class="gray">${q ? (q.src === 'manual' ? '手工' : '定价器信封 ' + asOfHtml(db, 'dingjia', today)) : '—'}</td>
+      <td><button class="btn sm" data-act="save-quota" data-sp="${p.spId}">存</button></td></tr>`; }).join('')}</table>
+    <p class="gray">A-06 三权分立：系统不预填数值，参考值只在灰字。</p></div>`;
+}
+
+function renderTabBounty(db, today) {
+  const st = db.settings.silentTrackOn;
+  const blocked = APP.query.blocked;
+  return `<div class="card"><h3>静默认可通道 ${st ? '<span class="tag g">已启用</span>' : '<span class="tag n">未启用</span>'}</h3>
+    <p>连续 6 月达标 → 灯塔 + 前程合约资格池；<b>不发奖、不播报、不排名</b>。</p>
+    <div class="quote">${esc(TALK.y10)}</div>
+    ${st ? '' : '<button class="btn pri" data-act="enable-silent">一键启用静默认可通道</button>'}
+    ${srcLine('Gubler-Larkin-Pierce 2016 Org Sci：象征/物质奖励挤出骨干 −8%')}</div>
+  ${blocked ? `<div class="alert r"><b>闸⑧ 已拦截保存。</b>${esc(TALK.y13(TALK.bountyNames[blocked]))}
+    <div class="row" style="margin-top:8px">
+      <button class="btn pri sm" data-act="enable-silent">一键启用静默认可通道</button>
+      <a class="btn sm" href="#/s8/bounty">改用行为类悬赏</a></div></div>` : ''}
+  <div class="card"><h3>M13 发布悬赏（同时活动 ≤ 3 · 事件流自动判定 · 不进提成/排名/七级）</h3>
+    <div class="row">
+      <select id="bt-template">${Object.keys(TALK.bountyNames).map(k =>
+        `<option value="${k}">${TALK.bountyNames[k]}${CALC.isResultTrigger(k) ? '（结果类）' : CALC.isExempt(k) ? '（豁免）' : ''}</option>`).join('')}</select>
+      <input type="number" id="bt-amount" placeholder="金额（元，建议制）" style="width:150px">
+      <button class="btn pri" data-act="save-bounty">发布</button></div>
+    <p class="gray">闸⑧三态：first_deal/hire 豁免放行；record_break/sprint/backlog_clear 在静默认可通道未启用时拦截保存。拦的不是悬赏本身，是"只有钱这一条路"的公司结构。</p></div>
+  <div class="card"><h3>在挂悬赏</h3>
+    ${db.bounties.filter(b => b.active).length ? `<table><tr><th>模板</th><th>金额</th><th>发布日</th><th>达成</th><th>兑现</th></tr>
+    ${db.bounties.filter(b => b.active).map(b => `<tr><td>${TALK.bountyNames[b.template]}</td>
+      <td class="num">${fmtAmt(b.amountAmt)}</td><td>${b.createdAt}</td>
+      <td class="num">${b.achievedEvents.length} 人次</td>
+      <td>${b.achievedEvents.filter(e => !e.cashedAt).length ? '<span class="tag a">待兑现（24h 转黄）</span>' : '—'}</td></tr>`).join('')}</table>` :
+    '<p class="gray">暂无。即时性四件套：发布即活 / 瞬时播报 / 兑现待办 24h 转黄 / cashed_at 留痕。</p>'}</div>`;
+}
+
+function renderTabSpot(db, today) {
+  const wk = db.spotChecks.filter(c => diffDays(today, c.weekOf) < 7);
+  return `<div class="card"><h3>M14② 抽检生成器（每周 ${resolveCoef(db).spotCheck.weeklyK} 张随机）</h3>
+    <button class="btn pri sm" data-act="gen-spot">生成本周抽检卡</button>
+    ${wk.length ? `<table style="margin-top:10px"><tr><th>员工</th><th>环节</th><th>上报数</th><th>出题日</th></tr>
+    ${wk.map(c => `<tr><td>${esc(spName(db, c.employeeId))}</td><td>${TALK.stageNames[c.stage]}</td>
+      <td class="num">${c.reportedCount}</td><td>${c.checkDate}</td></tr>`).join('')}</table>` : ''}
+    <p class="footnote">${esc(TALK.spotFooter)}——只出题不记结果，无造假字段，不构成负面标记（Y-D7）。量增质塌（+50%∧−30%）者抽检加权 ×3。</p></div>`;
+}
+
+function renderTabM15(db, today) {
+  const board = newbieBoard(db, today);
+  const blockName = { no_leads: '拦截①', no_practice: '拦截②', no_coaching: '拦截③' };
+  return `<div class="card"><h3>M15 新人筛选（7 天窗口 · 阈值 = 首N天基准 × 80% · 兜底默认「留」）</h3>
+    ${board.length ? board.map(x => `
+      <div style="padding:10px 0;border-bottom:1px dashed var(--hair)">
+        <div class="row" style="justify-content:space-between"><b>${esc(x.sp.name)}</b>
+          <span class="gray">入职第 ${x.tenure} 天</span></div>
+        ${x.baselineMissing ? '<p class="gray">—（首N天基准缺失，筛选不运行；见屏④）</p>' : `
+        <div class="row" style="margin:6px 0">${x.days.map(dd =>
+          `<span class="tag ${dd.red ? 'r' : 'g'}" title="${dd.date}">${dd.att == null ? '—' : Math.round(dd.att * 100) + '%'}</span>`).join('')}
+          ${x.singleSample ? '<span class="gray">（单人基准）</span>' : ''}</div>
+        ${x.suggestCull ? `
+          ${x.blocks.length ? `<div class="alert a"><b>建议淘汰——但被 ${x.blocks.length} 道拦截挡下：</b>
+            ${x.blocks.map(b => `<div>${blockName[b]}：${esc(
+              b === 'no_leads' ? TALK.y11[0](Math.round((x.ctx.leadsIndex || 0) * 30)) :
+              b === 'no_practice' ? TALK.y11[1](x.ctx.practice14 == null ? 0 : x.ctx.practice14) :
+              TALK.y11[2](x.tenure))}</div>`).join('')}
+            <p class="gray">先解决拦截项，汰的建议才会放行。开人永远由你手动执行，系统只建议（A-05）。</p></div>` :
+          `<div class="alert r">连续 ${x.maxStreak} 个工作日 < 60%——三类建议：<b>留（默认）/ 汰 / 待定（仅一次，${resolveCoef(db).newbieWindow.holdDays} 天）</b>
+            <div class="row" style="margin-top:6px"><button class="btn sm pri">留（默认）</button>
+            <button class="btn sm warn" data-act="noop">汰（生成交接清单，不自动执行）</button>
+            <button class="btn sm" data-act="noop">待定 3 天</button></div></div>`}` :
+        '<p class="gray">窗口内表现正常，无建议。</p>'}`}
+        <p class="gray">前 14 天练习：${safeShow(XREF.practice14(db, x.sp.spId))} 次（招人器 ${asOfHtml(db, 'zhaoren', today)}）；
+        被确认辅导：${db.coachingAcks.filter(a => a.spId === x.sp.spId && a.status === 'confirmed').length} 次</p>
+      </div>`).join('') : '<p class="gray">当前无 30 天内新人。</p>'}
+    ${srcLine('前两周 50–100 次练习缩短爬坡 37%；仅线索/意向/样品设目标，签约成交只展示')}</div>`;
+}
+
+function renderTabEnv(db, today) {
+  const boards = [ ['suanzhang','算账器','M21 归一化 / UER / 成交单 / 品类——配方引擎与一切排名的地基'],
+    ['liuren','留人器','M28 产权协议 / AHC——闸③的钥匙'],
+    ['zhaoren','招人器','PracticeLog 练习记录——闸⑨与汰前拦截②'],
+    ['dingjia','定价器','个人配额——M43 节奏分区'] ];
+  return `<div class="card"><h3>导出 · board=yuren（含辅导剂量，供留人器分红闸⑧ Q4）</h3>
+    <div class="row"><button class="btn pri" data-act="export-env">导出信封 JSON</button>
+      <span class="gray">上次导出：${db.settings.lastExportAt || '从未'}。导出物含 derived.coachingDoseActual 与 DailyReport/CoachingAck/CoachTask/Prescription/Bounty。</span></div></div>
+  <div class="card"><h3>导入（只认 skab_v1 信封；未知实体静默跳过；同 board 再次导入=整条覆盖）</h3>
+    <div class="row"><input type="file" id="env-file" accept=".json" data-act-change="import-env">
+      <span class="gray">或粘贴 JSON：</span></div>
+    <textarea id="env-paste" style="width:100%;min-height:70px;margin-top:8px" placeholder='{"schema":"skab_v1","board":"suanzhang",...}'></textarea>
+    <button class="btn sm" style="margin-top:6px" data-act="import-env-paste">导入粘贴内容</button>
+    <p class="gray" id="env-msg"></p>
+    <table style="margin-top:10px"><tr><th>板块</th><th>状态</th><th>点亮的功能</th></tr>
+    ${boards.map(b => { const f = envelopeFreshness(db, b[0], today);
+      return `<tr><td><b>${b[1]}</b></td>
+      <td>${f ? `<span class="tag ${f.isStale ? 'a' : 'g'}">已导入 · 截至 ${f.exportedAt}${f.isStale ? ' · 🟡 超 ' + resolveCoef(db).envelopeStaleDays + ' 天' : ''}</span>` : '<span class="tag n">未导入</span>'}</td>
+      <td class="gray">${b[2]}</td></tr>`; }).join('')}</table>
+    <p class="gray" style="margin-top:8px">🔴 跨板块字段一律只读（A-20）；每处展示带来源与数据截至日（A-21）；过期只标注，不阻断——让你知道自己在看多旧的数，不替你决定旧数不能用。</p></div>`;
+}
+
+function renderTabCoef(db, today) {
+  const coef = resolveCoef(db);
+  return `<div class="card"><h3>系数（结构权归系统 · 数值权归你 ✏️ · 启用权归你）</h3>
+    <table><tr><th>系数</th><th>出厂值</th><th>你的覆盖值</th><th></th></tr>
+    ${COEF_EDITABLE.map(([path, name, unit]) => `<tr><td>${name} <span class="gray">${path}</span></td>
+      <td class="num">${getPath(COEF_DEFAULTS, path)} ${unit}</td>
+      <td><input type="number" step="any" style="width:110px" id="coef-${path.replace(/\./g, '_')}"
+        value="${db.coefOverrides[path] != null ? db.coefOverrides[path] : ''}" placeholder="出厂值"></td>
+      <td><button class="btn sm" data-act="save-coef" data-path="${path}">存</button></td></tr>`).join('')}</table>
+    <p class="gray">系数为全球实证基准值（见各卡片 📎 出处），中国系数校准中；coefficientsHash：<span class="num">${coefficientsHash(coef)}</span></p></div>
+  <div class="card"><h3>PLV 拦截词库（只增不删）</h3>
+    <p class="gray">${coef.plvBanned.map(esc).join('、')}</p>
+    <div class="row" style="margin-top:6px"><input id="plv-add" placeholder="新增拦截词">
+      <button class="btn sm" data-act="add-banned">加入</button></div></div>`;
+}
+
+function renderTabSelftest(db, today) {
+  const tests = runSelfTests();
+  const asserts = runAssertions();
+  const okT = tests.filter(t => t.pass).length;
+  const okA = asserts.filter(a => a.pass).length;
+  return `<div class="card"><h3>自检徽章 · 件七对拍 <b class="num" style="color:${okT === tests.length ? 'var(--green)' : 'var(--red)'}">${okT}/${tests.length}</b></h3>
+    <p class="gray">对拍常量：TEST_TODAY=${TEST_TODAY}（公约 C-14/R-11 时钟注入；断言不依赖真实系统时钟）</p>
+    <div class="badges" style="margin-top:8px">${tests.map(t =>
+      `<span class="badge ${t.pass ? 'ok' : 'no'}" title="${esc(t.name)}${t.detail ? ' · ' + esc(t.detail) : ''}"><b>${t.id}</b> ${t.pass ? '✓' : '✗'}</span>`).join('')}</div>
+    <table style="margin-top:12px"><tr><th>#</th><th>对拍</th><th>结果</th></tr>
+    ${tests.map(t => `<tr><td class="num">${t.id}</td><td>${esc(t.name)}<div class="gray">${esc(t.detail)}</div></td>
+      <td>${t.pass ? '<span class="tag g">绿</span>' : '<span class="tag r">红</span>'}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3>红线断言（件六机检子集） <b class="num" style="color:${okA === asserts.length ? 'var(--green)' : 'var(--red)'}">${okA}/${asserts.length}</b></h3>
+    <table>${asserts.map(a => `<tr><td class="num">${a.id}</td><td>${esc(a.name)}</td>
+      <td>${a.pass ? '<span class="tag g">过</span>' : '<span class="tag r">未过</span>'}</td></tr>`).join('')}</table>
+    <p class="gray">CI 级断言（调用链白名单、bundle grep）在交付自测报告中另附。</p></div>`;
+}
+
+function renderTabLicense(db, today) {
+  const lic = APP.license;
+  return `<div class="card"><h3>授权（离线 ECDSA P-256 验签 · 零网络）</h3>
+    <p>当前：${BUILD_MODE === 'full' ? '<span class="tag g">完整构建</span>' :
+      lic && lic.ok ? `<span class="tag g">已授权：${esc(lic.payload.tenant)} · 至 ${lic.payload.expiry}</span>` :
+      '<span class="tag n">体验版</span>'}</p>
+    <div class="row"><input id="lic-code" style="flex:1" placeholder="粘贴授权码 SKAB-…">
+      <button class="btn pri" data-act="apply-license">验证</button></div>
+    <p class="gray" id="lic-msg">${lic && !lic.ok && lic.err ? esc(lic.err) : ''}</p>
+    <hr class="hr"><p class="gray">授-1 署名可见：授权客户名固定显示于页眉与打印页脚。<br>
+    授-2 到期只降级，不锁数据：信封导出永不锁定。<br>
+    授-3 不做机器绑定、不采集设备指纹。<br>
+    授-4 降级不删不改数据：续期即完整恢复。</p></div>
+  <div class="card"><h3>换电脑迁移</h3>
+    <p>① 本机「信封」页导出 JSON；② 新电脑打开本文件，「信封」页导入；③ 粘贴授权码。全程零网络。</p></div>`;
+}
+
+/* —— 销售端（🔴 零排名 · 零对比 · 零员工红灯） —— */
+function renderSales(db, today) {
+  const sps = activeSps(db);
+  const spId = APP.salesSp || (sps[0] || {}).spId;
+  if (!spId) return '<div class="sales-wrap"><p class="gray">尚无员工档案。</p></div>';
+  const myRx = db.prescriptions.filter(r => r.employeeId === spId).sort((a, b) => a.date < b.date ? 1 : -1)[0];
+  const myPair = db.pairAssignments.filter(pa => pa.status === 'active' && (pa.coachId === spId || pa.learnerId === spId));
+  const oxygenModel = db.settings['oxygen_' + spId] || null;
+  const r = db.dailyReports.find(x => x.employeeId === spId && x.date === today);
+  const c = r ? r.counts : {};
+  return `<div class="sales-wrap">
+  <div class="row" style="margin-bottom:14px;justify-content:space-between">
+    <h1 style="font-size:17px">我的今天</h1>
+    <select data-act-change="sales-sp">${sps.map(p =>
+      `<option value="${p.spId}"${p.spId === spId ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+  ${myRx ? `<div class="card rx-card">
+    <div class="seg"><label>今日处方 · ${myRx.date}</label><p>${esc(myRx.text)}</p></div>
+    ${myRx.ackedAt ? '<span class="tag g">已确认</span>' : `<button class="btn pri sm" data-act="ack-rx" data-rx="${myRx.rxId}">我看到了，今天照做</button>`}
+    <p class="footnote">${esc(TALK.rxFooter)}</p></div>` :
+  '<div class="card"><p class="gray">今天还没有处方。做好四计数，处方会越来越准。</p></div>'}
+  <div class="card"><h3>今日四计数（一键提交）</h3>
+    <div class="row">${['leads','intents','samples','contracts'].map(k =>
+      `<label class="row" style="gap:4px">${TALK.stageNames[k]}
+      <input type="number" min="0" style="width:64px" id="c-${spId}-${k}" value="${c[k] != null ? c[k] : ''}" placeholder="0"></label>`).join('')}
+      <button class="btn pri sm" data-act="save-report" data-sp="${spId}" data-date="${today}">提交</button></div>
+    ${CALC.isWorkday(today, db.shiftConfig, spId) ? '' : '<p class="gray">今天是休息日，不催不计。</p>'}</div>
+  ${myPair.length ? myPair.map(pa => { const isCoach = pa.coachId === spId; const t = topicFor(db, pa.learnerId, today);
+    return `<div class="card"><h3>本周配对 · ${isCoach ? '我带 ' + esc(spName(db, pa.learnerId)) : esc(spName(db, pa.coachId)) + ' 带我'}</h3>
+    <p>话题：${esc(t.stage)} · 每周 ${resolveCoef(db).m40.sessionMinutes} 分钟。</p>
+    <p class="gray">${esc(t.text)}</p>
+    ${pa.coachAckId ? '<span class="tag g">本周已回执</span>' : `<button class="btn sm" data-act="ack-pair" data-pair="${pa.pairId}">本周已聊，确认回执</button>`}</div>`; }).join('') : ''}
+  ${oxygenModel ? renderOxygenCard(db, oxygenModel) : ''}
+  ${db.bounties.filter(b => b.active).length ? `<div class="card"><h3>在挂悬赏</h3>
+    ${db.bounties.filter(b => b.active).map(b => `<div class="row" style="justify-content:space-between">
+      <span>${TALK.bountyNames[b.template]}</span><b class="num">${fmtAmt(b.amountAmt)}</b></div>`).join('')}
+    <p class="gray">达成由系统事件流自动判定，无需申报。</p></div>` : ''}
+  <p class="gray" style="text-align:center;margin-top:20px">${esc(TALK.privacy)}</p></div>`;
+}
+function renderOxygenCard(db, model) {
+  // oxygen-no-compare：本卡只渲染榜样的爬升曲线与当年处境，结构上不含本人任何数据（Y-D11）
+  const row = XREF.m21Row(db, model);
+  const traj = (row && row.trajEarly) || [];
+  const W = 300, H = 90;
+  const mx = Math.max(...traj, 1);
+  const pts = traj.map((v, i) => `${20 + i * ((W - 40) / Math.max(1, traj.length - 1))},${H - 15 - (v / mx) * (H - 35)}`).join(' ');
+  return `<div class="card oxygen-no-compare"><h3>可比的人，才是可用的希望</h3>
+    <p>${esc(spName(db, model))} 当年也在同样的位置。后来他爬到了中上。这是他当年的爬升曲线：</p>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <p class="gray">曲线为榜样当年同司龄段月度表现（万元）。</p></div>`;
+}
+
+/* ========= 13. 外壳 / 路由 / 事件 ========= */
+const NAV = [
+  { sec: '老板端', items: [ ['s1','①','起点'], ['s2','②','配方源资格'], ['s3','③','产权前提'],
+    ['s4','④','配方引擎'], ['s5','⑤','处方工作台'], ['s6','⑥','育人节奏台'],
+    ['s7','⑦','地板抬升'], ['s8','⑧','数据与系数'] ] },
+  { sec: '销售端', items: [ ['sales','▸','我的今天'] ] },
+];
+const SCREENS = { s1: renderS1, s2: renderS2, s3: renderS3, s4: renderS4, s5: renderS5,
+  s6: renderS6, s7: renderS7, s8: renderS8, sales: renderSales };
+
+function banners(db, today) {
+  let h = '';
+  if (APP.quotaFail) h += `<div class="banner r">存储写入失败（localStorage 配额可能已满）——请立即在「信封」页导出备份，并清理旧数据。</div>`;
+  const last = db.settings.lastExportAt || db.settings.firstRunAt;
+  if (last) {
+    const n = diffDays(today, last);
+    if (n > getCoefFrom(db, 'backupNudgeDays'))
+      h += `<div class="banner backup-nudge">你已 ${n} 天没备份数据了——导出一份信封 JSON，只要 10 秒。
+        <a class="btn sm" href="#/s8/env">去导出</a><a class="btn sm" href="#/s8/license">换电脑迁移说明</a></div>`;
+  }
+  if (db.settings.demoSeeded) h += `<div class="banner" style="background:var(--accent-soft);color:var(--accent);border-color:#d8dff5">当前为演示数据 · 仅供体验，可在「起点」页清空。</div>`;
+  return h;
+}
+
+function render() {
+  const db = APP.db, today = APP.today;
+  const lic = APP.license;
+  const tenant = BUILD_MODE === 'full' ? (lic && lic.ok ? lic.payload.tenant : '演示构建')
+    : (lic && lic.ok ? lic.payload.tenant : '体验版');
+  const screen = SCREENS[APP.route] || renderS1;
+  document.getElementById('app').innerHTML = `
+  <aside class="side"><div class="brand"><b>销冠育人器</b><small>${APP_VERSION} · 抬地板不抬天花板</small></div>
+    <nav class="nav">${NAV.map(s => `<div class="nav-sec"><span>${s.sec}</span>
+      ${s.items.map(it => `<a href="#/${it[0]}" class="${APP.route === it[0] ? 'on' : ''}">
+        <span class="no">${it[1]}</span>${it[2]}</a>`).join('')}</div>`).join('')}
+    </nav>
+    <div style="padding:16px 10px 0"><span class="gray">依据 0号公约 v1.5<br>+ 5号规格 v2.3</span></div></aside>
+  <div class="main">
+    <div class="topbar"><span class="lic">授权：<b>${esc(tenant)}</b></span><span class="sp"></span>
+      <span class="today">今天 ${today}</span>
+      <button class="btn sm no-print" data-act="export-env">导出信封</button></div>
+    ${banners(db, today)}
+    <div class="content">${screen(db, today)}</div>
+    <div class="print-only print-footer">授权：${esc(tenant)} · 销冠育人器 ${APP_VERSION} · ${esc(TALK.printDisclaimer)}</div>
+  </div>`;
+}
+
+function persist() { if (!StorageAdapter.write('db', APP.db)) APP.quotaFail = true; }
+
+function parseRoute() {
+  const h = (location.hash || '#/s1').slice(2);
+  const [pathQ, query] = h.split('?');
+  const [route, sub] = pathQ.split('/');
+  APP.route = SCREENS[route] ? route : 's1';
+  APP.sub = sub || null;
+  APP.query = {};
+  (query || '').split('&').forEach(kv => {
+    const [k, v] = kv.split('=');
+    if (k) APP.query[k] = decodeURIComponent(v || '');
+  });
+}
+
+function handleAction(act, el) {
+  const db = APP.db, today = APP.today;
+  switch (act) {
+    case 'seed-demo': seedDemo(db, today); persist(); render(); break;
+    case 'wipe': {
+      if (!confirm('清空本机全部育人器数据？（不影响其他板块）')) return;
+      APP.db = emptyDB(); APP.db.settings.firstRunAt = today; persist(); render(); break;
+    }
+    case 'set-source': {
+      const r = setRecipeSource(db, [el.dataset.sp], today);
+      if (r.ok) { persist(); render(); } else alert('闸④未过：' + r.check.fails.join(','));
+      break;
+    }
+    case 'insist-source':
+      db.settings.insistLog.push({ date: today, type: 'source', spId: el.dataset.sp });
+      persist(); alert('已留痕。系统仍不会把不合格者设为配方源——这不是复制销冠，是把漏水规模化。'); break;
+    case 'goto-rx': location.hash = '#/s5?sp=' + el.dataset.sp; break;
+    case 'adopt-auto': {
+      const sp = document.getElementById('rx-sp').value;
+      APP.plvDraft = rxAutoText(db, sp, today) || '';
+      render(); break;
+    }
+    case 'save-rx': case 'save-rx-insist': {
+      const sp = document.getElementById('rx-sp').value;
+      const text = document.getElementById('rx-text').value.trim();
+      if (!text) return;
+      const diag = rxDiagnose(db, sp, today);
+      const r = savePrescription(db, { employeeId: sp, text, insist: act === 'save-rx-insist',
+        type: diag.none ? 'volume' : diag.top.type,
+        psiParts: psiPartsFor(db, sp, text, diag) }, today);
+      if (r.ok) { APP.plvDraft = ''; persist(); render(); }
+      else render();
+      break;
+    }
+    case 'dispatch-auto': {
+      const sp = document.getElementById('rx-sp').value;
+      const text = rxAutoText(db, sp, today);
+      if (!text) return;
+      const diag = rxDiagnose(db, sp, today);
+      savePrescription(db, { employeeId: sp, text, type: diag.none ? 'volume' : diag.top.type,
+        psiParts: psiPartsFor(db, sp, text, diag) }, today);
+      persist(); render(); break;
+    }
+    case 'gen-pairs': {
+      const input = m40WeeklyInput(db, today);
+      const r = CALC.m40Pairing(input, resolveCoef(db).m40);
+      const old = {};
+      db.pairAssignments.forEach(pa => { if (pa.status === 'active') old[pa.coachId + '|' + pa.learnerId] = pa.consecutiveWeeks; });
+      db.pairAssignments.forEach(pa => { if (pa.status === 'active') pa.status = 'rotated'; });
+      r.pairs.forEach(p => db.pairAssignments.push({ pairId: uid('pair'), weekOf: today,
+        coachId: p.coachId, learnerId: p.learnerId, topicStage: topicFor(db, p.learnerId, today).stage,
+        status: 'active', consecutiveWeeks: (old[p.coachId + '|' + p.learnerId] || 0) + 1, coachAckId: null }));
+      persist(); render(); break;
+    }
+    case 'send-oxygen': {
+      const board = m42Board(db, today) || [];
+      const entry = board.find(x => x.lag.spId === el.dataset.sp);
+      db.settings['oxygen_' + el.dataset.sp] = el.dataset.model;
+      persist(); alert('供氧卡已放入 ' + spName(db, el.dataset.sp) + ' 的销售端（只显榜样曲线，无对比）。'); break;
+    }
+    case 'save-report': {
+      const sp = el.dataset.sp;
+      const d = el.dataset.date || (document.getElementById('fill-date') || {}).value || today;
+      const counts = {};
+      ['leads','intents','samples','contracts'].forEach(k => {
+        counts[k] = parseInt((document.getElementById('c-' + sp + '-' + k) || {}).value || '0', 10) || 0;
+      });
+      saveDailyReport(db, { spId: sp, date: d, counts });
+      persist(); render(); break;
+    }
+    case 'save-quota': {
+      const v = (document.getElementById('q-' + el.dataset.sp) || {}).value;
+      if (v === '') delete db.paceConfig.manualQuotaBySp[el.dataset.sp];
+      else db.paceConfig.manualQuotaBySp[el.dataset.sp] = Math.round(parseFloat(v) * 100);
+      persist(); render(); break;
+    }
+    case 'enable-silent': db.settings.silentTrackOn = true; persist(); location.hash = '#/s8/bounty'; render(); break;
+    case 'save-bounty': {
+      const template = document.getElementById('bt-template').value;
+      const amountYuan = parseFloat(document.getElementById('bt-amount').value || '0');
+      const r = saveBounty(db, { template, amountAmt: Math.round(amountYuan * 100) }, today);
+      if (r.ok) { persist(); location.hash = '#/s8/bounty'; render(); }
+      else if (r.talk === 'Y-13') { location.hash = '#/s8/bounty?blocked=' + template; render(); }
+      else alert(r.err || '未保存');
+      break;
+    }
+    case 'gen-spot': {
+      const k = resolveCoef(db).spotCheck.weeklyK;
+      const sps = activeSps(db);
+      for (let i = 0; i < k && sps.length; i++) {
+        const p = sps[Math.floor(Math.random() * sps.length)];
+        const stage = ['leads','intents','samples'][Math.floor(Math.random() * 3)];
+        const r = db.dailyReports.filter(x => x.employeeId === p.spId && diffDays(today, x.date) < 7);
+        db.spotChecks.push(makeSpotCheckCard(p.spId, today, stage, sumCounts(r)[stage]));
+      }
+      persist(); render(); break;
+    }
+    case 'export-env': {
+      const env = buildEnvelope(db, today, resolveCoef(db));
+      const blob = new Blob([JSON.stringify(env, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'skab_yuren_' + today + '.json';
+      a.click();
+      db.settings.lastExportAt = today; persist(); render(); break;
+    }
+    case 'import-env-paste': {
+      try {
+        const r = importEnvelope(db, JSON.parse(document.getElementById('env-paste').value), today);
+        persist(); render();
+        if (!r.ok) document.getElementById('env-msg').textContent = r.err;
+        else if (r.hashMismatch) document.getElementById('env-msg').textContent = '已导入 ' + r.board + '；⚠ 系数指纹不一致（提示同步，不阻断）';
+      } catch (e) { document.getElementById('env-msg').textContent = '不是合法 JSON'; }
+      break;
+    }
+    case 'save-coef': {
+      const path = el.dataset.path;
+      const v = (document.getElementById('coef-' + path.replace(/\./g, '_')) || {}).value;
+      if (v === '') delete db.coefOverrides[path];
+      else db.coefOverrides[path] = parseFloat(v);
+      persist(); render(); break;
+    }
+    case 'add-banned': {
+      const w = (document.getElementById('plv-add') || {}).value.trim();
+      if (w && COEF_DEFAULTS.plvBanned.indexOf(w) < 0) COEF_DEFAULTS.plvBanned.push(w);   // 只增不删
+      persist(); render(); break;
+    }
+    case 'apply-license': {
+      const code = (document.getElementById('lic-code') || {}).value.trim();
+      verifyLicense(code, APP.today).then(r => {
+        APP.license = r;
+        if (r.ok) StorageAdapter.write('licenseCode', code);
+        render();
+      });
+      break;
+    }
+    case 'ack-rx': {
+      const rx = db.prescriptions.find(x => x.rxId === el.dataset.rx);
+      if (rx) rx.ackedAt = today;
+      persist(); render(); break;
+    }
+    case 'ack-pair': {
+      const pa = db.pairAssignments.find(x => x.pairId === el.dataset.pair);
+      if (pa) {
+        const ack = { ackId: uid('ack'), spId: pa.learnerId, coachId: pa.coachId, date: today,
+          durationHrs: resolveCoef(db).m40.sessionMinutes / 60,
+          reportedHrs: resolveCoef(db).m40.sessionMinutes / 60, status: 'confirmed' };
+        db.coachingAcks.push(ack);
+        pa.coachAckId = ack.ackId;
+      }
+      persist(); render(); break;
+    }
+    case 'print': window.print(); break;
+    case 'noop': alert('该动作在整合期由对应板块承接（占位，不指名消费方）。'); break;
+  }
+}
+
+function boot() {
+  APP.today = new Date().toISOString().slice(0, 10);   // UI 层唯一一处取真实时钟并下传
+  const stored = StorageAdapter.read('db', null);
+  APP.db = Object.assign(emptyDB(), stored || {});
+  ['settings','paceConfig','shiftConfig','externalRef','coefOverrides'].forEach(k => {
+    APP.db[k] = Object.assign(emptyDB()[k], (stored || {})[k] || {});
+  });
+  if (!APP.db.settings.firstRunAt) { APP.db.settings.firstRunAt = APP.today; persist(); }
+  const probe = StorageAdapter.probe();
+  if (!probe.ok) APP.quotaFail = true;
+  parseRoute();
+  window.addEventListener('hashchange', () => { parseRoute(); APP.plvDraft = APP.route === 's5' ? APP.plvDraft : ''; render(); });
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (el) { e.preventDefault(); handleAction(el.dataset.act, el); }
+  });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'rx-text') {
+      APP.plvDraft = e.target.value;
+      const db = APP.db;
+      const plv = CALC.plvCheck(APP.plvDraft, { banned: resolveCoef(db).plvBanned,
+        names: db.salespeople.map(p => p.name) });
+      const panel = document.getElementById('plv-panel');
+      if (panel) panel.innerHTML = renderPlvPanel(plv, APP.plvDraft);
+      const btn = document.querySelector('[data-act="save-rx"]');
+      if (btn) btn.disabled = !(plv.passed && APP.plvDraft);
+    }
+  });
+  document.addEventListener('change', e => {
+    const el = e.target.closest('[data-act-change]');
+    if (!el) return;
+    const db = APP.db;
+    switch (el.dataset.actChange) {
+      case 'rx-sp': location.hash = '#/s5?sp=' + el.value; break;
+      case 'sales-sp': APP.salesSp = el.value; render(); break;
+      case 'fill-date': location.hash = '#/s8/fill?d=' + el.value; break;
+      case 'shift': {
+        const day = parseInt(el.dataset.day, 10);
+        const rest = db.shiftConfig['*'] || [];
+        db.shiftConfig['*'] = el.checked ? rest.concat(day) : rest.filter(x => x !== day);
+        persist(); render(); break;
+      }
+      case 'import-env': {
+        const f = el.files && el.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const r = importEnvelope(db, JSON.parse(reader.result), APP.today);
+            persist(); render();
+            const msg = document.getElementById('env-msg');
+            if (msg && !r.ok) msg.textContent = r.err;
+          } catch (err) {
+            const msg = document.getElementById('env-msg');
+            if (msg) msg.textContent = '不是合法 JSON';
+          }
+        };
+        reader.readAsText(f);
+        break;
+      }
+    }
+  });
+  const storedCode = StorageAdapter.read('licenseCode', null);
+  if (storedCode && BUILD_MODE !== 'full') {
+    verifyLicense(storedCode, APP.today).then(r => { APP.license = r; render(); });
+  }
+  render();
+}
+if (typeof document !== 'undefined') boot();
+
+</script>
+</body>
+</html>

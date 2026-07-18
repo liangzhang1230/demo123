@@ -1,0 +1,15 @@
+{
+  "pub": {
+    "kty": "EC",
+    "x": "8FG4KihCQkZrG64-Z8wH8Z8QkYOfY7bnkuf0z17lQ18",
+    "y": "H5IagwmMbjMtdeqgsQKgguObP1mcsdkYaPWtj_oJ11w",
+    "crv": "P-256"
+  },
+  "priv": {
+    "kty": "EC",
+    "x": "8FG4KihCQkZrG64-Z8wH8Z8QkYOfY7bnkuf0z17lQ18",
+    "y": "H5IagwmMbjMtdeqgsQKgguObP1mcsdkYaPWtj_oJ11w",
+    "crv": "P-256",
+    "d": "vliTWiCP-9ACPDjwkyzOcLyaftDPjo_T18dJ41pF5yQ"
+  }
+}
