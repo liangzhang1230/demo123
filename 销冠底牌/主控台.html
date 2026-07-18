@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂</text></svg>">
+<title>销冠底牌 · 主控台</title>
+<style>
+/* ————— 视觉：销售天天看的表单（台账/化验单家族），不做课程页 ————— */
+:root{
+  --paper:#f4f2ec; --card:#fffdf8; --line:#d8d3c6; --line2:#e8e4da;
+  --ink:#26241f; --ink2:#6b665a; --ink3:#98917f;
+  --red:#c1272d; --red-bg:#faf0ef; --green:#2e6e4e; --green-bg:#eef4ef;
+  --amber:#8a6d1a; --amber-bg:#f7f2e2; --blue:#2f5b6e; --blue-bg:#e9f0f2;
+  --mono:"SF Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+  --song:"Songti SC","STSong","SimSun",serif;
+  --hei:-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--hei);font-size:15px;line-height:1.65;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(0,0,0,.018) 28px)}
+h1,h2,h3{font-family:var(--song);font-weight:700;letter-spacing:.02em}
+.num,td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font-family:inherit;font-size:inherit;cursor:pointer;background:none;border:none;color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:2px}
+@media (prefers-reduced-motion:no-preference){
+  .view{animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
+/* 头部 */
+header.mast{border-bottom:3px double var(--line);background:var(--card);padding:14px 16px 10px}
+.mast-in{max-width:1060px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.mast h1{font-size:21px}
+.mast .sub{color:var(--ink2);font-size:12.5px}
+.stamp{margin-left:auto;font-family:var(--song);font-size:12px;color:var(--red);border:1.5px solid var(--red);
+  border-radius:4px;padding:1px 8px;transform:rotate(-2deg);opacity:.85;user-select:none;white-space:nowrap}
+/* 导航 */
+nav.tabs{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+  overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+nav.tabs::-webkit-scrollbar{display:none}
+.tabs-in{max-width:1060px;margin:0 auto;display:flex;gap:2px;padding:0 8px}
+.tab{padding:10px 13px;white-space:nowrap;color:var(--ink2);border-bottom:2.5px solid transparent;font-size:14.5px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red);font-weight:600}
+.tab .k{font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-right:4px;border:1px solid var(--line);
+  border-radius:3px;padding:0 3.5px;vertical-align:1px}
+@media (max-width:640px){.tab .k{display:none}}
+/* 布局 */
+main{max-width:1060px;margin:0 auto;padding:18px 14px 90px}
+.view{display:none}.view.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.card h2{font-size:16.5px;padding-bottom:8px;border-bottom:1px solid var(--line2);margin-bottom:12px;display:flex;align-items:baseline;gap:8px}
+.card h2 .tag{font-size:11.5px;color:var(--ink3);font-family:var(--hei);font-weight:400;margin-left:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.muted{color:var(--ink2)}.small{font-size:12.5px}.tiny{font-size:11.5px;color:var(--ink3)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:600;text-align:left;color:var(--ink2);font-size:12px;border-bottom:1.5px solid var(--line);padding:5px 8px}
+td{border-bottom:1px solid var(--line2);padding:6.5px 8px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.tbl-wrap{overflow-x:auto}
+/* 徽章 */
+.b{display:inline-block;font-size:11px;line-height:1;border-radius:3px;padding:3.5px 6px;white-space:nowrap;font-weight:500}
+.b-red{color:var(--red);background:var(--red-bg);border:1px solid #e5c8c6}
+.b-green{color:var(--green);background:var(--green-bg);border:1px solid #c6d8cb}
+.b-amber{color:var(--amber);background:var(--amber-bg);border:1px solid #e2d5a8}
+.b-blue{color:var(--blue);background:var(--blue-bg);border:1px solid #c3d4da}
+.b-gray{color:var(--ink2);background:#f1efe8;border:1px solid var(--line2)}
+/* 总览 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.stat .v{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.2}
+.stat .l{font-size:12px;color:var(--ink2);margin-top:2px}
+.bar{height:8px;background:#ece9e0;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--red);border-radius:4px}
+.pill-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line2)}
+.pill-row:last-child{border-bottom:none}
+.pill-row .pn{width:11.5em;flex:none;font-size:13px}
+.pill-row .bar{flex:1;margin-top:0}
+.pill-row .pv{width:5.5em;flex:none;text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+@media (max-width:560px){.pill-row .pn{width:7.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+/* 台账 */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.search{flex:1;min-width:190px;display:flex;align-items:center;gap:6px;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+.search input{border:none;background:none;flex:1;font-size:14.5px;color:var(--ink);outline:none;min-width:0}
+.search .k{font-family:var(--mono);font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:3px;padding:0 5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:4px 11px;font-size:12.5px;color:var(--ink2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ammo{background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.a-row{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid var(--line2);width:100%;text-align:left}
+.a-row:last-child{border-bottom:none}
+.a-row:hover{background:#faf8f1}
+.a-row .id{font-family:var(--mono);font-size:12.5px;color:var(--ink2);flex:none;padding-top:2px}
+.a-row .tx{flex:1;font-size:14px;min-width:0}
+.a-row .tx .missing{color:var(--ink3);font-style:italic}
+.a-row .use{flex:none;display:flex;gap:4px;flex-direction:column;align-items:flex-end}
+.a-row .ck{flex:none;width:17px;height:17px;border:1.5px solid var(--line);border-radius:3px;margin-top:3px;
+  display:grid;place-items:center;font-size:11px;color:#fff}
+.a-row.sel{background:var(--red-bg)}
+.a-row.sel .ck{background:var(--red);border-color:var(--red)}
+.a-empty{padding:26px;text-align:center;color:var(--ink3)}
+.cartbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--ink);color:#f3f1ea;display:none}
+.cartbar.on{display:block}
+.cartbar-in{max-width:1060px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:11px 16px}
+.cartbar .n{font-family:var(--mono);font-weight:600}
+.cartbar button{border:1px solid #6a6558;border-radius:5px;padding:6px 13px;color:#f3f1ea;font-size:13.5px}
+.cartbar button.go{background:var(--red);border-color:var(--red);font-weight:600}
+/* 产品线 */
+.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:10px}
+.pack{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--card)}
+.pack .nm{font-family:var(--song);font-weight:700;font-size:15px;margin-bottom:2px}
+.pack .gate{font-size:12.5px;color:var(--ink2);min-height:2.6em}
+.pack .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.stars{color:var(--red);font-size:11px;letter-spacing:1px}
+.callout{border-left:3px solid var(--red);background:var(--red-bg);border-radius:0 6px 6px 0;padding:10px 13px;margin:12px 0;font-size:13.5px}
+.callout.blue{border-left-color:var(--blue);background:var(--blue-bg)}
+.callout.amber{border-left-color:var(--amber);background:var(--amber-bg)}
+/* 验收台 */
+textarea.scan{width:100%;min-height:170px;border:1px solid var(--line);border-radius:6px;background:var(--card);
+  padding:11px;font-size:13.5px;font-family:var(--hei);color:var(--ink);resize:vertical}
+.btn{display:inline-block;border:1px solid var(--line);border-radius:6px;background:var(--card);padding:7px 15px;font-size:13.5px;font-weight:500}
+.btn:hover{background:#f6f4ed}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:#a92026}
+.scan-out{margin-top:12px}
+.rule{border:1px solid var(--line2);border-radius:6px;padding:9px 12px;margin-bottom:8px;font-size:13.5px}
+.rule .h{display:flex;gap:8px;align-items:baseline}
+.rule .h .st{font-weight:700;flex:none}
+.rule.ok .st{color:var(--green)} .rule.bad{border-color:#e0b7b5;background:var(--red-bg)} .rule.bad .st{color:var(--red)}
+.rule.warn{border-color:#ddcea0;background:var(--amber-bg)} .rule.warn .st{color:var(--amber)}
+.rule .hits{margin-top:5px;font-size:12.5px;color:var(--ink2)}
+.rule .hits code{font-family:var(--mono);background:#fff;border:1px solid var(--line2);border-radius:3px;padding:0 4px;font-size:11.5px}
+.ck-group{margin-bottom:14px}
+.ck-group>.g{font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.ck-item{display:flex;gap:10px;align-items:flex-start;padding:7px 4px;border-bottom:1px dashed var(--line2);cursor:pointer}
+.ck-item input{margin-top:4px;accent-color:var(--red);width:15px;height:15px;flex:none;cursor:pointer}
+.ck-item span{font-size:13.5px}
+.ck-item.done span{color:var(--ink3);text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}
+.verdict{margin-top:12px;padding:11px 13px;border-radius:6px;font-family:var(--song);font-weight:700;font-size:15px;display:flex;align-items:center;gap:10px}
+.verdict.pass{background:var(--green-bg);color:var(--green);border:1px solid #c6d8cb}
+.verdict.fail{background:var(--red-bg);color:var(--red);border:1px solid #e5c8c6}
+input.name-in{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:7px 10px;font-size:14px;color:var(--ink);min-width:0}
+/* 规范速查 */
+details.spec{border:1px solid var(--line);border-radius:6px;background:var(--card);margin-bottom:9px;overflow:hidden}
+details.spec summary{cursor:pointer;padding:11px 14px;font-family:var(--song);font-weight:700;font-size:15px;list-style:none;display:flex;gap:8px;align-items:baseline}
+details.spec summary::-webkit-details-marker{display:none}
+details.spec summary::before{content:"＋";color:var(--ink3);font-family:var(--mono)}
+details.spec[open] summary::before{content:"－"}
+details.spec .bd{padding:2px 14px 13px;border-top:1px solid var(--line2);font-size:13.5px}
+.bd p{margin:8px 0}
+.bd ol,.bd ul{margin:6px 0 6px 1.4em}
+.bd li{margin:4px 0}
+blockquote.law{border-left:3px solid var(--amber);background:var(--amber-bg);padding:9px 12px;border-radius:0 6px 6px 0;font-size:13px;margin:8px 0}
+.chipset{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+.chipset .w{font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid #e5c8c6;border-radius:3px;padding:2px 7px}
+/* 弹窗 */
+dialog{border:none;border-radius:8px;padding:0;max-width:640px;width:calc(100vw - 28px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(30,28,22,.45)}
+.dlg-h{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line2)}
+.dlg-h h3{font-size:16px}
+.dlg-h button{margin-left:auto;font-size:19px;color:var(--ink3);line-height:1;padding:2px 6px}
+.dlg-b{padding:14px 16px;max-height:60vh;overflow:auto}
+.dlg-b pre{font-family:var(--mono);font-size:12px;white-space:pre-wrap;word-break:break-all;background:#f6f4ed;
+  border:1px solid var(--line2);border-radius:6px;padding:11px;line-height:1.55}
+.dlg-f{padding:12px 16px;border-top:1px solid var(--line2);display:flex;gap:8px;justify-content:flex-end}
+/* 其他 */
+footer.foot{border-top:1px solid var(--line);color:var(--ink3);font-size:12px;text-align:center;padding:18px 14px 24px}
+.selfcheck{display:none;background:var(--red);color:#fff;padding:9px 16px;font-size:13px;text-align:center}
+.selfcheck.on{display:block}
+.toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+  border-radius:6px;padding:8px 16px;font-size:13px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.quote{font-family:var(--song);font-size:15px;border-left:3px solid var(--ink);padding:8px 14px;background:#f6f4ed;border-radius:0 6px 6px 0;margin:10px 0}
+</style>
+</head>
+<body>
+<div class="selfcheck" id="selfcheck" role="alert"></div>
+
+<header class="mast">
+  <div class="mast-in">
+    <h1>《销冠底牌》主控台</h1>
+    <span class="sub">三层体系 · 唯一事实源：<span class="num">00_主控文档 v1.1（2026-07-18）</span></span>
+    <span class="stamp">弹药只能抄 · 不能补</span>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="主导航"><div class="tabs-in" role="tablist" id="tabbar"></div></nav>
+
+<main id="main"></main>
+
+<div class="cartbar" id="cartbar">
+  <div class="cartbar-in">
+    <span>已选弹药 <span class="n" id="cartN">0</span> 条</span>
+    <button type="button" id="cartClear">清空</button>
+    <button type="button" class="go" id="cartGo">生成选弹工单</button>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg-h"><h3 id="dlgTitle"></h3><button type="button" id="dlgX" aria-label="关闭">×</button></div>
+  <div class="dlg-b"><pre id="dlgPre"></pre></div>
+  <div class="dlg-f"><button type="button" class="btn" id="dlgClose">关闭</button><button type="button" class="btn primary" id="dlgCopy">复制到剪贴板</button></div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<footer class="foot">销冠底牌 · 主控台 v1.0 ｜ 单文件 · 零依赖 · 移动优先 ｜ 本页所有条目一句话与状态逐字取自主控文档 v1.1，完整数字与出处以《实证库_纯净版_v2.0》母本为准</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   数据层 —— 全部逐字抄自《00_主控文档 v1.1》。
+   铁律：这里只允许"抄"，不允许"补"。母本没写的就是没有。
+   u: 0=未动用 1=谈判包 2=体检包 3=谈判包＋体检包
+   ============================================================ */
+const USE_LABEL = {1:"谈判包",2:"体检包",3:"谈判包＋体检包"};
+const PILLARS = [
+{k:"柱一",name:"我到底能不能干销售",items:[
+["底001","智商高、学历好就能做好销售？数据：几乎没用",0],
+["底002","性格内向做不了销售？最会卖的恰恰不是最外向的",0],
+["底003","开局最炸的那个新人，常在第12个月崩给你看",0],
+["底009","考试没过、但乐观的人，反而卖得最好",0],
+["底010","决定你能不能干成销售的性格，不是能说会道，是\"尽责\"",0],
+["底031","\"要有经验的\"——这是最贵、也最没用的一条招人直觉",0],
+["底042","决定你能不能卖的，天赋排倒数——技能和动机才是大头",0],
+["底080","能不能卖好，实测就看这5样——智商只排中游",3],
+["底100","光聪明不够——挣钱的是\"靠谱、坚持、自律\"这些能练的本事",0],
+["底043","公司拼命用钱激励销售，可\"钱\"并不是最能预测业绩的那个",2]
+]},
+{k:"柱二",name:"你的工资由什么决定",items:[
+["底040","销售更赚钱不是运气，是经济学定律：干的人少，市场就得多付钱",0],
+["底118","\"排班随老板心情\"这条，值你20%的工资",2],
+["底066","同样的你，换个行业，收入天差地别",2],
+["底101","不是你不够拼，是平台在给你的经验\"贴息\"",2],
+["底116","你不肯挪窝，代价比你算的大得多",0],
+["底102","你前几年工资卡住，可能真不是你的错",2],
+["底107","同一个你，换家公司工资就不同——不是你不行，是平台底价不同",2],
+["底119","决定你新工资的，是你要去哪，不是你从哪来",0],
+["底117","你的经验带不带得走，看\"任务\"，不看\"行业\"",0],
+["底061","你的业绩，有一部分根本带不走",2],
+["底054","你早期涨薪的三分之一，不是靠忠诚，是靠跳槽",0],
+["底106","你的部分工资是\"金手铐\"，一辞职就归零——但没你以为的那么沉",2],
+["底125","\"年薪75万就封顶了\"——这句被传烂的话，被原作者本人推翻了",0],
+["底126","非要挑\"最好\"那份工作的人，工资高了20%，人却更难受",3],
+["底079","AI时代，你押注\"会跟人打交道\"，就是押注在涨的那一边",0],
+["底115","值钱的不是你懂多少，是你连着哪两拨互不来往的人",0]
+]},
+{k:"柱三",name:"选公司 · 面试 · 求职 · 去留",items:[
+["底053","为什么招聘广告写得越好，越可能是坑",3],
+["底060","给你真底薪的公司，才是在为你担风险",2],
+["底062","\"这是我们的薪资带，没法给你破例\"——这句话背后有本账",1],
+["底063","面试你的方式，暴露了这家公司的水平",2],
+["底005","面试你的公司多半在凭眼缘——而\"凭眼缘\"这套，2022年被重新算过…",0],
+["底121","不写\"可谈\"的岗位，最会吃掉你的钱",3],
+["底122","约束你的那张纸，往往是你答应之后才拿出来的",3],
+["底064","你下一份工作，大概率不是熟人给的，是\"点头之交\"给的",0],
+["底065","内推的价值，不是\"更强\"，是\"留得久\"",0],
+["底067","找工作别拖：时钟前八个月走得最快",3],
+["底068","简历被刷，往往不是你的问题——那道关又吵又偏",0],
+["底124","找不到工作，有时不是你不行，是你只在一条窄缝里找",0],
+["底072","你找工作、练成销售、冲到业绩，都比你以为的久",2],
+["底073","找到工作靠的是\"动作量\"，不是\"心态好\"",0],
+["底055","拴住你的从来不是\"满意\"，是这三样东西",0],
+["底056","为什么\"是你自己选的\"，反而让你更走不了",0],
+["底057","\"我都干三年了，舍不得走\"——这句话正在偷走你下一个三年",0],
+["底058","不是这份工作有多好，是\"不动\"最省力",0],
+["底123","被裁掉的代价，比\"空窗几个月\"长得多",0],
+["底004","你越拼，明年目标越高越难受？这有论文，不怪你",3],
+["底128","纯提成制不是在奖励你，是在通知你\"其余的事都别干\"",3],
+["底078","你的销售主管为什么这么不会带人？因为他是\"最会卖的\"，不是\"最会带…",2],
+["底127","\"48小时内答复，过期作废\"——诺奖得主研究了一辈子的，就是这套",1]
+]},
+{k:"柱四",name:"谈判桌",items:[
+["底008","别等客户先开价——先出价的人，最后拿得更多",1],
+["底129","你抢赢的那个单、那个offer，很可能正是别人算完不要的",1],
+["底070","你以为的\"合理薪水\"，可能被对方随口说的第一个数字锚住了",1],
+["底059","进公司那天不谈钱，你可能在给整个职业生涯定一个低价锚",0],
+["底069","你谈判的底气，不是嘴硬，是手里有没有\"另一个选择\"",1],
+["底071","",1],
+["底077","谈offer别只盯一个数字——你以为的\"零和\"，其实有好几个旋钮",1],
+["底021","报价别报整数：报¥4980，对方还的幅度反而更小",1],
+["底086","别给\"要么接受要么拉倒\"——给一组等值选项让对方挑",1],
+["底096","一个唬人的头衔，会让你不自觉地服从——包括在谈判桌上",0],
+["底099","",3]
+]},
+{k:"柱五",name:"说服客户",items:[
+["底007","对客户最好、最勤维护关系的销售，业绩恰恰垫底",0],
+["底032","把\"成交\"放第一的硬推型销售，业绩反而更差",0],
+["底033","越大的单，\"逼单话术\"越用越差",0],
+["底076","越懂产品的销售，越容易卖不动",0],
+["底034","谈成交靠\"钻进对方脑子\"，不是靠\"共情他\"",0],
+["底035","多问问题、尤其多追问，客户会更喜欢你——而你严重低估了这一点",0],
+["底114","你越会听，对方越松口",0],
+["底036","\"先给\"的销售，短期垫底、长期却爬到最顶",0],
+["底037","让自己亲眼看见\"帮到了谁\"，业绩会猛涨",0],
+["底038","一套话术打天下的销售，输给\"看人下菜\"的",0],
+["底081","客户不是被你说服的，是被你的故事\"带进去\"的",0],
+["底082","一个有名有姓的人，比一堆漂亮数据更能打动客户",0],
+["底084","客户信任你，赢的是下一单和关系——当下这单靠的是硬实力",0],
+["底085","你的情绪会传染给客户——见客户前，先管好自己的状态",0],
+["底097","客户先判断你\"热不热情\"，再判断你\"能不能干\"——顺序别搞反",0],
+["底098","哪怕一个微不足道的共同点，都能让人更愿意帮你、买你的账",0],
+["底103","一瓶饮料就能买动你——而且你根本不用喜欢对方",0],
+["底104","你以为人情早还清了，他却觉得你越来越欠",0],
+["底015","结账送颗糖，小费多两成——不是糖甜，是\"欠人情\"",0],
+["底016","同样的曲奇，罐里只剩2块的比装满10块的更好吃",0],
+["底017","先狮子大开口被拒，再提真实要求，答应率翻三倍",0],
+["底018","\"大多数人都这么选\"确实好使——但那个被引烂的爆点，没复现出来",0],
+["底019","让客户先\"拿在手里\"，他就更不舍得放手",0],
+["底020","同一件事，说\"会失去\"比说\"能得到\"，客户反应强一倍",0],
+["底093","说\"大家都拖延/很多人没做到\"，会让对方更不想做——社会证明分两种",0],
+["底105","\"点头答应\"和\"亲手写下\"，兑现率差一大截",1],
+["底109","一旦你\"当众说出口\"，就很难再改口",0],
+["底110","光是让你\"预测一下自己会不会做\"，你就更可能真去做",0],
+["底113","同一瓶啤酒，度假村买的你愿多掏钱",0],
+["底087","客户怎么记住这次成交，取决于\"最高峰\"和\"结尾\"，不是平均分",0],
+["底089","\"默认选项\"在悄悄替你做决定——公司比你更懂这一点",0]
+]},
+{k:"柱六",name:"行为落地",items:[
+["底006","你没成交，多半不是不够自律，是没写死\"何时·在哪·怎么做\"",0],
+["底013","\"我尽力多卖点\"——这是业绩最低的一种目标",0],
+["底011","你主管的辅导，超三分之一在把你越教越差",2],
+["底012","一次3小时大复盘，打不过每周半小时",2],
+["底014","给自己伪造一个\"已经开始\"的进度条，你会更难放弃",0],
+["底041","明知更赚还不敢干，不是你怂，是大脑天生\"重眼前苦、轻以后甜\"",1],
+["底088","养成一个习惯不是21天，是66天上下——而且漏一天不会毁掉它",0],
+["底090","知道自己会拖延？那就给自己上真金白银的截止日期",0],
+["底091","把\"讨厌但重要的事\"和\"你真心喜欢的事\"绑一起",0],
+["底092","别等\"哪天\"——把开始，锚定在一个\"新起点\"上",0],
+["底130","提成月月波动就是存不下钱——诺奖得主用一招把储蓄率从 3.5% 拉…",0]
+]},
+{k:"柱七",name:"学得快 · 练得对",items:[
+["底044","反复看资料没用，考自己才记得住——而重读的人还自我感觉更好",0],
+["底045","临时抱佛脚，第二天就忘光；同样时间拆开学，记一年",0],
+["底046","学生最爱用的三个学习法，恰恰是效果最差的",0],
+["底047","学得越\"顺畅轻松\"，记得往往越差",0],
+["底048","一类练熟再练下一类？打乱混着练，长期反而更强",0],
+["底049","\"我是视觉型/听觉型学习者\"——4000次引用的审查：这是神话",0],
+["底050","\"练够一万小时就能成\"——在你这行，练习量解释不到 1%",0],
+["底051","先自己猜答案（哪怕猜错），比直接看正确答案记得牢",0],
+["底052","想真正吃透一样东西，就假装你马上要去教别人",0]
+]},
+{k:"柱八",name:"心态韧性 · 干得住",items:[
+["底022","你觉得刚才聊砸了？对方其实比你以为的更喜欢你",0],
+["底023","你以为客户在盯着你的紧张和失误？其实他们根本没注意",0],
+["底024","\"习得性无助\"这名字起反了：无助是默认，被学会的是\"我能行\"",0],
+["底025","信心不是先有再成功，是先赢几次小的、再长出来的",0],
+["底026","被拒绝是真的\"疼\"——大脑用处理身体痛的同一片区处理它",0],
+["底027","\"看不到希望\"的科学解法：不是打鸡血，是多备几条路",0],
+["底028","同样被拒100次，有人放弃有人继续——差别在\"怎么解释这个拒绝\"",0],
+["底029","你不努力，多半不是懒，是这三个信念断了一环",0],
+["底030","撑着你熬过低谷的，不是大奖，是每天一个小进展",0],
+["底039","你把\"会被拒绝\"高估了整整一半",0],
+["底074","\"迟早被拆穿\"的感觉，越是能干的人越有",0],
+["底075","被拒绝的痛，比你预想的好得快",0],
+["底083","新手在难的事上，会系统性地觉得\"别人都比我强\"——这是偏差，不是事实",0],
+["底094","被打趴下后爬起来，是人的常态，不是稀有天赋",0],
+["底095","烧穿了不是你不行——先看这份工作的条件",2],
+["底120","\"装出来的笑\"正在吃掉你——真情实感的那种不会",2]
+]}
+];
+const STOPPED = ["底108","底111","底112"]; // 停用号：已合并（底111→006、底112→014、底108→018）
+
+const PACKS = [
+{n:1,name:"Offer 谈判包",gate:"拿到 offer，不知道怎么谈",st:"done",ver:"v1.0",ammo:"21 条",pri:0},
+{n:2,name:"选公司体检包",gate:"要不要去这家",st:"done",ver:"v1.0",ammo:"25 条",pri:0},
+{n:3,name:"出单包",gate:"客户就是不签",st:"todo",ammo:"柱五 30 条全新",pri:5},
+{n:4,name:"扛得住包",gate:"快撑不下去了",st:"todo",ammo:"柱八 14 条",pri:4},
+{n:5,name:"该走还是该留包",gate:"想辞职但不敢",st:"todo",ammo:"柱三剩 11 条",pri:3},
+{n:6,name:"练成包",gate:"学不会、练不对",st:"todo",ammo:"柱七 9 条",pri:2},
+{n:7,name:"拿提成包",gate:"知道该做但做不到",st:"todo",ammo:"柱六 8 条",pri:2},
+{n:8,name:"入行体检包",gate:"我到底适不适合干销售",st:"todo",ammo:"柱一 8 条",pri:1}
+];
+const PRICING = [
+["0","免费","\"这人靠不靠谱\"","收藏、转发、评论区较真"],
+["1","9.9–19.9","\"我愿不愿意为你掏一次钱\"","付款人数（不是利润）"],
+["2","99","\"我这个具体的坎，你能不能帮我迈过去\"","复购率"],
+["3","399","\"我要不要长期押注你\"","续费率"]
+];
+const OVERLAP = ["底004","底053","底067","底080","底099","底121","底122","底126","底128"];
+const TODOS = [
+["★★★★★","出单包 v1.0 —— 柱五 30 条全新弹药，顺序型结构（建议按客户旅程：破冰 → 问需求 → 报价 → 处理异议 → 逼单 → 跟进）"],
+["★★★★","9.9 引流层试水 —— 从体检包抽《面试反问 12 问》、从谈判包抽《起薪谈判一页纸》，各 1500 字以内"],
+["★★★★","《30 天造一个替代选项》—— 补谈判包最大的软肋"],
+["★★★","扛得住包 —— 柱八 14 条，诊断型"],
+["★★","双包合售页 —— 99 单包 / 168 双包"],
+["★","全库订阅层（399）—— 卖点是季度返修日志，不是打包折扣"]
+];
+const ISSUES = [
+["两包重叠 9 条","复购者可能觉得重复","做双包合售，把重叠变卖点"],
+["谈判包话术留了 ⟨尖括号⟩ 空位","买家要自己填战绩","刻意为之——编好的样例会变成所有人照念的东西。若要加强，做「战绩句式填空」附页，别直接给样例"],
+["母本仍有 3 个停用编号（底108/111/112）","下游引用需注意","已在母本前言给出重定向表，勿复用这三个号"],
+["底118 的 20%/8% 是疫情前美国数据","会被懂行的人当场反驳","已在两处标注\"疫情前口径\"，新包引用时必须同样标注"],
+["母本前六批（底001–底052）排雷密度低于后期批次","老条目质量不均","若要做 v3.0，优先返修这一段"],
+["转化率无任何真实数据","定价与预期全靠推断","先上 2 个 9.9 工具 + 1 个 99 包跑真实数据，不要凭行业均值决策"]
+];
+const CHECKLIST = [
+{g:"证据关（最重要，占一半权重）",items:[
+"每一条 ✅ 标记都能在母本里找到同编号的条目",
+"每一个数字（效应量、百分比、样本量）与母本逐字一致，没有四舍五入、没有\"约\"字加戏",
+"每一条出处都有卷(期):页或等价定位信息",
+"没有出现母本里不存在的编号（尤其注意：底108、底111、底112 是停用号）",
+"没有出现\"研究表明\"\"科学证明\"这类无主语的引用"]},
+{g:"标记关",items:[
+"每一条操作建议都带 ✅ / 🔧 / ⚠️ 之一，没有裸奔的建议",
+"抽查三条 ✅：它们真的是论文结论，不是从论文推出来的操作（是推论的必须改标 🔧）",
+"🟠 和 🅑 级别的条目没有被当头牌、没有被标成 🟢"]},
+{g:"结构关",items:[
+"有「这份东西算不出/帮不了的地方」一节",
+"收尾是\"松一口\"，不是\"再加把劲\"",
+"涉及合同/竞业/劳动关系处，逐字使用了 §5.7 的法律免责写法"]},
+{g:"文体关",items:[
+"全文搜索 §5.7 的禁用词，命中数为 0"]}
+];
+const BANNED = ["赋能","抓手","闭环","底层逻辑","方法论","心智","颗粒度","打法","组合拳"];
+const BANNED_TAO = ["三天开单","月入十万","销冠神话"];
+const LAW_TEXT = "⚠️ 中国的竞业限制有法定的经济补偿要求，与该研究的美国样本制度不同，不能照搬。具体条款请咨询执业律师——本包不提供法律意见。";
+const HISTORY = [
+["实证库 v1.0","—","分 17 批 + 专题批交付，名义 127 条"],
+["实证库 v2.0","2026-07-18","合并 3 组硬重复（底111→006、底112→014、底108→018）；更换 4 条被推翻的主证据（底005→Sackett 2022、底050→Macnamara 2014、底070→Tversky & Kahneman 1974、底040 补 Mas & Pallais 2017）；消解 3 处库内矛盾；降级 5 条、收紧 4 条口径；标注 8 个同源簇分工；新增 3 条诺奖级（底128 Holmström×Milgrom、底129 赢者诅咒、底130 Save More Tomorrow）；按八柱重排。结果：127 条独立理论，编号 底001–底130"],
+["谈判包 v1.0","2026-07-18","首个主题包，顺序型结构，确立三标记制度"],
+["体检包 v1.0","2026-07-18","首个诊断型主题包，确立评分卡 + 一票否决双轨判定"],
+["主控文档 v1.0","2026-07-18","唯一入口文件"],
+["主控文档 v1.1","2026-07-18","新增 §0 移交须知、§5.7 读者画像与文体规范、§5.8 标准交付物、§6.5 十二项验收清单；重写 §8 重启提示词"],
+["主控台 v1.0","2026-07-18","本系统：弹药台账检索 / 选弹工单 / 产品线路图 / 验收台（自动扫描 + 十二项清单）/ 规范速查。单文件零依赖"]
+];
+
+/* ============================================================
+   派生数据 + 启动自检（守恒断言：数据不对就当面报错，不许带病上岗）
+   ============================================================ */
+const ALL = PILLARS.flatMap(p => p.items.map(it => ({id:it[0], t:it[1], u:it[2], pk:p.k, pname:p.name})));
+const VALID_IDS = new Set(ALL.map(a => a.id));
+const USED_N = ALL.filter(a => a.u > 0).length;
+(function selfCheck(){
+  const errs = [];
+  if (ALL.length !== 127) errs.push("条目总数 " + ALL.length + " ≠ 127");
+  if (USED_N !== 37) errs.push("已动用数 " + USED_N + " ≠ 37");
+  if (VALID_IDS.size !== ALL.length) errs.push("存在重复编号");
+  STOPPED.forEach(s => { if (VALID_IDS.has(s)) errs.push("停用号 " + s + " 出现在台账中"); });
+  const expect = {"柱一":[10,8],"柱二":[16,8],"柱三":[23,11],"柱四":[11,2],"柱五":[31,30],"柱六":[11,8],"柱七":[9,9],"柱八":[16,14]};
+  PILLARS.forEach(p => {
+    const un = p.items.filter(it => it[2] === 0).length;
+    const [et, eu] = expect[p.k];
+    if (p.items.length !== et) errs.push(p.k + " 总数 " + p.items.length + " ≠ " + et);
+    if (un !== eu) errs.push(p.k + " 未动用 " + un + " ≠ " + eu);
+  });
+  OVERLAP.forEach(id => {
+    const e = ALL.find(a => a.id === id);
+    if (!e || e.u !== 3) errs.push("重叠条目 " + id + " 未标记为双包共用");
+  });
+  if (errs.length){
+    const el = document.getElementById("selfcheck");
+    el.textContent = "⚠️ 数据自检未通过（与主控文档 v1.1 不符，请勿使用）：" + errs.join("；");
+    el.classList.add("on");
+    console.error("selfCheck failed:", errs);
+  } else {
+    console.info("selfCheck OK: 127 条 · 已动用 37 · 未动用 90 · 八柱守恒");
+  }
+})();
+
+/* ============================================================
+   状态（localStorage 持久，损坏即重置）
+   ============================================================ */
+const store = {
+  get(k, fb){ try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? fb : v; } catch(e){ return fb; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+let cart = new Set(store.get("skdp.cart.v1", []).filter(id => VALID_IDS.has(id)));
+let checks = store.get("skdp.checks.v1", []);
+if (!Array.isArray(checks) || checks.length !== 12) checks = Array(12).fill(false);
+let deliverName = typeof store.get("skdp.deliver.v1","") === "string" ? store.get("skdp.deliver.v1","") : "";
+let filterPillar = "全部", filterUse = "全部", query = "";
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+const $ = sel => document.querySelector(sel);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+let toastTimer = null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 1800);
+}
+function copyText(text, doneMsg){
+  const done = () => toast(doneMsg || "已复制");
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); done(); } catch(e){ toast("复制失败，请手动选择文本"); }
+  document.body.removeChild(ta);
+}
+function openDlg(title, text){
+  $("#dlgTitle").textContent = title;
+  $("#dlgPre").textContent = text;
+  $("#dlg").showModal();
+}
+
+/* ============================================================
+   视图框架（Linear 式：键盘 1–6 切页，/ 聚焦搜索，Esc 归位）
+   ============================================================ */
+const TABS = [
+  {id:"overview", label:"总览"},
+  {id:"ammo", label:"弹药台账"},
+  {id:"products", label:"产品线"},
+  {id:"qa", label:"验收台"},
+  {id:"spec", label:"规范速查"},
+  {id:"history", label:"版本"}
+];
+let current = "overview";
+$("#tabbar").innerHTML = TABS.map((t,i) =>
+  `<button class="tab" role="tab" id="tab-${t.id}" aria-selected="${i===0}" aria-controls="view-${t.id}" data-v="${t.id}"><span class="k">${i+1}</span>${t.label}</button>`
+).join("");
+$("#main").innerHTML = TABS.map((t,i) =>
+  `<section class="view${i===0?" on":""}" id="view-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}"></section>`
+).join("");
+function switchTo(id){
+  current = id;
+  TABS.forEach(t => {
+    $("#tab-" + t.id).setAttribute("aria-selected", String(t.id === id));
+    $("#view-" + t.id).classList.toggle("on", t.id === id);
+  });
+  updateCartbar();
+  window.scrollTo({top:0});
+}
+$("#tabbar").addEventListener("click", e => {
+  const b = e.target.closest(".tab");
+  if (b) switchTo(b.dataset.v);
+});
+
+/* ============================================================
+   视图 1 · 总览
+   ============================================================ */
+function renderOverview(){
+  const doneP = PACKS.filter(p => p.st === "done").length;
+  const pillarRows = PILLARS.map(p => {
+    const used = p.items.filter(it => it[2] > 0).length;
+    const pct = Math.round(used / p.items.length * 100);
+    return `<div class="pill-row"><span class="pn">${p.k} · ${esc(p.name)}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="pv">${used} / ${p.items.length}</span></div>`;
+  }).join("");
+  $("#view-overview").innerHTML = `
+  <div class="stats">
+    <div class="stat"><div class="v">127</div><div class="l">实证库条目（底001–底130，3 号停用）</div></div>
+    <div class="stat"><div class="v">37</div><div class="l">已动用弹药</div><div class="bar"><i style="width:${Math.round(37/127*100)}%"></i></div></div>
+    <div class="stat"><div class="v">90</div><div class="l">未上场弹药</div></div>
+    <div class="stat"><div class="v">${doneP} <span class="muted" style="font-size:15px">/ 8</span></div><div class="l">主题包完成</div><div class="bar"><i style="width:${Math.round(doneP/8*100)}%"></i></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>八柱弹药消耗 <span class="tag">已用 / 总数</span></h2>
+      ${pillarRows}
+    </div>
+    <div>
+      <div class="card">
+        <h2>下一步 · 出单包 <span class="b b-red">★★★★★</span></h2>
+        <p class="small" style="margin-bottom:6px">主控文档 §3 给出的三个理由：</p>
+        <ol class="small" style="margin-left:1.4em">
+          <li>柱五 30 条<strong>一条都没用过</strong>，弹药最厚；</li>
+          <li>它是买家最高频、最痛的关口——\"客户不签\"是每天撞；</li>
+          <li>和已有两包<strong>零重叠</strong>，不会让复购的人看到重复内容。</li>
+        </ol>
+        <p style="margin-top:10px"><button class="btn primary" id="goPack3">去柱五选弹 →</button></p>
+      </div>
+      <div class="card">
+        <h2>体系一页图</h2>
+        <table><tbody>
+          <tr><td style="width:5.5em"><strong>第一层</strong></td><td>实证库 · 127 条经同行评审的研究结论<br><span class="tiny">弹药。永远免费，不单独售卖。</span></td></tr>
+          <tr><td><strong>第二层</strong></td><td>主题包 · 把弹药按\"人生关口\"重组成可执行的方法<br><span class="tiny">武器。这是主要收入来源。</span></td></tr>
+          <tr><td><strong>第三层</strong></td><td>交互工具 · 把判断结构化，让人当场算出结果<br><span class="tiny">战场。它让\"读过\"变成\"用过\"。</span></td></tr>
+        </tbody></table>
+        <div class="quote" style="margin-top:12px;font-size:13.5px">稀缺的不是\"127 条理论\"，是\"每个数字经得起较真、复现失败主动标出来、畅销书数据老实降级\"这个态度。</div>
+      </div>
+    </div>
+  </div>`;
+  $("#goPack3").addEventListener("click", () => {
+    filterPillar = "柱五"; filterUse = "未动用"; query = "";
+    renderAmmo(); switchTo("ammo");
+  });
+}
+
+/* ============================================================
+   视图 2 · 弹药台账（检索 + 选弹 + 工单）
+   ============================================================ */
+function ammoFiltered(){
+  return ALL.filter(a => {
+    if (filterPillar !== "全部" && a.pk !== filterPillar) return false;
+    if (filterUse === "未动用" && a.u !== 0) return false;
+    if (filterUse === "已动用" && a.u === 0) return false;
+    if (query){
+      const q = query.toLowerCase();
+      if (!(a.id.toLowerCase().includes(q) || a.t.toLowerCase().includes(q) || (USE_LABEL[a.u]||"").includes(q))) return false;
+    }
+    return true;
+  });
+}
+function renderAmmo(){
+  const v = $("#view-ammo");
+  const pillarChips = ["全部", ...PILLARS.map(p => p.k)].map(k =>
+    `<button class="chip" data-p="${k}" aria-pressed="${k===filterPillar}">${k}</button>`).join("");
+  const useChips = ["全部","未动用","已动用"].map(k =>
+    `<button class="chip" data-u="${k}" aria-pressed="${k===filterUse}">${k}</button>`).join("");
+  v.innerHTML = `
+  <div class="toolbar">
+    <div class="search"><span aria-hidden="true">🔍</span>
+      <input id="q" type="search" placeholder="搜编号 / 一句话，如：底126 或 拒绝" value="${esc(query)}" aria-label="搜索弹药">
+      <span class="k">/</span>
+    </div>
+  </div>
+  <div class="toolbar"><div class="chips" id="chipsP">${pillarChips}</div></div>
+  <div class="toolbar" style="justify-content:space-between">
+    <div class="chips" id="chipsU">${useChips}</div>
+    <span class="tiny" id="ammoCount"></span>
+  </div>
+  <div class="ammo" id="ammoList"></div>
+  <p class="tiny" style="margin-top:10px">⚠️ 台账只含\"编号 + 一句话\"索引。效应量、出处、排雷在《实证库_纯净版_v2.0》母本——写包时必须回母本逐字复制，不许凭此页补写。停用号：底108 / 底111 / 底112。</p>`;
+  const input = $("#q");
+  input.addEventListener("input", () => { query = input.value.trim(); paintAmmoList(); });
+  $("#chipsP").addEventListener("click", e => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    filterPillar = c.dataset.p;
+    [...$("#chipsP").children].forEach(x => x.setAttribute("aria-pressed", String(x === c)));
+    paintAmmoList();
+  });
+  $("#chipsU").addEventListener("click", e => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    filterUse = c.dataset.u;
+    [...$("#chipsU").children].forEach(x => x.setAttribute("aria-pressed", String(x === c)));
+    paintAmmoList();
+  });
+  $("#ammoList").addEventListener("click", e => {
+    const r = e.target.closest(".a-row"); if (!r) return;
+    const id = r.dataset.id;
+    if (cart.has(id)) cart.delete(id); else cart.add(id);
+    store.set("skdp.cart.v1", [...cart]);
+    r.classList.toggle("sel", cart.has(id));
+    r.setAttribute("aria-pressed", String(cart.has(id)));
+    updateCartbar();
+  });
+  paintAmmoList();
+}
+function paintAmmoList(){
+  const list = ammoFiltered();
+  $("#ammoCount").textContent = "共 " + list.length + " 条 · 其中未动用 " + list.filter(a => a.u===0).length + " 条";
+  $("#ammoList").innerHTML = list.length === 0
+    ? `<div class="a-empty">没有匹配的条目。试试清空搜索或切换柱。</div>`
+    : list.map(a => `
+      <button type="button" class="a-row${cart.has(a.id)?" sel":""}" data-id="${a.id}" aria-pressed="${cart.has(a.id)}">
+        <span class="ck" aria-hidden="true">✓</span>
+        <span class="id">${a.id}</span>
+        <span class="tx">${a.t ? esc(a.t) : `<span class="missing">（主控文档 v1.1 未收录此条一句话——以母本为准，勿自行补写）</span>`}</span>
+        <span class="use">${a.u ? `<span class="b ${a.u===3?"b-red":a.u===1?"b-blue":"b-green"}">${USE_LABEL[a.u]}</span>` : `<span class="b b-gray">未动用</span>`}<span class="tiny">${a.pk}</span></span>
+      </button>`).join("");
+}
+function updateCartbar(){
+  const bar = $("#cartbar");
+  bar.classList.toggle("on", cart.size > 0 && current === "ammo");
+  $("#cartN").textContent = cart.size;
+}
+$("#cartClear").addEventListener("click", () => {
+  cart.clear(); store.set("skdp.cart.v1", []);
+  paintAmmoList(); updateCartbar();
+});
+$("#cartGo").addEventListener("click", () => {
+  const items = ALL.filter(a => cart.has(a.id));
+  const reused = items.filter(a => a.u > 0);
+  const d = new Date();
+  const ds = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  const md = [
+    "# 选弹工单 · " + ds,
+    "",
+    "> ⚠️ 铁律：本工单只是\"编号 + 一句话\"索引。写包时每条的数字、效应量、出处、可靠度、排雷，",
+    "> 必须从《实证库_纯净版_v2.0》母本**逐字复制**——不许补充、不许回忆、不许联网找新的。",
+    "> 停用号 底108 / 底111 / 底112 不许出现。",
+    "",
+    "| 编号 | 一句话 | 所属柱 | 已用于 |",
+    "|---|---|---|---|",
+    ...items.map(a => `| ${a.id} | ${a.t || "（一句话未收录，见母本）"} | ${a.pk} ${a.pname} | ${USE_LABEL[a.u] || "—"} |`),
+    "",
+    "共 **" + items.length + "** 条（未动用 " + (items.length - reused.length) + " 条 / 复用 " + reused.length + " 条）。",
+    ...(reused.length ? ["", "⚠️ 复用条目需说明与原包的**分工**（判据 vs 话术），否则会被复购者投诉重复：" + reused.map(a=>a.id).join("、")] : []),
+    "",
+    "交付要求（主控文档 §5.8）：正文 8,000–11,000 字 + 附录实证清单 + 单文件 HTML 工具；",
+    "每条操作建议必须标 ✅ / 🔧 / ⚠️；交付前跑 §6.5 十二项验收清单（本主控台「验收台」可执行）。"
+  ].join("\n");
+  openDlg("选弹工单（Markdown）", md);
+});
+
+/* ============================================================
+   视图 3 · 产品线
+   ============================================================ */
+function renderProducts(){
+  const packCards = PACKS.map(p => `
+    <div class="pack">
+      <div class="nm">${p.n}. ${esc(p.name)}</div>
+      <div class="gate">关口：${esc(p.gate)}</div>
+      <div class="meta">
+        ${p.st==="done" ? `<span class="b b-green">✅ ${p.ver} 已完成</span>` : `<span class="b b-gray">⬜ 未开工</span>`}
+        <span class="b b-blue">${esc(p.ammo)}</span>
+        ${p.pri ? `<span class="stars" title="优先级">${"★".repeat(p.pri)}</span>` : ""}
+      </div>
+    </div>`).join("");
+  $("#view-products").innerHTML = `
+  <div class="card">
+    <h2>四层定价 <span class="tag">每层只回答买家的一个问题</span></h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>层</th><th>价格</th><th>它真正在解决的问题</th><th>成功指标</th></tr></thead>
+      <tbody>${PRICING.map(r => `<tr><td class="num">${r[0]}</td><td class="num">${r[1]}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <div class="callout amber">⚠️ 第 1 层不是\"小额创收\"：付过 9.9 和从没付过钱是两种资产（底105/底109）。第 3 层唯一站得住的卖点是订阅逻辑——<strong>证据会过期，我负责给你换</strong>。🔧 报价用非整数（底021）：99 不写 100，399 不写 400。</div>
+  </div>
+  <div class="card">
+    <h2>八个主题包 <span class="tag">按\"人生关口\"切，不按知识主题切</span></h2>
+    <div class="packs">${packCards}</div>
+    <div class="callout">⚠️ 谈判包与体检包重叠 9 条（${OVERLAP.join("、")}）。分工已定：体检包用作<strong>判据</strong>，谈判包用作<strong>话术</strong>。🔧 建议 99 单包 / 168 双包，把重叠变成\"打通\"的卖点。</div>
+    <div class="callout blue">⚠️ 谈判包最大软肋：话术 10「你根本没有别的 offer」。🔧 建议单独做 9.9 前置工具《30 天造一个替代选项》——筹码是造出来的，不是谈出来的。</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>待办 <span class="tag">按优先级</span></h2>
+      <table><tbody>${TODOS.map(t => `<tr><td style="width:6em"><span class="stars">${t[0]}</span></td><td class="small">${esc(t[1])}</td></tr>`).join("")}</tbody></table>
+    </div>
+    <div class="card">
+      <h2>已知问题</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>问题</th><th>影响</th><th>处理建议</th></tr></thead>
+        <tbody>${ISSUES.map(r => `<tr><td class="small">${esc(r[0])}</td><td class="small muted">${esc(r[1])}</td><td class="small">${esc(r[2])}</td></tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   视图 4 · 验收台（自动扫描 + 十二项人工清单）
+   ============================================================ */
+function scanDraft(text){
+  const lines = text.split("\n");
+  const find = (re) => {
+    const hits = [];
+    lines.forEach((ln, i) => {
+      let m; const r = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+      while ((m = r.exec(ln)) !== null){
+        hits.push({line: i+1, text: m[0]});
+        if (m.index === r.lastIndex) r.lastIndex++;
+      }
+    });
+    return hits;
+  };
+  const rules = [];
+  // 1 停用编号（§6.5-4）
+  const stopped = find(/底(?:108|111|112)/);
+  rules.push({lv: stopped.length ? "bad" : "ok", name:"停用编号（底108/底111/底112 不许出现）", hits: stopped,
+    note: stopped.length ? "必须替换：底111→底006、底112→底014、底108→底018" : "未发现"});
+  // 2 未知编号
+  const refs = find(/底\d{3}/);
+  const unknown = refs.filter(h => !VALID_IDS.has(h.text) && !STOPPED.includes(h.text));
+  rules.push({lv: unknown.length ? "bad" : "ok", name:"编号存在性（引用的编号必须在 127 条台账内）", hits: unknown,
+    note: unknown.length ? "台账中不存在这些编号——极可能是编造或笔误" : (refs.length ? "共引用 " + refs.length + " 处编号，全部存在" : "全文未引用编号")});
+  // 3 禁用词（§5.7-6）
+  const banned = BANNED.flatMap(w => find(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"))));
+  rules.push({lv: banned.length ? "bad" : "ok", name:"禁用词（赋能/抓手/闭环/底层逻辑/方法论/心智/颗粒度/打法/组合拳）", hits: banned,
+    note: banned.length ? "命中即退回（§6.5 第 12 项要求命中数为 0）" : "命中数 0"});
+  // 4 禁用套路
+  const tao = BANNED_TAO.flatMap(w => find(new RegExp(w)));
+  rules.push({lv: tao.length ? "bad" : "ok", name:"禁用套路（三天开单 / 月入十万 / 销冠神话）", hits: tao, note: tao.length ? "零成本信号，直接删除" : "未发现"});
+  // 5 无主语引用（§6.5-5）
+  const vague = find(/(?:研究表明|科学证明|实验证明|有研究显示)/);
+  rules.push({lv: vague.length ? "bad" : "ok", name:"无主语引用（\"研究表明\"\"科学证明\"类）", hits: vague,
+    note: vague.length ? "改为带编号的溯源引用（✅ + 底XXX），或删除" : "未发现"});
+  // 6 天花板（作褒义时禁用）——机器判不了语义，交人工
+  const tfb = find(/天花板/);
+  rules.push({lv: tfb.length ? "warn" : "ok", name:"\"天花板\"（作褒义时禁用，需人工判断语境）", hits: tfb, note: tfb.length ? "逐处确认是否褒义用法" : "未发现"});
+  // 7 凑数结构
+  const struct = find(/[一二三四五六七八九十\d]大[一-龥]{1,4}/);
+  rules.push({lv: struct.length ? "warn" : "ok", name:"\"X大Y\"式凑数结构（如\"五大维度\"\"三大核心\"）", hits: struct, note: struct.length ? "疑似凑数结构，人工确认" : "未发现"});
+  // 8 三标记统计
+  const nOk = (text.match(/✅/g) || []).length, nTool = (text.match(/🔧/g) || []).length, nWarn = (text.match(/⚠/g) || []).length;
+  rules.push({lv: (nOk + nTool + nWarn) ? "ok" : "warn", name:"三标记统计",
+    hits: [], note:`✅ ${nOk} 处 · 🔧 ${nTool} 处 · ⚠️ ${nWarn} 处。` + (nOk ? "（人工必做：随机抽三条 ✅ 回母本核对——AI 编造的引用，看起来永远比真的更整齐）" : "全文无标记——若是付费包正文则不合格")});
+  return rules;
+}
+function renderQA(){
+  const v = $("#view-qa");
+  let idx = 0;
+  const groups = CHECKLIST.map(g => `
+    <div class="ck-group"><div class="g">${esc(g.g)}</div>
+      ${g.items.map(it => {
+        const i = idx++;
+        return `<label class="ck-item${checks[i]?" done":""}"><input type="checkbox" data-i="${i}" ${checks[i]?"checked":""}><span>${i+1}. ${esc(it)}</span></label>`;
+      }).join("")}
+    </div>`).join("");
+  v.innerHTML = `
+  <div class="card">
+    <h2>自动扫描 <span class="tag">机器先跑一遍，能拦的先拦住</span></h2>
+    <p class="small muted" style="margin-bottom:8px">把待交付的包正文粘贴进来。扫描规则来自主控文档 §5.7 文体规范与 §6.5 验收清单——机器只做字面检查，<strong>证据核对（回母本抽查）永远是人工的</strong>。文本只在本机处理，不上传。</p>
+    <textarea class="scan" id="scanIn" placeholder="粘贴包正文（Markdown 或纯文本）…"></textarea>
+    <p style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="scanBtn">开始扫描</button>
+      <button class="btn" id="scanDemo">填入示例（含 6 处故意犯规）</button>
+    </p>
+    <div class="scan-out" id="scanOut"></div>
+  </div>
+  <div class="card">
+    <h2>十二项验收清单 <span class="tag">§6.5 · 一项不过就退回重做</span></h2>
+    <p class="small" style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label for="deliverName" class="muted">交付物：</label>
+      <input class="name-in" id="deliverName" placeholder="如：出单包_v1.0.md" value="${esc(deliverName)}" style="flex:1">
+      <button class="btn" id="ckReset">清零</button>
+    </p>
+    ${groups}
+    <div id="verdict"></div>
+    <p style="margin-top:12px"><button class="btn" id="ckReport">复制验收报告（Markdown）</button></p>
+  </div>`;
+  $("#scanBtn").addEventListener("click", () => {
+    const t = $("#scanIn").value;
+    if (!t.trim()){ toast("先粘贴正文再扫描"); return; }
+    const rules = scanDraft(t);
+    const bad = rules.filter(r => r.lv === "bad").length, warn = rules.filter(r => r.lv === "warn").length;
+    $("#scanOut").innerHTML = `
+      <div class="verdict ${bad ? "fail" : "pass"}">${bad ? "🔴 未通过 —— " + bad + " 类硬伤必须修改" + (warn ? "，另有 " + warn + " 类需人工判断" : "") : (warn ? "🟡 无硬伤 —— 但有 " + warn + " 类需人工判断" : "🟢 字面检查全部通过 —— 剩下的是人工核对")}</div>
+      ${rules.map(r => `
+        <div class="rule ${r.lv}">
+          <div class="h"><span class="st">${r.lv === "ok" ? "✓" : r.lv === "bad" ? "✕" : "！"}</span><span>${esc(r.name)}</span></div>
+          <div class="hits">${esc(r.note)}${r.hits.length ? "：" + r.hits.slice(0, 30).map(h => `<code>第${h.line}行 ${esc(h.text)}</code>`).join(" ") + (r.hits.length > 30 ? " …共 " + r.hits.length + " 处" : "") : ""}</div>
+        </div>`).join("")}
+      <p class="tiny">机器扫不出的：数字是否与母本逐字一致、出处是否有卷(期):页、✅ 是否真是论文结论。这三样只能回母本人工核对——这正是这套产品的护城河。</p>`;
+  });
+  $("#scanDemo").addEventListener("click", () => {
+    $("#scanIn").value = [
+      "🔧 用五大维度拆解你的底层逻辑，形成销售打法闭环。",
+      "研究表明，勤奋的销售三天开单不是梦（底111）。",
+      "✅ 非要挑\"最好\"那份工作的人，工资高了20%，人却更难受（底126）。",
+      "价格谈不下来时，给一组等值选项让对方挑（底086）。"
+    ].join("\n");
+    toast("已填入示例，点「开始扫描」看它怎么被拦下");
+  });
+  if (!v.dataset.bound){ v.dataset.bound = "1"; v.addEventListener("change", e => {
+    const cb = e.target.closest("input[type=checkbox]");
+    if (cb){
+      checks[+cb.dataset.i] = cb.checked;
+      store.set("skdp.checks.v1", checks);
+      cb.closest(".ck-item").classList.toggle("done", cb.checked);
+      paintVerdict();
+    }
+  }); }
+  $("#deliverName").addEventListener("input", e => {
+    deliverName = e.target.value; store.set("skdp.deliver.v1", deliverName);
+  });
+  $("#ckReset").addEventListener("click", () => {
+    checks = Array(12).fill(false); store.set("skdp.checks.v1", checks);
+    renderQA(); toast("清单已清零");
+  });
+  $("#ckReport").addEventListener("click", () => {
+    const flat = CHECKLIST.flatMap(g => g.items.map(it => ({g: g.g, it})));
+    const n = checks.filter(Boolean).length;
+    const md = [
+      "# 验收报告 · " + (deliverName || "（未命名交付物）"),
+      "",
+      "依据：主控文档 v1.1 §6.5 十二项验收清单。**一项不过就退回重做。**",
+      "",
+      ...flat.map((f, i) => `- [${checks[i] ? "x" : " "}] ${i+1}. ${f.it}`),
+      "",
+      "结果：**" + n + " / 12** 通过。" + (n === 12 ? "✅ 可以交付。" : "🔴 未过 " + (12-n) + " 项，退回。"),
+      "",
+      "> 人工必做：随机抽三条 ✅ 回母本核对编号、数字、出处是否逐字一致。AI 编造的引用，看起来永远比真的更整齐。"
+    ].join("\n");
+    openDlg("验收报告（Markdown）", md);
+  });
+  paintVerdict();
+}
+function paintVerdict(){
+  const n = checks.filter(Boolean).length;
+  const el = $("#verdict");
+  if (!el) return;
+  el.innerHTML = n === 12
+    ? `<div class="verdict pass">✅ 12 / 12 全部通过 —— 可以交付</div>`
+    : `<div class="verdict fail">🔴 ${n} / 12 —— 未过 ${12-n} 项，不许交付</div>`;
+}
+
+/* ============================================================
+   视图 5 · 规范速查
+   ============================================================ */
+function renderSpec(){
+  $("#view-spec").innerHTML = `
+  <details class="spec" open><summary>移交铁律（§0 · 先读这一节）</summary><div class="bd">
+    <ol>
+      <li><strong>弹药只能\"抄\"，不能\"补\"。</strong>编号、数字、出处、效应量，一律从母本原文复制。母本里没有的，就是没有——不许让 AI 去查、去补、去回忆。</li>
+      <li><strong>交付前必须跑 §6.5 验收清单。</strong>十二项，一项不过就退回重做（本主控台「验收台」可执行）。</li>
+      <li><strong>抽检三条。</strong>成品里随机挑三条 ✅ 回母本核对编号、数字、出处是否逐字一致。AI 编造的引用，看起来永远比真的更整齐。</li>
+    </ol>
+  </div></details>
+  <details class="spec"><summary>红线四条（§5.1 · 不可动摇）</summary><div class="bd">
+    <ol>
+      <li><strong>一条都不编。</strong>每个数字必须溯源到卷(期):页。凭印象补的引用一律先查证再写。</li>
+      <li><strong>宁标 📖 不冒充 ✅。</strong>畅销书、厂商调研、行业白皮书一律标 🅑，不得当头牌、不得标 🟢。</li>
+      <li><strong>主动排雷写在明处。</strong>复现失败、样本局限、因果存疑，自己先说，不等别人来抓。</li>
+      <li><strong>免费层只给诊断，不给方法。</strong>这条红线一旦破了，第 1–3 层的付费理由同时消失。</li>
+    </ol>
+  </div></details>
+  <details class="spec"><summary>三标记制度 + 可靠度分级（§5.2 / §5.3）</summary><div class="bd">
+    <table style="margin:8px 0"><tbody>
+      <tr><td style="width:3.5em">✅</td><td><strong>有研究直接支持</strong>，附本库编号，可溯源</td></tr>
+      <tr><td>🔧</td><td><strong>从原理推出的操作</strong>——是作者判断，不是论文结论</td></tr>
+      <tr><td>⚠️</td><td><strong>别这么做</strong>，或必须留意的边界</td></tr>
+    </tbody></table>
+    <p class="small muted">拿不准是 ✅ 还是 🔧 的，一律标 🔧。这个制度的价值就在于自曝哪些是推论。</p>
+    <p>🟢 铁证（元分析或多次独立复现）｜🟡 较稳（单一强研究，方向稳、绝对值有争议）｜🟠 有争议（有直接复现失败，必须主动排雷）｜🅑 非同行评审，不作依据</p>
+  </div></details>
+  <details class="spec"><summary>结构模板与收尾（§5.4 / §5.5）</summary><div class="bd">
+    <p><strong>顺序型</strong>（谈判包）：事情按时间发生 → 前置自查表 → 按关口排的话术 → 崩盘急救 → 事后动作</p>
+    <p><strong>诊断型</strong>（体检包）：需要做判断 → 检测项（问什么/怎么听/三档判据）→ 红旗清单 → 评分卡 → 边界声明</p>
+    <p class="small">🔧 开工前先问：这个关口是\"按顺序做一件事\"还是\"做一个判断\"？出单包大概率顺序型（客户旅程），扛得住包大概率诊断型（先分诊再给药）。</p>
+    <p><strong>无论哪种，四样必须有：</strong>①开头的三标记说明 ②正文（研究结论 + 可直接念/照做的操作）③<strong>「这份东西算不出/帮不了的地方」</strong>（不许省——一份不说自己边界的产品本身就是红旗）④附录实证清单（编号｜一句话｜出处｜可靠度）</p>
+    <p><strong>收尾必须\"松一口\"</strong>：两个包都收在 底126（极大化者悖论）——别追求最优解，定个门槛，过线就走。整个包在教人争取，最后一页必须教人停下来，否则就是制造焦虑然后卖解药。</p>
+  </div></details>
+  <details class="spec"><summary>读者画像与文体六条（§5.7）</summary><div class="bd">
+    <p class="small"><strong>读者</strong>：拿提成的中国销售。收入波动、被 KPI 追着、对\"成功学\"有生理性反感、时间碎（在车里、地铁上看），但对\"有人终于跟我说实话\"有强烈渴求。</p>
+    <ol>
+      <li>第二人称，直接对着他说。不写\"销售人员应当……\"</li>
+      <li>先扎心，再给依据。顺序永远是\"结论 → 为什么 → 数据\"</li>
+      <li>把病因从人身上挪开——\"病根在合同，不在你\"。⚠️ 但不能滑向\"都是别人的错\"，要落在\"所以你该看哪几个数\"</li>
+      <li>敢说帮不了。这不是谦虚，是可信度的来源</li>
+      <li>句子短。数字露出来，关键数字加粗</li>
+      <li>禁用词与禁用套路见下——命中即退回</li>
+    </ol>
+    <div class="chipset">${BANNED.map(w => `<span class="w">${w}</span>`).join("")}<span class="w">天花板（褒义）</span><span class="w">\"X大Y\"凑数结构</span>${BANNED_TAO.map(w => `<span class="w">${w}</span>`).join("")}<span class="w">无来源\"研究表明\"</span></div>
+    <p style="margin-top:10px"><strong>法律免责标准写法</strong>（涉及合同、竞业、劳动关系时，逐字沿用）：</p>
+    <blockquote class="law" id="lawText">${esc(LAW_TEXT)}</blockquote>
+    <button class="btn" id="copyLaw">复制免责写法</button>
+  </div></details>
+  <details class="spec"><summary>视觉与技术规范（§5.6 · 交互工具）</summary><div class="bd">
+    <p>工具家族：<strong>销售天天要看的表单</strong>，不做课程页。已用：复写纸三联单（折算器，灰蓝 #D9E2E4 / 印泥红 #C1272D，算完盖红章）、医院化验单（评分器，淡青灰 #E4E8E4 / 异常红 #B23A32，↓异常箭头）。备选：结算单 / 回款台账 / 工牌 / 排班表。</p>
+    <ul>
+      <li>单文件 HTML，无外部依赖，不使用 localStorage / sessionStorage（面向买家的工具）</li>
+      <li>移动端优先（车里、地铁上看）、键盘可达、尊重 prefers-reduced-motion</li>
+      <li>标题宋体（正式表单感）／正文黑体／数字一律等宽</li>
+      <li>默认系数必须可改，且标注来源与局限——不假装那是中国数据</li>
+    </ul>
+  </div></details>
+  <details class="spec"><summary>标准交付物（§5.8）</summary><div class="bd">
+    <ol>
+      <li><span class="num">{包名}_v1.0.md</span> —— 8,000–11,000 字。⚠️ 不是越长越好</li>
+      <li><span class="num">{工具名}.html</span> —— 单文件、无依赖、移动端优先</li>
+      <li>附录实证清单 —— 编号｜一句话｜出处（含卷期页）｜可靠度</li>
+      <li>主控文档更新 —— 同步 §2 清单、§3 路线图、§4 台账、§7 版本历史</li>
+    </ol>
+  </div></details>`;
+  $("#copyLaw").addEventListener("click", () => copyText(LAW_TEXT, "免责写法已复制"));
+}
+
+/* ============================================================
+   视图 6 · 版本
+   ============================================================ */
+function renderHistory(){
+  $("#view-history").innerHTML = `
+  <div class="card">
+    <h2>版本历史</h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th style="width:9em">版本</th><th style="width:7em">日期</th><th>内容</th></tr></thead>
+      <tbody>${HISTORY.map(r => `<tr><td><strong>${esc(r[0])}</strong></td><td class="num">${esc(r[1])}</td><td class="small">${esc(r[2])}</td></tr>`).join("")}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>清醒剂</h2>
+    <div class="quote">这个态度是护城河，也是天花板。愿意为\"这条 2022 年被重估过\"付钱的销售，是这个人群里的少数派。你选的是更小但更忠诚的那群人——这是个好选择，只是别按大众市场的规模做财务预期。</div>
+    <p class="tiny">——主控文档 §9。此处\"天花板\"为原文引用（非褒义用法）。</p>
+  </div>`;
+}
+
+/* ============================================================
+   弹窗 + 全局键盘
+   ============================================================ */
+$("#dlgX").addEventListener("click", () => $("#dlg").close());
+$("#dlgClose").addEventListener("click", () => $("#dlg").close());
+$("#dlgCopy").addEventListener("click", () => copyText($("#dlgPre").textContent, "已复制到剪贴板"));
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  const typing = tag === "input" || tag === "textarea" || e.target.isContentEditable;
+  if (e.key === "Escape"){
+    if ($("#dlg").open){ $("#dlg").close(); return; }
+    if (typing){ e.target.blur(); return; }
+    if (current === "ammo" && query){ query = ""; const q = $("#q"); if (q) q.value = ""; paintAmmoList(); }
+    return;
+  }
+  if (typing) return;
+  if (e.key === "/"){ e.preventDefault(); switchTo("ammo"); const q = $("#q"); if (q) q.focus(); return; }
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= TABS.length) switchTo(TABS[n-1].id);
+});
+
+/* 启动 */
+renderOverview(); renderAmmo(); renderProducts(); renderQA(); renderSpec(); renderHistory();
+updateCartbar();
+</script>
+</body>
+</html>
