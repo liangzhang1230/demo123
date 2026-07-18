@@ -117,9 +117,10 @@ export function priceTag6(db, today, gc = getCoef) {
   const gm = p.monthlyGrossMarginAmt;
   if (gm == null) return null;
   const person = ((db.entities && db.entities.Salesperson) || []).find(s => s.spId === p.spId);
-  // 月当量：件七可执行版以输入快照为准（出厂 5.078）；未提供 → 由 cycleTier 曲线实算 Σ(1−c/100)
-  const eq = p.rampGapMonthsEq != null ? p.rampGapMonthsEq
-    : rampGapMonthsEqOf((db.company && db.company.cycleTier) || 'regular');
+  // 月当量：🔴 一律由公约 §4.7 曲线实算 Σ(1−c/100)（regular=5.78）。
+  // 旧快照 5.078 作废（2026-07-18 裁决 D-C1-1）：它是旧版为让六项拆解凑齐 75 万快估总额的反推配平值，
+  // 任何现行曲线档位都推不出；拆解各项自此按各自公式实算，与快估 headline 的差异如实展示。
+  const eq = rampGapMonthsEqOf((db.company && db.company.cycleTier) || 'regular');
   const headline = Math.round(gm * (p.hireMonths + p.paybackMonths));   // ① 权威估算（T1=75万）
   const rampGap = Math.round(gm * eq);                                  // ② 最大头
   const rampGapShare = safeDiv(rampGap, headline);                      // T2

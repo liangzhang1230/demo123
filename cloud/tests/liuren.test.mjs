@@ -49,8 +49,9 @@ function factory() {
         { peId: 'pe_1', employeeId: 'sp_wangli', type: 'year_end_bonus', amt: 3000000, period: '2025-07', createdAt: '2025-07-15' },
       ],
     },
-    // 价签出厂算例（T1–T4）：近6月月均毛利 10万；招聘 1.5月 + 批均回本 6月 = 75万；月当量快照 5.078
-    priceTag: { spId: 'sp_wangli', monthlyGrossMarginAmt: 10000000, hireMonths: 1.5, paybackMonths: 6, rampGapMonthsEq: 5.078, raiseMonthlyAmt: 300000, shortenPct: 0.37, hiresPerYear: 2.267 },
+    // 价签出厂算例（T1–T4）：近6月月均毛利 10万；招聘 1.5月 + 批均回本 6月 = 75万
+    // 🔧D-C1-1 裁决：月当量一律曲线实算（regular=5.78），旧快照 5.078 作废
+    priceTag: { spId: 'sp_wangli', monthlyGrossMarginAmt: 10000000, hireMonths: 1.5, paybackMonths: 6, raiseMonthlyAmt: 300000, shortenPct: 0.37, hiresPerYear: 2.267 },
     dividend: {
       period: 'quarter', poolRate: 0.10, netBeforeDividendAmt: 80000000,
       gateCompanyCollect: { enabled: true, pass: true }, gateCompanyNet: { enabled: true, pass: true }, gatePersonalCollect: { enabled: true, pass: true },
@@ -101,17 +102,17 @@ T('T1', '价签＝75 万（权威 6 项口径）', () => {
   const pt = priceTag6(fx(), TEST_TODAY);
   return { pass: approx(wanNum(pt.headline), 75, 0.05), got: `${wanNum(pt.headline)} 万`, want: '75.0 万' };
 });
-T('T2', '爬坡缺口占比＝67.7% 触闸⑤', () => {
+T('T2', '爬坡缺口占比＝77.1% 触闸⑤（D-C1-1：曲线实算 5.78，原 67.7%/5.078 作废）', () => {
   const pt = priceTag6(fx(), TEST_TODAY);
-  return { pass: approx(pt.rampGapShare, 0.677, 0.001) && pt.hitGate5 === true, got: `${Math.round(pt.rampGapShare * 1000) / 10}% 触闸=${pt.hitGate5}`, want: '67.7% · 触闸' };
+  return { pass: approx(pt.rampGapShare, 0.7707, 0.001) && pt.hitGate5 === true && approx(pt.rampGapMonthsEq, 5.78, 0.001), got: `月当量=${pt.rampGapMonthsEq} · ${Math.round(pt.rampGapShare * 1000) / 10}% 触闸=${pt.hitGate5}`, want: '5.78 · 77.1% · 触闸' };
 });
 T('T3', '加薪 vs 价签＝20.8 倍', () => {
   const pt = priceTag6(fx(), TEST_TODAY);
   return { pass: approx(round1(pt.raiseVsTag), 20.8, 0.05), got: `${round1(pt.raiseVsTag)} 倍`, want: '20.8 倍' };
 });
-T('T4', '缩短爬坡 37% 年化＝42.6 万', () => {
+T('T4', '缩短爬坡 37% 年化＝48.5 万（D-C1-1 级联：57.8万×0.37×2.267）', () => {
   const pt = priceTag6(fx(), TEST_TODAY);
-  return { pass: approx(round1(wanNum(pt.shortenGainAnnual)), 42.6, 0.05), got: `${round1(wanNum(pt.shortenGainAnnual))} 万`, want: '42.6 万' };
+  return { pass: approx(round1(wanNum(pt.shortenGainAnnual)), 48.5, 0.05), got: `${round1(wanNum(pt.shortenGainAnnual))} 万`, want: '48.5 万' };
 });
 
 /* ================= T5 闸② 排行榜合法配置（引擎级配置常量白名单） ================= */
