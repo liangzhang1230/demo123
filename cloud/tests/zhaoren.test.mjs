@@ -139,11 +139,13 @@ const extra = vw.ok && systemRecommend(60) === 'hire' && systemRecommend(59) ===
   && near(darkTriadScore({ externalAttrib: 100, detailMissing: 100, charisma: 100, detail: 0, selfMention: 100 }), 100);
 if (!extra) { console.error('✗ 回归哨兵失败（出厂权重Σ/荐才线/黑暗三角公式）'); process.exit(1); }
 
-/* —— 输出 —— */
-let green = 0;
+/* —— 输出（件七=24 条：T9b 为 T9 的 Z-C06 子断言，逐行显示、并入 T9 计数 · R-10 徽章数=24） —— */
 for (const t of results) {
-  if (t.ok) { green++; console.log(`✓ ${t.id.padEnd(4)} ${t.name}`); }
+  if (t.ok) console.log(`✓ ${t.id.padEnd(4)} ${t.name}`);
   else console.log(`✗ ${t.id.padEnd(4)} ${t.name}\n    got=${JSON.stringify(t.got)} want=${JSON.stringify(t.want)}`);
 }
-console.log(`\n${green}/${results.length} 绿  （注入：TEST_TODAY=${TEST_TODAY}、targetYear=${TARGET_YEAR}）`);
-if (green !== results.length) process.exit(1);
+const okOf = id => { const t = results.find(x => x.id === id); return t ? t.ok : false; };
+const mainIds = results.map(t => t.id).filter(id => id !== 'T9b');
+const green = mainIds.filter(id => id === 'T9' ? (okOf('T9') && okOf('T9b')) : okOf(id)).length;
+console.log(`\n${green}/${mainIds.length} 绿  （注入：TEST_TODAY=${TEST_TODAY}、targetYear=${TARGET_YEAR}）`);
+if (green !== mainIds.length) process.exit(1);
