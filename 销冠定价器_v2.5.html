@@ -1,0 +1,1420 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>销冠定价器 · v2.5</title>
+<!--
+  销冠定价器 v2.5 — 单 HTML 文件 · 无后端 · 无网络 · 无 CDN · localStorage
+  技术栈冻结（0号公约§8）。计算层纯函数，系数只经 getCoef，日期显式注入（公约 C-14）。
+  BUILD_MODE 双构建：'full' 全开 / 'free' 钩子版（合计可见、明细模糊上锁、导出不渲染）。
+-->
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#0f172a; --ink2:#475569; --ink3:#94a3b8;
+  --line:#e6e9ef; --line2:#eef1f6; --accent:#4f46e5; --accent-soft:#eef2ff;
+  --red:#dc2626; --red-soft:#fef2f2; --amber:#d97706; --amber-soft:#fffbeb;
+  --green:#059669; --green-soft:#ecfdf5; --gold:#b45309; --gold-soft:#fef9c3;
+  --shadow:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.05);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:14px}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* Layout */
+#app{display:flex;min-height:100vh}
+#rail{
+  width:220px;flex:0 0 220px;background:#0f172a;color:#cbd5e1;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+#rail .brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+#rail .brand .logo{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.02em}
+#rail .brand .ver{font-size:11px;color:#64748b;margin-top:3px}
+#rail nav{padding:12px 10px;flex:1}
+#rail nav a{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;
+  color:#94a3b8;text-decoration:none;font-size:14.5px;font-weight:500;margin-bottom:2px;
+  transition:background .12s,color .12s;
+}
+#rail nav a:hover{background:rgba(255,255,255,.05);color:#e2e8f0}
+#rail nav a.on{background:var(--accent);color:#fff}
+#rail nav a .num{font-size:12px;opacity:.7;width:14px}
+#rail .foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:#64748b}
+#rail .foot .lic{color:#94a3b8}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  height:52px;flex:0 0 52px;background:var(--panel);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:20;
+}
+.topbar .crumb{font-size:14px;color:var(--ink2);font-weight:600}
+.topbar .lic{font-size:12px;color:var(--ink3)}
+.topbar .lic b{color:var(--ink2);font-weight:600}
+.scroll{flex:1;overflow-y:auto}
+.page{max-width:960px;margin:0 auto;padding:26px 26px 80px}
+.page.wide{max-width:1080px}
+
+/* backup nudge banner */
+#nudge{display:none;background:var(--amber-soft);border-bottom:1px solid #fde68a;color:#92400e;
+  padding:9px 26px;font-size:13px;display:none;align-items:center;gap:10px}
+#nudge.show{display:flex}
+#nudge b{font-weight:700}
+#nudge button{margin-left:auto;background:#fff;border:1px solid #fcd34d;color:#92400e;
+  padding:4px 12px;border-radius:7px;font-size:12px;font-weight:600}
+
+/* generic */
+.muted{color:var(--ink3)}
+.hint{color:var(--ink3);font-size:12.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.sec-title{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700;margin:0 0 12px}
+
+/* home */
+.hero{margin-bottom:22px}
+.hero h1{font-size:26px;letter-spacing:-.02em}
+.hero p{color:var(--ink2);margin:8px 0 0;font-size:14.5px;max-width:640px}
+.groups{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.groups{grid-template-columns:1fr}}
+.grp{padding:18px 18px 6px}
+.grp h3{font-size:13.5px;color:var(--accent);margin-bottom:14px;font-weight:700;
+  display:flex;align-items:center;gap:8px}
+.grp h3::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.fld{margin-bottom:15px}
+.fld label{display:block;font-size:13px;color:var(--ink);font-weight:600;margin-bottom:6px}
+.fld .unit{color:var(--ink3);font-weight:400;font-size:12px}
+.fld input[type=number]{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;
+  transition:border .12s,box-shadow .12s;outline:none;
+}
+.fld input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fld input.err{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.fld .ref{font-size:11.5px;color:var(--ink3);margin-top:5px}
+.fld .errmsg{font-size:11.5px;color:var(--red);margin-top:5px;display:none}
+.fld .errmsg.show{display:block}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{
+  padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;
+  font-size:13px;color:var(--ink2);font-weight:500;transition:all .12s;
+}
+.seg button:hover{border-color:var(--ink3)}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.actions{display:flex;gap:12px;margin-top:22px;align-items:center;flex-wrap:wrap}
+.btn{padding:11px 22px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);
+  color:#fff;font-size:14.5px;font-weight:650;transition:filter .12s}
+.btn:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink2);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink3);filter:none}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:8px}
+.footnote{margin-top:26px;font-size:12.5px;color:var(--ink3);text-align:center}
+
+/* dashboard */
+.total-bar{
+  background:linear-gradient(135deg,#1e1b4b,#312e81);color:#fff;border-radius:var(--radius);
+  padding:22px 26px;margin-bottom:22px;box-shadow:var(--shadow)
+}
+.total-bar .lab{font-size:13px;color:#c7d2fe;font-weight:600;letter-spacing:.02em}
+.total-bar .big{font-size:38px;font-weight:750;letter-spacing:-.02em;margin:4px 0 8px}
+.total-bar .exp{font-size:13px;color:#a5b4fc;line-height:1.55}
+.dcard{margin-bottom:16px;overflow:hidden}
+.dcard .head{display:flex;align-items:center;gap:14px;padding:17px 20px;cursor:pointer;user-select:none}
+.dcard .head .idx{width:30px;height:30px;flex:0 0 30px;border-radius:8px;background:var(--accent-soft);
+  color:var(--accent);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.dcard .head .tt{flex:1;min-width:0}
+.dcard .head .tt .nm{font-size:15.5px;font-weight:650}
+.dcard .head .tt .sub{font-size:12.5px;color:var(--ink3);margin-top:1px}
+.dcard .head .res{text-align:right}
+.dcard .head .res .v{font-size:20px;font-weight:750;letter-spacing:-.01em}
+.dcard .head .res .k{font-size:11.5px;color:var(--ink3)}
+.dcard .head .chev{color:var(--ink3);transition:transform .16s;font-size:13px}
+.dcard.open .head .chev{transform:rotate(90deg)}
+.dcard .body{display:none;padding:0 20px 20px;border-top:1px solid var(--line2)}
+.dcard.open .body{display:block}
+.dcard .body .inner{padding-top:16px}
+.killer{margin-top:14px;padding:12px 14px;background:var(--line2);border-radius:10px;
+  font-size:13px;color:var(--ink);line-height:1.6}
+
+table.grid{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+table.grid th,table.grid td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line2)}
+table.grid th:first-child,table.grid td:first-child{text-align:left}
+table.grid th{font-size:12px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+table.grid td.warn{color:var(--red);font-weight:600}
+
+.compbar{display:flex;height:24px;border-radius:7px;overflow:hidden;margin:10px 0;font-size:11px;color:#fff;font-weight:600}
+.compbar .b{background:#6366f1;display:flex;align-items:center;justify-content:center}
+.compbar .g{background:#f59e0b;display:flex;align-items:center;justify-content:center}
+.compbar .l{background:#10b981;display:flex;align-items:center;justify-content:center}
+
+.gates{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+.gate{display:flex;gap:10px;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.55;align-items:flex-start}
+.gate .dot{flex:0 0 auto;font-size:14px;line-height:1.4}
+.gate.red{background:var(--red-soft);color:#991b1b}
+.gate.amber{background:var(--amber-soft);color:#92400e}
+.gate.green{background:var(--green-soft);color:#065f46}
+.gate.gold{background:var(--gold-soft);color:#854d0e}
+.gate .src{display:block;margin-top:5px;font-size:11.5px;opacity:.8}
+
+.badge-idx{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.bi-red{background:var(--red-soft);color:#991b1b}
+.bi-amber{background:var(--amber-soft);color:#92400e}
+.bi-green{background:var(--green-soft);color:#065f46}
+.bi-gold{background:var(--gold-soft);color:#854d0e}
+
+.opbar{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+
+/* locked (free) */
+.locked{position:relative}
+.locked .lockable{filter:blur(8px);pointer-events:none;user-select:none;opacity:.6}
+.lock-note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.lock-note .box{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:12px;
+  padding:18px 22px;max-width:440px;font-size:13px;color:var(--ink2);box-shadow:var(--shadow)}
+.lock-note .box b{color:var(--ink);display:block;margin-bottom:6px}
+body.mode-free .fullonly{display:none!important}
+
+/* windtunnel */
+.wt-block{margin-bottom:18px}
+.wt-block .wt-head{padding:16px 20px;border-bottom:1px solid var(--line2)}
+.wt-block .wt-head h3{font-size:15px}
+.wt-block .wt-head p{font-size:12.5px;color:var(--ink3);margin:4px 0 0}
+.wt-block .wt-body{padding:18px 20px}
+.menu-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px}
+@media(max-width:720px){.menu-cards{grid-template-columns:1fr}}
+.mc{border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;position:relative}
+.mc.gold{border-color:#f0c674;background:var(--gold-soft)}
+.mc .tier{font-size:12px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.mc .q{font-size:22px;font-weight:750;margin:8px 0 2px}
+.mc .b{font-size:15px;color:var(--accent);font-weight:650}
+.mc .meta{font-size:11.5px;color:var(--ink3);margin-top:8px}
+.mc .lockicon{position:absolute;top:10px;right:12px}
+.inrow{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+.inrow .fld{margin-bottom:0;flex:1;min-width:130px}
+.chk{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:9px;margin-bottom:7px;font-size:13.5px;cursor:pointer}
+.chk input{width:16px;height:16px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper button{width:32px;height:32px;background:#fff;border:none;font-size:16px;color:var(--ink2)}
+.stepper button:hover{background:var(--line2)}
+.stepper span{width:42px;text-align:center;font-weight:600}
+.leak-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.leak-tbl th,.leak-tbl td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top}
+.leak-tbl th{font-size:11.5px;color:var(--ink3);text-transform:uppercase}
+.empty-state{text-align:center;padding:50px 24px;color:var(--ink3)}
+.empty-state .ic{font-size:34px;margin-bottom:10px}
+
+/* data & settings */
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.list-row:last-child{border-bottom:none}
+.list-row .info{flex:1;min-width:0}
+.list-row .info .t{font-weight:600;font-size:14px}
+.list-row .info .s{font-size:12px;color:var(--ink3)}
+.matrix{overflow-x:auto}
+.matrix table{border-collapse:collapse;font-size:13px;min-width:100%}
+.matrix th,.matrix td{padding:6px 8px;border:1px solid var(--line2);text-align:center}
+.matrix th{background:var(--line2);font-size:12px;color:var(--ink2);font-weight:600}
+.matrix input{width:74px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;text-align:right;
+  background:#fffdf5}
+.matrix input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px var(--accent-soft)}
+.matrix .sub{font-size:11px;color:var(--ink3)}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tb{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;font-size:11.5px;font-weight:600}
+.tb.ok{background:var(--green-soft);color:#065f46}
+.tb.no{background:var(--red-soft);color:#991b1b}
+.summary-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:20px;
+  font-weight:700;font-size:14px}
+.summary-pill.ok{background:var(--green-soft);color:#065f46}
+.summary-pill.no{background:var(--red-soft);color:#991b1b}
+.banner-info{background:var(--accent-soft);border:1px solid #c7d2fe;color:#3730a3;padding:12px 16px;
+  border-radius:11px;font-size:13px;line-height:1.6;margin-bottom:18px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#0f172a;color:#fff;padding:11px 20px;border-radius:10px;font-size:13.5px;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;transition:all .25s;z-index:100;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* print */
+#printzone{display:none}
+@media print{
+  #rail,.topbar,#nudge,.opbar,.actions{display:none!important}
+  body{background:#fff}
+  .scroll,.page{all:unset}
+  #pages{display:none!important}
+  #printzone{display:block!important;padding:0}
+  .print-doc{page-break-after:always;padding:40px 48px;max-width:760px;margin:0 auto;color:#111}
+  .print-foot{position:fixed;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:#888}
+}
+.print-doc{padding:40px 48px;max-width:760px;margin:0 auto;color:#111;background:#fff}
+.cov{border:1px double #b91c1c;padding:36px 40px;position:relative}
+.cov h1{text-align:center;font-size:22px;letter-spacing:.1em;margin-bottom:8px}
+.cov .code{position:absolute;top:22px;right:26px;color:#b91c1c;border:2px solid #b91c1c;
+  padding:5px 12px;border-radius:6px;transform:rotate(-3deg);font-weight:700;font-size:13px;letter-spacing:.05em}
+.cov .body{font-size:15px;line-height:2.1;margin:26px 0}
+.cov .body b{border-bottom:1px solid #333;padding:0 4px}
+.cov .legal{font-size:12px;color:#555;background:#faf5f0;border-left:3px solid #b91c1c;padding:12px 14px;line-height:1.7;margin-top:20px}
+.cov .sign{margin-top:36px;display:flex;justify-content:space-between;font-size:14px;color:#333}
+.cov .disc{margin-top:24px;font-size:11px;color:#999;text-align:center}
+</style>
+
+<div id="app">
+  <aside id="rail">
+    <div class="brand">
+      <div class="logo">销冠定价器</div>
+      <div class="ver">v2.5 · 单机版</div>
+    </div>
+    <nav id="nav">
+      <a data-pg="home" class="on"><span class="num">1</span>输入面板</a>
+      <a data-pg="dash"><span class="num">2</span>五张账单</a>
+      <a data-pg="wt"><span class="num">3</span>方案风洞</a>
+      <a data-pg="data"><span class="num">4</span>场景与数据</a>
+      <a data-pg="settings"><span class="num">5</span>系数矩阵</a>
+    </nav>
+    <div class="foot">
+      <div class="lic" id="railLic">授权：演示授权</div>
+      <div style="margin-top:6px">数据不出你的电脑</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="crumb" id="crumb">输入面板</div>
+      <div class="lic">授权：<b id="topLic">演示授权</b></div>
+    </div>
+    <div id="nudge">
+      <span>⚠️</span><span id="nudgeText"></span>
+      <button id="nudgeBtn">立即导出备份</button>
+    </div>
+    <div class="scroll">
+      <div id="pages"></div>
+    </div>
+  </main>
+</div>
+
+<div id="printzone"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   0. 构建模式与授权署名（公约【8】【11】）
+   ========================================================================== */
+const BUILD_MODE = 'full';            // 'free' | 'full' —— 同一代码，两个常量，双构建
+const AUTHORIZED_CLIENT = '演示授权';  // 授-1 署名可见（页眉 + 打印页脚）
+if(BUILD_MODE==='free') document.body.classList.add('mode-free');
+
+/* ============================================================================
+   1. 全局兜底（公约【3】）与工具
+   ========================================================================== */
+function safeDiv(a,b){ return (b===0||b==null||a==null)?null:a/b; }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+function roundTo(v,step){ return Math.round(v/step)*step; }
+function roundYuanFen(fen){ return Math.round(fen/100)*100; } // 四舍五入到元（分单位）
+
+// 日期：一律显式传参（公约 C-14）。Date.UTC 为确定性构造，不读系统时钟。
+function dateNum(s){ const [y,m,d]=s.split('-').map(Number); return Math.floor(Date.UTC(y,m-1,d)/864e5); }
+function numDate(n){ const dt=new Date(n*864e5);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`; }
+function daysBetween(a,b){ return dateNum(b)-dateNum(a); }      // b - a
+function subDays(s,d){ return numDate(dateNum(s)-d); }
+function firstDay(y,m){ return `${y}-${String(m).padStart(2,'0')}-01`; }
+
+// 展示层格式（舍入只在展示层）
+function yuan(fen){ return '¥'+Math.round(fen/100).toLocaleString('en-US'); }
+function wan(fen){ return (fen/1e6).toFixed(1)+'万'; }
+function pct(rate){ return rate==null?'—':(rate*100).toFixed(1)+'%'; }
+const DASH='—';
+
+/* ============================================================================
+   2. 系数总表（公约§5 + 件二 2.4 权威清单）· 分/元/比率见注
+   ========================================================================== */
+const COEFFICIENTS = {
+  cityBase:{tier1:500000,tier2:400000,tier34:300000},                 // 分/月
+  levelMultiplier:{ sales:[1.0,1.5,1.8,2.0], manager:[2.0,2.5,3.0,3.5], executive:[3.0,4.0,4.5,5.0] }, // [warning,effective,efficient,leading]
+  cycleFactor:{short:1.0000,regular:1.1500,midLong:1.3225,long:1.5606,ultraLong:2.0000},
+  thresholdTTable:{ // 元/月（序=[warning,effective,efficient,leading]）
+    tier1:{sales:[25000,30000,35000,40000],manager:[33000,40000,47000,54000],executive:[45000,54000,63000,72000]},
+    tier2:{sales:[20000,24000,28000,32000],manager:[27000,32000,37000,43000],executive:[36000,43000,50000,57000]},
+    tier34:{sales:[15000,18000,21000,24000],manager:[20000,24000,28000,32000],executive:[27000,32000,38000,43000]} },
+  minWageTable:{tier1:242000,tier2:200000,tier34:170000},             // 分/月（2025 人社部保守下限）
+  longTermRate:0.10,
+  rampCurve12:{ // 全系统唯一 S 曲线（12 点月度产能%；1-indexed 于公式）
+    short:   [0,12,25,42,60,73,85,93,100,100,100,100],
+    regular: [0, 5,12,22,35,48,60,72, 82, 90, 96,100],
+    midLong: [0, 0, 5,12,20,30,42,53, 63, 72, 80, 87],
+    long:    [0, 0, 0, 5,10,18,27,36, 45, 54, 62, 70],
+    ultraLong:[0,0, 0, 0, 5,10,16,23, 30, 37, 44, 50] },
+  fullRampRatio:{smb:0.70,mid:0.67,ent:0.63,strategic:0.60},
+  globalAttainRate:[0.43,0.51],
+  turnoverCostOteRate:[1.5,2.0],
+  recruitFeeDefaultAmt:500000,                                        // 分
+  spanDefault:{manageTimeShare:0.30,weeklyHrs:40},
+  fixedMeetingHrs:3, perHeadMgmtHrs:1.1, perHeadAdminHrs:0.6,
+  midYearAttritionFactor:0.5,                                         // C-14 kEff
+  socialCostRate:0.30,
+  teamBonusTIS:{w:[0.4,0.3,0.3],sizeFull:8,sizeZero:20,complementEnum:{solo:0,partial:50,chained:100},green:70,red:40},
+  burdenBand:[0.25,0.35],
+  menuQuotaSteps:[0.8,1.0,1.2], menuAttainMid:0.47, menuAttainSlope:0.75,
+  menuEquivalenceTolerance:0.03, menuRound:10000,                     // 10000 分 = 100 元
+  p90ColdFactor:1.8,
+  attainabilityRedline:1.3, hungerBufferRate:1.1,
+  processRedlineWarnCount:3,
+  SEGMENT_MAP:{short:'smb',regular:'smb',midLong:'mid',long:'ent',ultraLong:'strategic'}
+};
+
+/* ---- getCoef：结构权系统 / 数值权老板（Override）。全部计算只经此读取 ---- */
+const OV_KEY='skab_dingjia_overrides';
+let _overrides = loadJSON(OV_KEY,{});
+let _resolved=null;
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+function setDeep(obj,path,val){ const ks=path.split('.'); let o=obj;
+  for(let i=0;i<ks.length-1;i++){ const k=/^\d+$/.test(ks[i])?+ks[i]:ks[i]; o=o[k]; }
+  const last=ks[ks.length-1]; o[/^\d+$/.test(last)?+last:last]=val; }
+function getDeep(obj,path){ const ks=path.split('.'); let o=obj;
+  for(const k of ks){ if(o==null)return undefined; o=o[/^\d+$/.test(k)?+k:k]; } return o; }
+function resolvedCoef(){ if(_resolved)return _resolved; const r=deepClone(COEFFICIENTS);
+  for(const p in _overrides){ try{ setDeep(r,p,_overrides[p]); }catch(e){} } _resolved=r; return r; }
+function getCoef(path){ return getDeep(resolvedCoef(),path); }
+function setOverride(path,val){ _overrides[path]=val; _resolved=null; saveJSON(OV_KEY,_overrides); }
+function clearOverrides(){ _overrides={}; _resolved=null; saveJSON(OV_KEY,_overrides); }
+
+/* ---- StorageAdapter（v1 落 localStorage，预留 IndexedDB 切换位）---- */
+const PREFIX='skab_dingjia_';
+function loadJSON(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function saveJSON(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ return false; } }
+function genId(pre){ return `${pre}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; }
+function genCovCode(){ const d=new Date(); const yy=String(d.getFullYear()).slice(2),
+  mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  const r=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+  return `SK-${yy}${mm}${dd}-${r}`; }
+
+/* ============================================================================
+   3. 函数库（纯函数；对拍算例即验收）· 计算顺序 B→D→A→C→E→合计
+   ========================================================================== */
+const GRADE_IDX={effective:1,efficient:2,leading:3};
+function gradeIndex(g){ return GRADE_IDX[g]!=null?GRADE_IDX[g]:1; }
+
+// §4.7 头部和口径（C-04/C-06）；数组 1-indexed，m=1 时=全曲线，k(1) 不变
+function newHireYearRate(cycle,m){ const arr=getCoef('rampCurve12.'+cycle);
+  const upper=13-m; let s=0; for(let pos=1;pos<=upper&&pos<=12;pos++) s+=arr[pos-1]; return s/12/100; }
+function calcRamp80(cycle){ const arr=getCoef('rampCurve12.'+cycle);
+  for(let pos=1;pos<=12;pos++) if(arr[pos-1]>=80) return pos; return 12; } // fallback 封顶12
+
+// F-00
+function validateInputs(inp){
+  const errors=[];
+  const req=(f,label,cond,txt)=>{ const v=inp[f];
+    if(v==null||v===''||Number.isNaN(v)||!cond(v)) errors.push({field:f,label,text:txt}); };
+  const num=(f,label,min,max)=>req(f,label,v=>typeof v==='number'&&v>=min&&(max==null||v<=max),`需为 ${min}~${max==null?'∞':max}`);
+  ['cityTier','cycleTier','tierGrade','complementLevel','attributableLevel'].forEach(f=>{
+    if(!inp[f]) errors.push({field:f,label:LABELS[f],text:'请选择'}); });
+  num('targetPersonalMonthlyGrossAmt',LABELS.targetPersonalMonthlyGrossAmt,1,null);
+  num('nextYearTargetGrossAmt',LABELS.nextYearTargetGrossAmt,1,null);
+  num('lastYearPerCapitaGrossAmt',LABELS.lastYearPerCapitaGrossAmt,1,null);
+  num('salesCount',LABELS.salesCount,0,null);
+  num('managerCount',LABELS.managerCount,0,null);
+  req('attritionRate',LABELS.attritionRate,v=>v>=0&&v<=0.9,'0~0.9');
+  num('hiringCycleDays',LABELS.hiringCycleDays,1,365);
+  req('blendedMarginRate',LABELS.blendedMarginRate,v=>v>=0.01&&v<=0.95,'0.01~0.95');
+  return {ok:errors.length===0,errors};
+}
+
+// 账单B（六步链，与 2号招人器 F1 同款；today/targetYear 注入）
+function calcCardB(inp,today,targetYear){
+  const cyc=inp.cycleTier,I5=inp.nextYearTargetGrossAmt,I6=inp.lastYearPerCapitaGrossAmt,
+        I7=inp.salesCount,I9=inp.attritionRate,I10=inp.hiringCycleDays;
+  if(!I6){ return {ok:false}; }
+  const midF=getCoef('midYearAttritionFactor');
+  const kEff=m=>newHireYearRate(cyc,m)*(1-I9*midF);
+  const k1=newHireYearRate(cyc,1), kEff1=kEff(1);
+  const fullCap=I5/I6;                                    // ① 满产当量
+  const S1=Math.max(0,Math.ceil(fullCap)-I7);            // 天真
+  const expAttr=I7*I9;                                   // ③ 预期流失（全额计入缺口）
+  const gapCap=fullCap-I7+expAttr;                       // ④ 缺口当量
+  const S6=Math.max(0,Math.ceil(safeDiv(gapCap,kEff1))); // 真实
+  const overRate=safeDiv(S6-S1,S6);
+  const exposeAmt=Math.max(0,(gapCap-S1*kEff1)*I6);
+  const totalHeadTarget=I7+S6;
+  let latestMonth=null;
+  for(let m=12;m>=1;m--){ if(kEff(m)*S6>=gapCap){ latestMonth=m; break; } }
+  let latestHire=null,isLate=false,lateDays=0;
+  if(latestMonth){ latestHire=subDays(firstDay(targetYear,latestMonth),I10);
+    lateDays=daysBetween(latestHire,today); isLate=lateDays>0; }
+  const seg=getCoef('SEGMENT_MAP.'+cyc), frr=getCoef('fullRampRatio.'+seg);
+  const stretch = safeDiv(I5,totalHeadTarget)!=null && safeDiv(I5,totalHeadTarget) > (I6/frr)*1.2;
+  return {ok:true,k1,kEff1,S1,fullCap,expAttr,gapCap,S6,overRate,exposeAmt,
+    totalHeadTarget,latestMonth,latestHire,isLate,lateDays,ramp80:calcRamp80(cyc),targetYear,stretch};
+}
+
+// 账单D
+function calcCardD(inp,totalHeadTarget){
+  const I8=inp.managerCount;
+  const availH=getCoef('spanDefault.weeklyHrs')*getCoef('spanDefault.manageTimeShare')-getCoef('fixedMeetingHrs');
+  const spanCap=Math.floor(availH/getCoef('perHeadMgmtHrs'));
+  const heads=(totalHeadTarget!=null)?totalHeadTarget:inp.salesCount;
+  const managerNeeded=Math.ceil(safeDiv(heads,spanCap));
+  const gap=Math.max(0,managerNeeded-I8);
+  const curSpan=safeDiv(heads,Math.max(I8,1));
+  const coachMin=Math.round(Math.max(0,availH-heads*getCoef('perHeadAdminHrs'))/heads*60);
+  return {availH,spanCap,heads,managerNeeded,gap,curSpan,coachMin};
+}
+
+// 账单A（三层全链 + 六道闸）
+function calcCardA(inp,managerNeeded,totalHeadTarget){
+  const I1=inp.cityTier,I2=inp.cycleTier,grade=inp.tierGrade,I4=inp.targetPersonalMonthlyGrossAmt,
+        I5=inp.nextYearTargetGrossAmt,I11=inp.blendedMarginRate;
+  const gi=gradeIndex(grade),cityB=getCoef('cityBase.'+I1),cf=getCoef('cycleFactor.'+I2),
+        social=getCoef('socialCostRate'),ltr=getCoef('longTermRate'),minW=getCoef('minWageTable.'+I1);
+  const Bof=(lv,idx)=>roundYuanFen(cityB*getCoef('levelMultiplier.'+lv)[idx]*cf);
+  const Tof=(lv,idx)=>getCoef('thresholdTTable.'+I1+'.'+lv)[idx]*100; // 元→分
+  const Gof=lv=> lv==='sales'?I4 : lv==='manager'?safeDiv(I5,12*Math.max(managerNeeded,1)) : I5/12;
+  const layers=['sales','manager','executive'];
+  const count={sales:totalHeadTarget,manager:managerNeeded,executive:1};
+  const rows=layers.map(lv=>{
+    const B=Bof(lv,gi),T=Tof(lv,gi),G=Gof(lv);
+    const longAmt=Math.round(T*ltr), gapAmt=Math.round(T*(1-ltr))-B;
+    const blocked=B>=T*(1-ltr), r=blocked?null:safeDiv(gapAmt,G);
+    const belowMinWage=B<minW, floatShare=safeDiv(gapAmt,T);
+    return {level:lv,B,T,G,longAmt,gapAmt,blocked,r,belowMinWage,floatShare,count:count[lv]};
+  });
+  const sales=rows[0], Bwarn=Bof('sales',0), Twarn=Tof('sales',0);
+  const goodHire=Math.min(sales.B/Bwarn, sales.T/Twarn);
+  const comp=ratio3(sales.B,sales.gapAmt,sales.longAmt);
+  const burdenNum=rows.reduce((s,r)=>s+(r.count||0)*r.gapAmt*12,0);
+  const burdenRate=safeDiv(burdenNum,I5);
+  const fullNum=rows.reduce((s,r)=>s+(r.count||0)*(Math.round(r.B*(1+social))+r.gapAmt+r.longAmt)*12,0);
+  const fullBurden=safeDiv(fullNum,I5), fullRev=fullBurden!=null?fullBurden*I11:null;
+  // 闸
+  const gates=[];
+  const anyBlocked=rows.some(r=>r.blocked);
+  if(anyBlocked) gates.push({id:1,light:'red',code:'W-02',row:rows.find(r=>r.blocked)});
+  if(I11<0.20) gates.push({id:2,light:'red',code:'W-01'});
+  if(sales.B<Bwarn) gates.push({id:3,light:'red',code:'W-03'});
+  if(sales.floatShare!=null&&sales.floatShare>=0.65) gates.push({id:4,light:'amber',code:'W-04'});
+  if(burdenRate!=null){ if(burdenRate>0.35) gates.push({id:5,light:'red',code:'W-05'});
+    else if(burdenRate<0.25) gates.push({id:5,light:'amber',code:'W-06'});
+    else gates.push({id:5,light:'green',code:'ok'}); }
+  rows.forEach(r=>{ if(r.belowMinWage) gates.push({id:6,light:'red',code:'W-29',row:r,minW}); });
+  return {rows,sales,Bwarn,Twarn,goodHire,comp,burdenRate,fullBurden,fullRev,marginRate:I11,
+    hungerBait:sales.B<Bwarn,gates,anyBlocked};
+}
+function ratio3(a,b,c){ const t=a+b+c; if(t<=0)return[0,0,0];
+  let x=[Math.round(a/t*100),Math.round(b/t*100),Math.round(c/t*100)];
+  const diff=100-(x[0]+x[1]+x[2]); x[1]+=diff; return x; }
+
+// 账单C
+function calcCardC(inp){
+  const I1=inp.cityTier,I2=inp.cycleTier,I6=inp.lastYearPerCapitaGrossAmt,
+        I7=inp.salesCount,I9=inp.attritionRate,I10=inp.hiringCycleDays;
+  const monthPer=I6/12, idle=monthPer*I10/30, arr=getCoef('rampCurve12.'+I2);
+  let sumGap=0; for(let pos=1;pos<=12;pos++) sumGap+=(1-arr[pos-1]/100);
+  const rampGap=monthPer*sumGap, recruitFee=getCoef('recruitFeeDefaultAmt'), tag=idle+rampGap+recruitFee;
+  const Tsales=getCoef('thresholdTTable.'+I1+'.sales')[1]*100; // effective
+  const oteLow=Tsales*12*getCoef('turnoverCostOteRate')[0], oteHigh=Tsales*12*getCoef('turnoverCostOteRate')[1];
+  const annual=tag*I7*I9;
+  return {idle,rampGap,recruitFee,tag,oteLow,oteHigh,annual,sumGap};
+}
+// 账单E
+function calcCardE(inp){
+  const I7=inp.salesCount,I12=inp.complementLevel,I13=inp.attributableLevel,tis=getCoef('teamBonusTIS');
+  const sizeScore=100*clamp(1-(I7-tis.sizeFull)/(tis.sizeZero-tis.sizeFull),0,1);
+  const compScore=tis.complementEnum[I12], visScore={no:0,partial:50,yes:100}[I13];
+  const TIS=tis.w[0]*sizeScore+tis.w[1]*compScore+tis.w[2]*visScore;
+  const light=TIS>=tis.green?'green':(TIS>=tis.red?'amber':'red');
+  return {sizeScore,compScore,visScore,TIS,light};
+}
+// 合计
+function calcTotalLine(B,C){ return {total:(C?C.annual:0)+(B?B.exposeAmt:0),annual:C?C.annual:0,expose:B?B.exposeAmt:0}; }
+
+/* 风洞 */
+function generateMenu(baseQuotaAmt,baseBonusAmt,gate3Active){
+  if(gate3Active) return {blocked:true,code:'W-19'};
+  if(!(baseQuotaAmt>0)||!(baseBonusAmt>0)) return null;
+  const steps=getCoef('menuQuotaSteps'),mid=getCoef('menuAttainMid'),slope=getCoef('menuAttainSlope'),
+        round=getCoef('menuRound'),E=mid*baseBonusAmt,P=x=>clamp(mid+slope*(1-x),0.05,0.95);
+  let tiers=steps.map(x=>{ const quota=baseQuotaAmt*x; let bonus=roundTo(E/P(x),round);
+    return {x,quota,bonus,P:P(x)}; });
+  // 校验二（激励相容）：bonus/quota 严格递增；低档违反→下调（脚注 W-28）
+  let adjusted=false;
+  for(let i=1;i<tiers.length;i++){ if(tiers[i].bonus/tiers[i].quota<=tiers[i-1].bonus/tiers[i-1].quota){
+    tiers[i-1].bonus=roundTo(0.98*(tiers[i].bonus/tiers[i].quota)*tiers[i-1].quota,round); adjusted=true; } }
+  tiers=tiers.map(t=>({...t,unitReturn:t.bonus/t.quota,dev:Math.abs(t.P*t.bonus-E)/E}));
+  return {tiers,E,adjusted};
+}
+function gateFraudRisk(audit,inp,env){
+  const I1=inp.cityTier,I2=inp.cycleTier,I5=inp.nextYearTargetGrossAmt,I6=inp.lastYearPerCapitaGrossAmt,I7=inp.salesCount;
+  const p90Eff=(env&&env.realP90Factor!=null)?env.realP90Factor:getCoef('p90ColdFactor');
+  const ratioCur=safeDiv(safeDiv(I5,I7),I6*p90Eff);
+  const Bwarn=roundYuanFen(getCoef('cityBase.'+I1)*getCoef('levelMultiplier.sales')[0]*getCoef('cycleFactor.'+I2));
+  const hunger=audit.currentBaseSalaryAmt<Bwarn*getCoef('hungerBufferRate');
+  const rl=getCoef('attainabilityRedline'); let light,code;
+  if(ratioCur!=null&&ratioCur>rl&&hunger){light='red';code='W-20';}
+  else if(ratioCur!=null&&ratioCur>rl&&!hunger){light='amber';code='W-20b';}
+  else {light='green';code='ok';}
+  return {p90Eff,ratioCur,Bwarn,hunger,light,code};
+}
+function gateAlignment(audit){
+  const p=audit.positionType,b=audit.currentCommissionBase;
+  if((p==='advisory'||p==='aftersales')&&b==='contract_amount') return {light:'red',code:'W-21'};
+  if(p==='pure_sales'&&b==='contract_amount') return {light:'amber',code:'W-21b'};
+  return {light:'green',code:'ok'};
+}
+function checkGuardrail(hasMenuOrSprint,guardrailMetric){
+  return {locked:hasMenuOrSprint&&!guardrailMetric,code:'W-22'}; }
+function countProcessRedlines(n){ return {warn:n>=getCoef('processRedlineWarnCount'),n,code:'W-23'}; }
+function explorationContract(inp){
+  const r80=calcRamp80(inp.cycleTier); return {floorMonths:r80+2,minWage:getCoef('minWageTable.'+inp.cityTier)}; }
+const LEAK_MAP={
+  no_discount:{exit:'该降不降 → 丢单',price:'失单率 ↑',watch:'失单原因=价格占比',w:'lost_price'},
+  discount_excluded:{exit:'隐性让利（送货/延期/口头承诺）',price:'成本不可见、数据变假',watch:'DiscountEntry 缺录率',w:'discount_missing'},
+  old_client_excluded:{exit:'老客荒废',price:'复购率 ↓',watch:'复购率',w:'repurchase'},
+  heavy_monitoring:{exit:'表演性合规（摆拍/刷时长）',price:'可见产出 ≠ 真实产出',watch:'日报计数 vs 成交相关性',w:'report_corr'},
+  push_deadline:{exit:'透支下月 + 破坏价格锚点',price:'期末折扣率 ↑',watch:'period_end_push',w:'period_end_push'},
+  forbid_backlog:{exit:'只做老客不开新客',price:'新客占比 ↓',watch:'新客成交占比',w:'new_client_share'}
+};
+function leakSandbox(measures){ return measures.filter(m=>LEAK_MAP[m]).map(m=>({measure:m,...LEAK_MAP[m]})); }
+
+/* ============================================================================
+   4. 应用状态与持久化
+   ========================================================================== */
+const LABELS={
+  cityTier:'城市线级',cycleTier:'成交周期档',tierGrade:'定价档位',
+  targetPersonalMonthlyGrossAmt:'达标销售的月毛利目标',nextYearTargetGrossAmt:'明年公司毛利目标（年）',
+  lastYearPerCapitaGrossAmt:'去年人均毛利（年·真值）',salesCount:'现有销售人数',managerCount:'现有销售主管人数',
+  attritionRate:'年流失率',hiringCycleDays:'招聘周期（天）',blendedMarginRate:'综合毛利率',
+  complementLevel:'团队任务互补性',attributableLevel:'个人贡献可见度'
+};
+const ENUMS={
+  cityTier:[['tier1','一线'],['tier2','二线'],['tier34','三四线']],
+  cycleTier:[['short','短期≤30天'],['regular','常规1–3月'],['midLong','中长4–6月'],['long','长期7–12月'],['ultraLong','超长>12月']],
+  tierGrade:[['effective','有效'],['efficient','高效'],['leading','领先']],
+  complementLevel:[['solo','各干各的'],['partial','部分协作'],['chained','环环相扣']],
+  attributableLevel:[['no','说不清谁干的'],['partial','部分能分清'],['yes','能精确到人头']],
+  positionType:[['pure_sales','纯销售'],['advisory','顾问建议岗'],['aftersales','售后服务岗']],
+  commissionBaseType:[['contract_amount','按合同额/回款额'],['margin_based','按毛利'],['neutral_kpi','按中性指标']],
+  guardrailMetric:[['complaint_rate','客诉率'],['refund_rate','退款率'],['discount_rate','折扣率']]
+};
+const CONTROLS=[['no_discount','不许降价'],['discount_excluded','折扣不计提成'],['old_client_excluded','老客续费不计'],
+  ['heavy_monitoring','过程强监控'],['push_deadline','月底冲刺压单'],['forbid_backlog','禁止押单挪单']];
+
+const REAL_TODAY = new Date().toISOString().slice(0,10); // 唯一一处取真实时钟，下传（公约 C-14）
+
+const app={
+  page:'home',
+  inputs:{ cityTier:null,cycleTier:null,tierGrade:'effective',
+    targetPersonalMonthlyGrossAmt:null,nextYearTargetGrossAmt:null,lastYearPerCapitaGrossAmt:null,
+    salesCount:null,managerCount:null,attritionRate:null,hiringCycleDays:null,blendedMarginRate:null,
+    complementLevel:null,attributableLevel:null },
+  targetYearMode:'next', // 'next' | 'this'
+  results:null,
+  errors:{},
+  audit:{ positionType:'pure_sales',currentCommissionBase:'margin_based',currentBaseSalaryAmt:null,
+    processRedlineCount:0,guardrailMetric:null,explorationMode:false,controlMeasures:[],claimedOutlets:[] },
+  menu:null, menuInputs:{quota:null,bonus:null},
+  externalRef:loadJSON(PREFIX+'external_suanzhang',null),
+  openCards:{A:true,B:true,C:false,D:false,E:false}
+};
+
+function currentTargetYear(){ const y=+REAL_TODAY.slice(0,4); return app.targetYearMode==='this'?y:y+1; }
+
+/* 场景 CRUD */
+function listScenarios(){ return loadJSON(PREFIX+'scenarios',[]); }
+function saveScenario(name){ const arr=listScenarios();
+  arr.unshift({scenarioId:genId('plan'),name:name||('方案'+REAL_TODAY),createdDate:REAL_TODAY,inputs:deepClone(app.inputs),targetYearMode:app.targetYearMode});
+  saveJSON(PREFIX+'scenarios',arr); return arr[0]; }
+function loadScenario(id){ const s=listScenarios().find(x=>x.scenarioId===id); if(!s)return null;
+  app.inputs=deepClone(s.inputs); app.targetYearMode=s.targetYearMode||'next'; return s; }
+function deleteScenario(id){ saveJSON(PREFIX+'scenarios',listScenarios().filter(x=>x.scenarioId!==id)); }
+
+/* 信用书 CRUD（irrevocable 快照，无第二写路径）*/
+function listCovenants(){ return loadJSON(PREFIX+'covenants',[]); }
+function issueCovenant(name){
+  if(!app.results||!app.results.A) return null;
+  const A=app.results.A, s=A.sales, sc=saveScenario('信用书快照'+REAL_TODAY);
+  const cov={covenantId:genId('cov'),code:genCovCode(),candidateName:name,scenarioId:sc.scenarioId,issuedDate:REAL_TODAY,
+    snapshot:{levelType:'sales',tierGrade:app.inputs.tierGrade,baseSalaryAmt:s.B,thresholdTAmt:s.T,commissionRate:s.r}};
+  const arr=listCovenants(); arr.unshift(cov); saveJSON(PREFIX+'covenants',arr); return cov;
+}
+/* 菜单选择 CRUD（irrevocable：无 update/delete 路径）*/
+function listMenuChoices(){ return loadJSON(PREFIX+'menuchoices',[]); }
+function addMenuChoice(name,chosenTier,menuSnapshot){
+  const rec={choiceId:genId('mc'),salespersonName:name,menuSnapshot,chosenTier,chosenDate:REAL_TODAY,irrevocable:true};
+  const arr=listMenuChoices(); arr.unshift(rec); saveJSON(PREFIX+'menuchoices',arr); return rec;
+}
+/* 待补录证据 */
+function listPending(){ return loadJSON(PREFIX+'pending_evidence',[]); }
+
+/* 信封（第【7】章 schema：entities + derived）*/
+function buildEnvelope(){
+  const scenarios=listScenarios(), covenants=listCovenants(), menuChoices=listMenuChoices();
+  const R=app.results;
+  const derived={};
+  if(R&&R.A&&R.A.sales){ derived.r=R.A.sales.r; derived.matrixT=R.A.sales.T; derived.goodHireIndex=R.A.goodHire; }
+  return {
+    schema:'skab_v1', board:'dingjia', exportedAt:REAL_TODAY, dataVersion:1,
+    coefficientsHash:'ov:'+Object.keys(_overrides).length,
+    derived,
+    entities:{
+      CompPlanScenario:scenarios, CovenantDoc:covenants, MenuChoice:menuChoices,
+      PendingEvidence:listPending()
+    }
+  };
+}
+function importEnvelope(obj){
+  if(!obj||obj.schema!=='skab_v1') return {ok:false,msg:'不是有效的 skab_v1 信封'};
+  // 他方 board 只读缓存进 ExternalRef（整条覆盖）；未知实体/derived 静默跳过
+  if(obj.board==='suanzhang'){
+    const ref={board:'suanzhang',exportedAt:obj.exportedAt,dataVersion:obj.dataVersion,
+      coefficientsHash:obj.coefficientsHash,derived:obj.derived||{},importedAt:REAL_TODAY,
+      realP90Factor:(obj.derived&&obj.derived.realP90Factor!=null)?obj.derived.realP90Factor:null};
+    app.externalRef=ref; saveJSON(PREFIX+'external_suanzhang',ref);
+    return {ok:true,msg:'已导入算账器信封：realP90Factor='+(ref.realP90Factor!=null?ref.realP90Factor:'（无，回退1.8）')};
+  }
+  if(obj.board==='dingjia'){ // 本板块场景/信用书回灌（就地合并，仅新增）
+    const e=obj.entities||{};
+    if(e.CompPlanScenario){ const cur=listScenarios(),ids=new Set(cur.map(x=>x.scenarioId));
+      e.CompPlanScenario.forEach(s=>{ if(!ids.has(s.scenarioId)) cur.push(s); }); saveJSON(PREFIX+'scenarios',cur); }
+    return {ok:true,msg:'已并入本板块场景数据'};
+  }
+  return {ok:true,msg:'board='+obj.board+'：未知消费方，已静默跳过'};
+}
+function markExported(){ saveJSON(PREFIX+'last_export',REAL_TODAY); }
+
+/* ============================================================================
+   5. 主计算入口
+   ========================================================================== */
+function compute(today){
+  const v=validateInputs(app.inputs);
+  app.errors={}; v.errors.forEach(e=>app.errors[e.field]=e.text);
+  if(!v.ok){ app.results=null; return false; }
+  const ty=currentTargetYear();
+  const B=calcCardB(app.inputs,today,ty);
+  const D=calcCardD(app.inputs,B.ok?B.totalHeadTarget:null);
+  const A=calcCardA(app.inputs,D.managerNeeded,B.ok?B.totalHeadTarget:app.inputs.salesCount);
+  const C=calcCardC(app.inputs);
+  const E=calcCardE(app.inputs);
+  const total=calcTotalLine(B,C);
+  app.results={A,B,C,D,E,total};
+  return true;
+}
+
+/* ============================================================================
+   6. UI 渲染
+   ========================================================================== */
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c,h)=>{ const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n; };
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900); }
+
+function nav(pg){ app.page=pg; render(); }
+function render(){
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.pg===app.page));
+  $('#crumb').textContent={home:'输入面板',dash:'五张账单',wt:'方案风洞',data:'场景与数据',settings:'系数矩阵'}[app.page];
+  $('#topLic').textContent=AUTHORIZED_CLIENT; $('#railLic').textContent='授权：'+AUTHORIZED_CLIENT;
+  renderNudge();
+  const root=$('#pages'); root.innerHTML='';
+  root.appendChild(({home:pgHome,dash:pgDash,wt:pgWT,data:pgData,settings:pgSettings})[app.page]());
+}
+function renderNudge(){
+  const last=loadJSON(PREFIX+'last_export',null); const n=$('#nudge');
+  const nudgeDays=14, hasData=listScenarios().length>0||listCovenants().length>0;
+  let stale=null; if(last) stale=daysBetween(last,REAL_TODAY);
+  if(hasData && (!last || (stale!=null&&stale>nudgeDays))){
+    n.classList.add('show');
+    $('#nudgeText').innerHTML = last
+      ? `你已 <b>${stale}</b> 天没备份数据了——导出一份信封 JSON，只要 10 秒。`
+      : `数据只在你这台电脑上——导出一份信封 JSON 备份，只要 10 秒。`;
+  } else n.classList.remove('show');
+}
+
+/* ---- 页面①：输入面板 ---- */
+function pgHome(){
+  const p=el('div','page');
+  p.appendChild(el('div','hero',`<h1>销售人力总算盘</h1>
+    <p>输入 13 个数，5 分钟看清：定薪定多少、该招几个人、走一个人亏多少、缺几个主管、团队奖该不该发；系统同时替你把方案对一遍最低工资与劳动法红线，再送进风洞预演它会被怎么玩。</p>`));
+  const groups=el('div','groups');
+  groups.appendChild(homeGroup('基本盘',['cityTier','cycleTier','tierGrade']));
+  groups.appendChild(homeGroup('钱与目标',['targetPersonalMonthlyGrossAmt','nextYearTargetGrossAmt','lastYearPerCapitaGrossAmt']));
+  groups.appendChild(homeGroup('人',['salesCount','managerCount','attritionRate','hiringCycleDays']));
+  groups.appendChild(homeGroup('生意',['blendedMarginRate','complementLevel','attributableLevel']));
+  p.appendChild(groups);
+  // actions
+  const act=el('div','actions');
+  const go=el('button','btn','开始算账'); go.onclick=()=>{ if(compute(REAL_TODAY)){ nav('dash'); } else { render(); toast('请补齐红框字段'); } };
+  const demo=el('button','btn ghost','填入示例数据体验'); demo.onclick=fillDemo;
+  act.appendChild(go); act.appendChild(demo);
+  p.appendChild(act);
+  p.appendChild(el('div','footnote','本工具纯本地运行，数据不出你的电脑——我们碰不到，也不想碰。'));
+  return p;
+}
+function homeGroup(title,fields){
+  const c=el('div','card grp'); c.appendChild(el('h3',null,title));
+  fields.forEach(f=>c.appendChild(fieldFor(f)));
+  return c;
+}
+const REF={
+  cycleTier:'从客户首次接触到回款的典型时长',tierGrade:'拿不准就用「有效」档',
+  targetPersonalMonthlyGrossAmt:'参考：去年人均月毛利 ×1.1–1.3',lastYearPerCapitaGrossAmt:'总毛利÷销售人数，别用配额',
+  attritionRate:'全球销售岗基准约 35%',hiringCycleDays:'从发帖到到岗，行业参考 45 天',blendedMarginRate:'全品类加权'
+};
+const WAN_FIELDS=new Set(['targetPersonalMonthlyGrossAmt','nextYearTargetGrossAmt','lastYearPerCapitaGrossAmt']);
+const RATE_FIELDS=new Set(['attritionRate','blendedMarginRate']);
+function fieldFor(f){
+  const wrap=el('div','fld'); const err=app.errors[f];
+  if(ENUMS[f] && ['cityTier','cycleTier','tierGrade','complementLevel','attributableLevel'].includes(f)){
+    wrap.appendChild(el('label',null,LABELS[f]));
+    const seg=el('div','seg');
+    ENUMS[f].forEach(([val,lab])=>{ const b=el('button',app.inputs[f]===val?'on':'',lab);
+      b.onclick=()=>{ app.inputs[f]=val; render(); }; seg.appendChild(b); });
+    wrap.appendChild(seg);
+  } else {
+    let unit = WAN_FIELDS.has(f)?'（万元）':RATE_FIELDS.has(f)?(f==='attritionRate'?'（0–1，如 0.35）':'（0–1，如 0.30）'):'';
+    wrap.appendChild(el('label',null,`${LABELS[f]} <span class="unit">${unit}</span>`));
+    const inp=el('input'); inp.type='number'; inp.step=RATE_FIELDS.has(f)?'0.01':'1';
+    if(err) inp.classList.add('err');
+    let cur=app.inputs[f];
+    if(cur!=null){ cur = WAN_FIELDS.has(f)? (cur/1e6) : cur; inp.value=cur; }
+    inp.placeholder=REF[f]||'';
+    inp.oninput=()=>{ let v=inp.value===''?null:parseFloat(inp.value);
+      if(v!=null&&WAN_FIELDS.has(f)) v=Math.round(v*1e6); app.inputs[f]=v; };
+    wrap.appendChild(inp);
+    if(REF[f]) wrap.appendChild(el('div','ref','参考：'+REF[f]));
+  }
+  if(err) wrap.appendChild(el('div','errmsg show',`${LABELS[f]} 还没填好：${err}`));
+  return wrap;
+}
+function fillDemo(){
+  app.inputs={ cityTier:'tier1',cycleTier:'regular',tierGrade:'effective',
+    targetPersonalMonthlyGrossAmt:9*1e6, nextYearTargetGrossAmt:1000*1e6, lastYearPerCapitaGrossAmt:100*1e6,
+    salesCount:5,managerCount:1,attritionRate:0.35,hiringCycleDays:45,blendedMarginRate:0.30,
+    complementLevel:'partial',attributableLevel:'partial' };
+  app.targetYearMode='next'; compute(REAL_TODAY); nav('dash'); toast('已填入示例数据并算账');
+}
+
+/* ---- 页面②：五张账单 ---- */
+function pgDash(){
+  const p=el('div','page');
+  if(!app.results){ p.appendChild(emptyState('📥','还没有账单','先到「输入面板」填 13 个数，点“开始算账”。',()=>nav('home'),'去输入面板')); return p; }
+  const R=app.results, free=BUILD_MODE==='free';
+  // 合计条
+  const tb=el('div','total-bar');
+  tb.innerHTML=`<div class="lab">今年已注定漏损 ≈</div><div class="big mono">${wan(R.total.total)}</div>
+    <div class="exp">流失总账 ${wan(R.total.annual)} + 产能高估暴露 ${wan(R.total.expose)}。这两笔钱不在任何报表上——它们是「按老算法办事」的价格。</div>`;
+  p.appendChild(tb);
+  // 五卡
+  p.appendChild(cardA(R.A,free));
+  p.appendChild(cardB(R.B,free));
+  p.appendChild(cardC(R.C,free));
+  p.appendChild(cardD(R.D,R.B,free));
+  p.appendChild(cardE(R.E,free));
+  // 操作条
+  const op=el('div','opbar');
+  const reBtn=el('button','btn ghost sm','改输入重算'); reBtn.onclick=()=>nav('home');
+  op.appendChild(reBtn);
+  if(!free){
+    const cov=el('button','btn sm','签发招聘信用书'); cov.onclick=coverFlow; op.appendChild(cov);
+    const exp=el('button','btn ghost sm','导出方案书（打印/PDF）'); exp.onclick=()=>printPlan();
+    op.appendChild(exp);
+    const sv=el('button','btn ghost sm','保存场景'); sv.onclick=()=>{ const n=prompt('方案名','方案'+REAL_TODAY); if(n!=null){ saveScenario(n); toast('已保存'); renderNudge(); } };
+    op.appendChild(sv);
+  } else {
+    const un=el('button','btn sm','解锁完整版'); un.onclick=()=>toast('完整版含：三层定薪全链、招聘信用书、方案书 PDF'); op.appendChild(un);
+  }
+  p.appendChild(op);
+  return p;
+}
+function dcardShell(key,idx,name,sub,resV,resK){
+  const c=el('div','card dcard'+(app.openCards[key]?' open':''));
+  const head=el('div','head');
+  head.innerHTML=`<div class="idx">${idx}</div><div class="tt"><div class="nm">${name}</div><div class="sub">${sub}</div></div>
+    <div class="res"><div class="v mono">${resV}</div><div class="k">${resK}</div></div><div class="chev">▶</div>`;
+  head.onclick=()=>{ app.openCards[key]=!app.openCards[key]; c.classList.toggle('open'); };
+  c.appendChild(head);
+  const body=el('div','body'); c.appendChild(body);
+  return {c,body};
+}
+function lockWrap(node,free){
+  if(!free) return node;
+  const w=el('div','locked'); const inner=el('div','lockable'); inner.appendChild(node); w.appendChild(inner);
+  w.appendChild(el('div','lock-note',`<div class="box"><b>完整明细在完整版中解锁</b>完整版含：三层定薪全链、招聘信用书、方案书 PDF。</div>`));
+  return w;
+}
+function gateNode(g){
+  const map=W_TEXT; const light=g.light; const cls='gate '+(light==='red'?'red':light==='amber'?'amber':light==='gold'?'gold':'green');
+  const dot=light==='red'?'🔴':light==='amber'?'🟡':light==='gold'?'🏅':'🟢';
+  let txt=map[g.code]?map[g.code](g):'';
+  return el('div',cls,`<span class="dot">${dot}</span><div>${txt}</div>`);
+}
+function cardA(A,free){
+  const s=A.sales;
+  const {c,body}=dcardShell('A','A','账单A · 定薪回算',`好招指数 ${A.goodHire.toFixed(2)} · ${gradeName(app.inputs.tierGrade)}档`,
+    s.r!=null?pct(s.r):DASH,'销售提成率 r');
+  const inner=el('div','inner');
+  if(A.anyBlocked){
+    const b=A.rows.find(r=>r.blocked);
+    inner.appendChild(el('div','gate red',`<span class="dot">🔴</span><div>${W_TEXT['W-02']({row:b})}</div>`));
+  }
+  // 三层表
+  const t=el('table','grid');
+  t.innerHTML=`<tr><th>层级</th><th>底薪 B</th><th>达标收入 T</th><th>提成率 r</th><th>目标人数</th></tr>`+
+    A.rows.map(r=>`<tr><td>${levelName(r.level)}</td><td class="${r.belowMinWage?'warn':''}">${yuan(r.B)}${r.belowMinWage?' ⚠︎':''}</td>
+      <td>${yuan(r.T)}</td><td>${r.blocked?DASH:pct(r.r)}</td><td>${r.count!=null?r.count:DASH}</td></tr>`).join('');
+  inner.appendChild(t);
+  // 构成比
+  const [cb,cg,cl]=A.comp;
+  inner.appendChild(el('div',null,'<div class="hint" style="margin-top:6px">销售层薪酬构成（底薪 : 提成缺口 : 长期分红池）</div>'));
+  inner.appendChild(el('div','compbar',`<div class="b" style="flex:${cb}">${cb}</div><div class="g" style="flex:${cg}">${cg}</div><div class="l" style="flex:${cl}">${cl}</div>`));
+  // 好招指数
+  const gi=A.goodHire, band=gi<1?'bi-red':gi<1.2?'bi-amber':gi<1.4?'bi-green':'bi-gold';
+  const bl=gi<1?'🔴 偏低':gi<1.2?'🟡 及格':gi<1.4?'🟢 好招':'🏅 极好招';
+  inner.appendChild(el('div',null,`<div style="margin:12px 0"><span class="badge-idx ${band}">好招指数 ${gi.toFixed(2)} · ${bl}</span></div>`));
+  // 负担率（全口径灰字）
+  inner.appendChild(el('div','gates',''));
+  const gg=inner.querySelector('.gates');
+  A.gates.filter(g=>g.id!==1).forEach(g=>gg.appendChild(gateNode(g)));
+  if(A.fullBurden!=null){
+    gg.appendChild(el('div','gate green',`<span class="dot">ℹ️</span><div>全口径人力负担（含底薪/社保/长期分红池）≈ <b>${pct(A.fullBurden)}</b>；按毛利率折营收 ≈ <b>${pct(A.fullRev)}</b>，对标 CCOS 健康带 8–15% 营收。</div>`));
+  }
+  inner.appendChild(el('div','killer','这不是工资单，是一张「普通人干出头部水平」压强表——r 越高、底薪越低，越像鱼饵。'));
+  body.appendChild(lockWrap(inner,free));
+  return c;
+}
+function cardB(B,free){
+  if(!B.ok){ const {c,body}=dcardShell('B','B','账单B · 产能与招人','人均毛利缺失',DASH,'该招几人');
+    body.appendChild(el('div','inner','<div class="hint">去年人均毛利为 0，整卡无法计算，显“—”。</div>')); return c; }
+  const {c,body}=dcardShell('B','B','账单B · 产能与招人算钱器',`天真 ${B.S1} 人 → 六步链 ${B.S6} 人`,`${B.S6}`,'真实需招人数');
+  const inner=el('div','inner');
+  const t=el('table','grid');
+  t.innerHTML=`<tr><th>口径</th><th>数值</th></tr>`+[
+    ['① 需要满产当量',B.fullCap.toFixed(2)+' 人'],
+    ['② 你脑子里（天真）需招 S1',B.S1+' 人'],
+    ['③ 预期流失',B.expAttr.toFixed(2)+' 人'],
+    ['④ 缺口当量',B.gapCap.toFixed(2)+' 人'],
+    ['⑤ 单人当年有效产能 kEff(1)',(B.kEff1*100).toFixed(1)+'%（原始 k(1)='+(B.k1*100).toFixed(1)+'%）'],
+    ['⑥ 六步链真实需招 S6',`<b>${B.S6} 人</b>`],
+    ['产能高估率',B.overRate!=null?pct(B.overRate):DASH],
+    ['高估暴露（今年注定差的钱）',wan(B.exposeAmt)],
+    ['最晚开招日',`${B.latestHire||DASH}${B.isLate?`（已晚 ${B.lateDays} 天）`:'（未晚）'}`]
+  ].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  inner.appendChild(t);
+  if(B.stretch) inner.appendChild(el('div','gate amber',`<span class="dot">🟡</span><div>${W_TEXT['W-09']()}</div>`));
+  const late = B.isLate
+    ? (app.targetYearMode==='this'
+        ? `否则今年目标在今天就已经完不成了——你已经晚了 ${B.lateDays} 天。`
+        : `否则明年目标在今天就已经完不成了。`)
+    : `最晚 ${B.latestHire} 必须开招。`;
+  inner.appendChild(el('div','killer',`你以为招 ${B.S1} 个，六步链算出要招 ${B.S6} 个——差的 ${B.S6-B.S1} 个，就是「人头×配额」高估产能的代价。${late}`));
+  // targetYear 开关
+  const sw=el('div',null,`<div class="hint" style="margin-top:10px">规划年份：${B.targetYear}　<a href="#" id="tyToggle" style="color:var(--accent)">${app.targetYearMode==='this'?'改回算明年':'改算今年'}</a></div>`);
+  body.appendChild(lockWrap(inner,free));
+  body.appendChild(sw);
+  setTimeout(()=>{ const a=$('#tyToggle'); if(a) a.onclick=(e)=>{e.preventDefault(); app.targetYearMode=app.targetYearMode==='this'?'next':'this'; compute(REAL_TODAY); render();}; },0);
+  return c;
+}
+function cardC(C,free){
+  const {c,body}=dcardShell('C','C','账单C · 流失价签','简版（3 项）',wan(C.tag),'走一个销售亏（明细口径）');
+  const inner=el('div','inner');
+  const t=el('table','grid');
+  t.innerHTML=`<tr><th>构成</th><th>金额</th></tr>`+[
+    ['空窗损失（招聘周期内产能为0）',wan(C.idle)],
+    ['爬坡缺口（新人未满产的累计差）',wan(C.rampGap)],
+    ['招聘直接费',`<span id="feeShow">${wan(C.recruitFee)}</span> <a href="#" id="feeEdit" style="color:var(--accent);font-size:12px">改</a>`],
+    ['单人价签（简版 3 项）',`<b>${wan(C.tag)}</b>`],
+    ['OTE 比例口径（全球）',`${wan(C.oteLow)} – ${wan(C.oteHigh)}`],
+    ['今年流失总账',`<b>${wan(C.annual)}</b>`]
+  ].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  inner.appendChild(t);
+  inner.appendChild(el('div','hint','注：本卡为「简版（3 项）」，不与留人器 6 项口径（约 75 万）并列比较。'));
+  inner.appendChild(el('div','killer',`最大的一块是爬坡缺口——所以「缩短爬坡」比「降低流失」更值钱。`));
+  body.appendChild(lockWrap(inner,free));
+  setTimeout(()=>{ const a=$('#feeEdit'); if(a) a.onclick=(e)=>{e.preventDefault();
+    const cur=(C.recruitFee/1e6); const v=prompt('招聘直接费（万元）',cur); if(v!=null&&!isNaN(+v)){
+      setOverride('recruitFeeDefaultAmt',Math.round(+v*1e6)); compute(REAL_TODAY); render(); toast('已更新招聘费并落库'); } }; },0);
+  return c;
+}
+function cardD(D,B,free){
+  const {c,body}=dcardShell('D','D','账单D · 管理跨度',`需 ${D.managerNeeded} 主管 · 缺 ${D.gap}`,`${D.gap}`,'主管缺口');
+  const inner=el('div','inner');
+  const t=el('table','grid');
+  t.innerHTML=`<tr><th>口径</th><th>数值</th></tr>`+[
+    ['周管理可用工时',D.availH+' h'],['一个主管跨度上限',D.spanCap+' 人'],
+    ['规划总人数',D.heads+' 人'],['需要主管数',D.managerNeeded+' 人'],
+    ['主管缺口',D.gap+' 人'],['每人每周分到辅导',D.coachMin+' 分钟']
+  ].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  inner.appendChild(t);
+  const S6=B&&B.ok?B.S6:'—';
+  inner.appendChild(el('div','killer',`你要招的不是 ${S6} 个销售，是 ${S6} 个销售加 ${D.gap} 个主管——辅导剂量不足会推高流失与爬坡时长。`));
+  body.appendChild(lockWrap(inner,free));
+  return c;
+}
+function cardE(E,free){
+  const light=E.light, dot=light==='green'?'🟢':light==='amber'?'🟡':'🔴';
+  const {c,body}=dcardShell('E','E','账单E · 团队奖红绿灯',`TIS ${E.TIS.toFixed(0)}`,`${dot} ${E.TIS.toFixed(0)}`,'团队激励适配分');
+  const inner=el('div','inner');
+  const t=el('table','grid');
+  t.innerHTML=`<tr><th>维度</th><th>得分</th></tr>`+[
+    ['规模分（人越多越懈怠）',E.sizeScore.toFixed(0)],['互补分',E.compScore.toFixed(0)],
+    ['可见分（能否精确到人头）',E.visScore.toFixed(0)],['团队激励适配 TIS',`<b>${E.TIS.toFixed(0)}</b>（≥70 绿 / 40–70 黄 / <40 红）`]
+  ].map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  inner.appendChild(t);
+  const msg=light==='green'?'小团队 + 互补 + 可见——团队奖能活。':light==='amber'?'介于之间：发团队奖前先确认贡献可见度。':'人多、各干各的、说不清谁干的——团队奖只会喂出搭便车。';
+  inner.appendChild(el('div','killer',msg));
+  body.appendChild(lockWrap(inner,free));
+  return c;
+}
+function gradeName(g){ return {effective:'有效',efficient:'高效',leading:'领先'}[g]; }
+function levelName(l){ return {sales:'销售',manager:'主管',executive:'高管'}[l]; }
+
+/* ---- 话术库（逐字，件五 W-00~W-31）---- */
+const W_TEXT={
+  'W-01':()=>`你的综合毛利率 ${pct(app.inputs.blendedMarginRate)}，属于低毛利生意——提成必须按毛利口径计（本系统默认如此）。若你现行方案按回款提成，大概率卖一单亏一单。`,
+  'W-02':(g)=>`底薪已吃穿现金目标：底薪 ${yuan(g.row.B)} ≥ 月收入目标的 90%（${yuan(g.row.T)}×90%）。这不是方案，是固定工资。请调低底薪或上调收入档位。`,
+  'W-03':()=>`饥饿-鱼饵警报：你把底薪压到了预警线以下。底薪低于生存线 + 提成高到刺眼 = 你不是在激励销售，是在制造一个必然作弊的人。`,
+  'W-04':()=>`浮动占比已贴着鱼饵线（65%）。短周期生意可用，但请确认底薪足以生存。`,
+  'W-05':(g)=>`全链提成占目标毛利 ${pct(app.results.A.burdenRate)}，超过 35% 红线——团队长大这套方案会把你撑穿。（35% 毛利 ≈ 毛利率约 25–30% 时的营收薪酬上限）`,
+  'W-06':(g)=>`全链提成占目标毛利仅 ${pct(app.results.A.burdenRate)}，低于 25%——鱼饵不香，好手不来（提成给薄了）。`,
+  'W-09':()=>`按此人数，人均目标已超满产真实水平的 120%——这是「人人满产」的幻觉。全球真实达标率（达标人数占比）只有 43–51%。`,
+  'W-29':(g)=>`底薪疑似违法：${levelName(g.row.level)} 底薪 ${yuan(g.row.B)} 低于你所在城市的最低工资参考（${yuan(g.minW)}）。底薪低于当地最低工资涉嫌违法，员工可追讨差额并申请劳动仲裁。请上调底薪，或到⑤系数页把 minWageTable 改成你当地真实标准。`,
+  'ok':()=>`全链提成占目标毛利在 25–35% 健康带内——鱼饵香、撑不穿。`,
+  'W-19':()=>`菜单暂不可用：你的底薪已低于生存线。饥饿状态下的「自选目标」只会全员挤最低档——先修底薪，再谈菜单。`,
+  'W-20':(g)=>`富国银行方程成立：人均目标已达真实产能上限的 ${pct(g.ratioCur)}（红线 130%），且底薪贴着生存线。目标高到正常干法够不着时，人只剩两条路——走人，或造假。📎 结局参考：350 万个假账户、累计罚款和解超 30 亿美元、5,300 人被开、CEO 下台、2017 年起永久废除销售配额。`,
+  'W-20b':(g)=>`人均目标已达真实产能上限的 ${pct(g.ratioCur)}。底薪尚有缓冲，暂不构成造假高压，但「人人满产」仍是幻觉——达标率会先塌。`,
+  'W-21':()=>`提成基数与客户利益反向：顾问/售后按合同额提成 = 系统性诱导过度推销。📎 Sears 1992 同构方案 → 全公司「没病修出病」（卧底 37 例中 34 例被荐不必要维修）→ 41 州调查、1500 万美元和解、19 起集体诉讼、董事长立即废除提成。✅ 改法：基数换成留存·复购·满意度联动的中性指标。`,
+  'W-21b':()=>`纯销售岗按合同额/回款额提成，在低毛利品类会卖一单亏一单——建议切换毛利口径（本系统默认口径）。`,
+  'W-22':()=>`每个强目标必须配一个护栏指标（客诉率/退款率/折扣率任选其一）。你把 100% 的光打在回款上，阴影里长出来的就是砍价、乱承诺、老客荒废——选定护栏后方可导出方案书。`,
+  'W-23':(g)=>`你设了 ${g.n} 条「最低要求」。📎 AER 2006：底线管理换来底线员工——多数人会把产出降到底线附近。系统已预约一个证据：接入算账器后，M36 将用你自己的数据算出团队「卡线率」。过程红线要少而致命，产出激励要上不封顶。`,
+  'W-24':(g)=>`开拓型任务合同（模板）：保底期 ${g.floorMonths} 个月，底薪按矩阵、不挂业绩（且不得低于当地最低工资 ${yuan(g.minWage)}）；里程碑奖三档（首单成交 / 管道达月配额 3 倍 / 首季回款达标）；结算周期为季度，禁用月结提成。📎 MS 2013：纯绩效工资惩罚试错，而试错是探索的必经之路。`,
+  'W-25':(g)=>`你堵了 ${g.n} 个洞，水改从上面 ${g.n} 个出口漏。没有一个方案能同时堵死所有洞——你能做的是选一个付得起的出口，并让它可见、可归因。`,
+  'W-26':()=>`勾选你现行方案里的控制手段，看看水会从哪里漏出来。`
+};
+
+function emptyState(ic,t,s,cb,btn){ const d=el('div','empty-state',`<div class="ic">${ic}</div><h3>${t}</h3><p class="hint" style="margin:6px 0 16px">${s}</p>`);
+  if(cb){ const b=el('button','btn sm',btn); b.onclick=cb; d.appendChild(b); } return d; }
+
+/* ---- 页面③：方案风洞 ---- */
+function pgWT(){
+  const p=el('div','page wide');
+  if(!app.results){ p.appendChild(emptyState('🌀','方案风洞需要先有方案','先到「输入面板」算出五张账单，再回来给方案做风洞测试。',()=>nav('home'),'去输入面板')); return p; }
+  const free=BUILD_MODE==='free', A=app.results.A;
+  p.appendChild(wtMenu(A,free));
+  p.appendChild(wtGates(A,free));
+  p.appendChild(wtGuardrail(free));
+  p.appendChild(wtSandbox(free));
+  return p;
+}
+function wtMenu(A,free){
+  const c=el('div','card wt-block');
+  c.appendChild(el('div','wt-head','<h3>① 自选激励菜单（三档等价）</h3><p>同样的钱，把「派下去的目标」换成「三选一菜单」——你一分钱不多花，买到每个人对自己选择的承诺。</p>'));
+  const b=el('div','wt-body');
+  if(A.hungerBait){ b.appendChild(el('div','gate red',`<span class="dot">🔴</span><div>${W_TEXT['W-19']()}</div>`)); c.appendChild(b); return c; }
+  const row=el('div','inrow');
+  row.innerHTML=`<div class="fld"><label>基准配额 <span class="unit">（万元/季）</span></label><input type="number" id="mQuota" value="${app.menuInputs.quota!=null?app.menuInputs.quota/1e6:''}" placeholder="如 100"></div>
+    <div class="fld"><label>基准奖金 <span class="unit">（元）</span></label><input type="number" id="mBonus" value="${app.menuInputs.bonus!=null?app.menuInputs.bonus/100:''}" placeholder="如 30000"></div>`;
+  const gen=el('button','btn sm','生成三档');
+  gen.onclick=()=>{ const q=parseFloat($('#mQuota').value), bo=parseFloat($('#mBonus').value);
+    app.menuInputs={quota:isNaN(q)?null:Math.round(q*1e6),bonus:isNaN(bo)?null:Math.round(bo*100)};
+    app.menu=generateMenu(app.menuInputs.quota,app.menuInputs.bonus,A.hungerBait); render(); };
+  row.appendChild(gen); b.appendChild(row);
+  if(app.menu&&app.menu.tiers){
+    const names=['稳妥档','基准档','冲刺档'];
+    const mc=el('div','menu-cards');
+    app.menu.tiers.forEach((t,i)=>{ const card=el('div','mc'+(i===2?' gold':''));
+      card.innerHTML=`<div class="tier">${names[i]}</div><div class="q mono">${wan(t.quota)}</div>
+        <div class="b mono">奖金 ${yuan(t.bonus)}</div>
+        <div class="meta">达标概率 ${pct(t.P)} · 单位回报 ${(t.bonus/(t.quota/1e6)).toFixed(1)} 元/万 · 偏差 ${(t.dev*100).toFixed(2)}%</div>`;
+      mc.appendChild(card); });
+    b.appendChild(mc);
+    b.appendChild(el('div','hint','三档对你的期望成本完全相等（偏差 ≤3%）。选择一经登记不可撤销：他选的目标他认，你印的奖金你不能改。📎 Bommaraju & Hohenberg (2018) JM 82(5)。'));
+    if(app.menu.adjusted) b.appendChild(el('div','hint','稳妥档奖金按激励相容规则下调，期望成本略低于基准——偏差方向对你有利。'));
+    const reg=el('button','btn ghost sm','登记选择'); reg.style.marginTop='12px';
+    reg.onclick=()=>{ const nm=prompt('销售姓名'); if(!nm)return; const tier=prompt('选哪档？ low/mid/high','mid'); if(!tier)return;
+      const map={low:0,mid:1,high:2}; const idx=map[tier]!=null?map[tier]:1;
+      const snap=app.menu.tiers.map(t=>({quotaAmt:t.quota,bonusAmt:t.bonus}));
+      addMenuChoice(nm,['low','mid','high'][idx],snap); toast('已登记（不可撤销 🔒）'); };
+    b.appendChild(reg);
+  }
+  c.appendChild(b); return lockAll(c,free);
+}
+function wtGates(A,free){
+  const c=el('div','card wt-block');
+  c.appendChild(el('div','wt-head','<h3>② 造假风险闸 + 同向性闸</h3><p>你的方案会不会逼人造假？提成基数是否与客户利益反向？</p>'));
+  const b=el('div','wt-body');
+  const row=el('div','inrow');
+  row.innerHTML=`<div class="fld"><label>岗位类型</label><div class="seg" id="segPos"></div></div>
+    <div class="fld"><label>现行提成基数</label><div class="seg" id="segBase"></div></div>
+    <div class="fld"><label>现行底薪 <span class="unit">（元）</span></label><input type="number" id="curBase" value="${app.audit.currentBaseSalaryAmt!=null?app.audit.currentBaseSalaryAmt/100:''}" placeholder="如 6000"></div>`;
+  b.appendChild(row);
+  setTimeout(()=>{ segInto('#segPos','positionType','positionType'); segInto('#segBase','commissionBaseType','currentCommissionBase');
+    const cb=$('#curBase'); if(cb) cb.oninput=()=>{ const v=parseFloat(cb.value); app.audit.currentBaseSalaryAmt=isNaN(v)?null:Math.round(v*100); refreshGates(); }; },0);
+  const out=el('div',null,''); out.id='gateOut'; b.appendChild(out);
+  c.appendChild(b);
+  setTimeout(refreshGates,0);
+  return lockAll(c,free);
+}
+function segInto(sel,enumKey,auditKey){ const host=$(sel); if(!host)return; host.innerHTML='';
+  ENUMS[enumKey].forEach(([v,l])=>{ const btn=el('button',app.audit[auditKey]===v?'on':'',l);
+    btn.onclick=()=>{ app.audit[auditKey]=v; document.querySelectorAll(sel+' button').forEach(x=>x.classList.remove('on')); btn.classList.add('on'); refreshGates(); }; host.appendChild(btn); }); }
+function refreshGates(){ const out=$('#gateOut'); if(!out||!app.results)return; out.innerHTML='';
+  if(app.audit.currentBaseSalaryAmt!=null){
+    const fr=gateFraudRisk(app.audit,app.inputs,app.externalRef);
+    out.appendChild(el('div','gate '+(fr.light==='red'?'red':fr.light==='amber'?'amber':'green'),
+      `<span class="dot">${fr.light==='red'?'🔴':fr.light==='amber'?'🟡':'🟢'}</span><div>${fr.code==='ok'?`造假风险闸：人均目标为真实产能上限的 ${pct(fr.ratioCur)}（未过 130% 红线）。p90 口径 ${fr.p90Eff}${app.externalRef&&app.externalRef.realP90Factor!=null?'（算账器真实值）':'（全球默认 1.8）'}。`:W_TEXT[fr.code](fr)}</div>`));
+  }
+  const al=gateAlignment(app.audit);
+  out.appendChild(el('div','gate '+(al.light==='red'?'red':al.light==='amber'?'amber':'green'),
+    `<span class="dot">${al.light==='red'?'🔴':al.light==='amber'?'🟡':'🟢'}</span><div>${al.code==='ok'?'同向性闸：提成基数与客户利益同向，通过。':W_TEXT[al.code]()}</div>`));
+}
+function wtGuardrail(free){
+  const c=el('div','card wt-block');
+  c.appendChild(el('div','wt-head','<h3>③ 护栏配对 · 过程红线 · 探索合同</h3><p>每个强目标必须配一个护栏；过程红线要少而致命；新战场用新契约。</p>'));
+  const b=el('div','wt-body');
+  const row=el('div','inrow');
+  row.innerHTML=`<div class="fld"><label>护栏指标</label><div class="seg" id="segGuard"></div></div>`;
+  b.appendChild(row);
+  setTimeout(()=>{ const host=$('#segGuard'); host.innerHTML='';
+    ENUMS.guardrailMetric.forEach(([v,l])=>{ const btn=el('button',app.audit.guardrailMetric===v?'on':'',l);
+      btn.onclick=()=>{ app.audit.guardrailMetric=app.audit.guardrailMetric===v?null:v; render(); }; host.appendChild(btn); }); },0);
+  // 过程红线步进
+  const step=el('div',null,`<label style="display:block;font-size:13px;font-weight:600;margin:10px 0 6px">过程「最低要求」条数</label>`);
+  const st=el('div','stepper');
+  st.innerHTML=`<button id="prMinus">−</button><span id="prVal">${app.audit.processRedlineCount}</span><button id="prPlus">+</button>`;
+  step.appendChild(st); b.appendChild(step);
+  const prOut=el('div',null,''); b.appendChild(prOut);
+  const gr=checkGuardrail(true,app.audit.guardrailMetric);
+  if(gr.locked) prOut.appendChild(el('div','gate amber',`<span class="dot">🟡</span><div>${W_TEXT['W-22']()}</div>`));
+  const pr=countProcessRedlines(app.audit.processRedlineCount);
+  if(pr.warn) prOut.appendChild(el('div','gate amber',`<span class="dot">🟡</span><div>${W_TEXT['W-23'](pr)}</div>`));
+  // 探索合同
+  const exWrap=el('div',null,'');
+  const exChk=el('label','chk'); exChk.innerHTML=`<input type="checkbox" id="exMode" ${app.audit.explorationMode?'checked':''}><span>开拓型任务：启用探索合同（禁用月度冲刺与菜单）</span>`;
+  exWrap.appendChild(exChk); b.appendChild(exWrap);
+  if(app.audit.explorationMode){ const ec=explorationContract(app.inputs);
+    b.appendChild(el('div','gate green',`<span class="dot">📋</span><div>${W_TEXT['W-24'](ec)}</div>`));
+    b.appendChild(el('div','hint','开拓期已禁用短期冲刺与菜单：探索要的是试错空间，不是月度压强。'));
+  }
+  c.appendChild(b);
+  setTimeout(()=>{
+    $('#prMinus').onclick=()=>{ app.audit.processRedlineCount=Math.max(0,app.audit.processRedlineCount-1); render(); };
+    $('#prPlus').onclick=()=>{ app.audit.processRedlineCount=Math.min(10,app.audit.processRedlineCount+1); render(); };
+    const em=$('#exMode'); if(em) em.onchange=()=>{ app.audit.explorationMode=em.checked; render(); };
+  },0);
+  return lockAll(c,free);
+}
+function wtSandbox(free){
+  const c=el('div','card wt-block');
+  c.appendChild(el('div','wt-head','<h3>④ 漏水导流沙盘</h3><p>你堵一个洞，水就从别处漏。选一个付得起的出口，让它可见、可归因。</p>'));
+  const b=el('div','wt-body');
+  const grid=el('div',null,'');
+  CONTROLS.forEach(([v,l])=>{ const chk=el('label','chk');
+    chk.innerHTML=`<input type="checkbox" data-m="${v}" ${app.audit.controlMeasures.includes(v)?'checked':''}><span>${l}</span>`;
+    grid.appendChild(chk); });
+  b.appendChild(grid);
+  const out=el('div',null,''); b.appendChild(out);
+  const renderLeak=()=>{ out.innerHTML='';
+    const rows=leakSandbox(app.audit.controlMeasures);
+    if(rows.length===0){ out.appendChild(el('div','gate green',`<span class="dot">💧</span><div>${W_TEXT['W-26']()}</div>`)); return; }
+    const t=el('table','leak-tbl');
+    t.innerHTML=`<tr><th>控制手段</th><th>泄漏出口</th><th>出口价格</th><th>认领监测</th></tr>`+
+      rows.map(r=>`<tr><td>${labelOf(r.measure)}</td><td>${r.exit}</td><td>${r.price}</td>
+        <td><label class="chk" style="margin:0;padding:5px 8px"><input type="checkbox" data-claim="${r.measure}" ${app.audit.claimedOutlets.includes(r.measure)?'checked':''}><span style="font-size:12px">${r.watch}</span></label></td></tr>`).join('');
+    out.appendChild(t);
+    out.appendChild(el('div','gate amber',`<span class="dot">🚰</span><div>${W_TEXT['W-25']({n:rows.length})}</div>`));
+    out.querySelectorAll('[data-claim]').forEach(x=>x.onchange=()=>{ const m=x.dataset.claim;
+      if(x.checked){ if(!app.audit.claimedOutlets.includes(m)) app.audit.claimedOutlets.push(m); }
+      else app.audit.claimedOutlets=app.audit.claimedOutlets.filter(y=>y!==m); toast('监测清单已更新'); }); };
+  grid.querySelectorAll('[data-m]').forEach(x=>x.onchange=()=>{ const m=x.dataset.m;
+    if(x.checked){ if(!app.audit.controlMeasures.includes(m)) app.audit.controlMeasures.push(m); }
+    else { app.audit.controlMeasures=app.audit.controlMeasures.filter(y=>y!==m); app.audit.claimedOutlets=app.audit.claimedOutlets.filter(y=>y!==m); }
+    renderLeak(); });
+  renderLeak();
+  c.appendChild(b);
+  return lockAll(c,free);
+}
+function labelOf(v){ const f=CONTROLS.find(x=>x[0]===v); return f?f[1]:v; }
+function lockAll(node,free){ if(!free)return node; return lockWrap(node.querySelector('.wt-body')?node:node,free); }
+
+/* ---- 页面④：场景与数据 ---- */
+function pgData(){
+  const p=el('div','page');
+  // 场景
+  const sc=el('div','card'); sc.style.marginBottom='18px';
+  sc.appendChild(el('div',null,'<div style="padding:16px 18px;border-bottom:1px solid var(--line2)"><h3 style="font-size:15px">已保存场景</h3></div>'));
+  const list=listScenarios();
+  if(list.length===0) sc.appendChild(el('div','list-row','<div class="info"><div class="s">还没有保存的场景。到「五张账单」点“保存场景”。</div></div>'));
+  list.forEach(s=>{ const r=el('div','list-row');
+    r.innerHTML=`<div class="info"><div class="t">${escapeHtml(s.name)}</div><div class="s">${s.createdDate}</div></div>`;
+    const load=el('button','btn ghost sm','载入'); load.onclick=()=>{ loadScenario(s.scenarioId); compute(REAL_TODAY); nav('dash'); toast('已载入并重算'); };
+    const del=el('button','btn ghost sm','删除'); del.onclick=()=>{ if(confirm('删除该场景？')){ deleteScenario(s.scenarioId); render(); } };
+    r.appendChild(load); r.appendChild(del); sc.appendChild(r); });
+  p.appendChild(sc);
+  // 信封导入导出
+  const env=el('div','card'); env.style.marginBottom='18px';
+  env.appendChild(el('div',null,'<div style="padding:16px 18px;border-bottom:1px solid var(--line2)"><h3 style="font-size:15px">数据信封（导入 / 导出）</h3><p class="hint" style="margin-top:4px">跨板块交换用 skab_v1 信封 JSON。导出功能永不锁定（授-2）。</p></div>'));
+  const eb=el('div',null,''); eb.style.padding='16px 18px';
+  const exp=el('button','btn sm','导出信封 JSON'); exp.onclick=exportEnvelope;
+  const imp=el('button','btn ghost sm','导入信封 JSON'); imp.style.marginLeft='10px'; imp.onclick=()=>$('#fileImp').click();
+  eb.appendChild(exp); eb.appendChild(imp);
+  const fi=el('input'); fi.type='file'; fi.id='fileImp'; fi.accept='.json'; fi.style.display='none';
+  fi.onchange=e=>{ const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
+    rd.onload=()=>{ try{ const r=importEnvelope(JSON.parse(rd.result)); toast(r.msg); render(); }catch(err){ toast('JSON 解析失败'); } }; rd.readAsText(f); };
+  eb.appendChild(fi);
+  if(app.externalRef) eb.appendChild(el('div','hint',`已缓存算账器信封：realP90Factor=${app.externalRef.realP90Factor!=null?app.externalRef.realP90Factor:'（无）'}（数据截至 ${app.externalRef.exportedAt||'—'}）`));
+  env.appendChild(eb); p.appendChild(env);
+  // 信用书重打
+  const cov=el('div','card');
+  cov.appendChild(el('div',null,'<div style="padding:16px 18px;border-bottom:1px solid var(--line2)"><h3 style="font-size:15px">招聘信用书</h3></div>'));
+  const covs=listCovenants();
+  if(covs.length===0) cov.appendChild(el('div','list-row','<div class="info"><div class="s">还没有签发的信用书。到「五张账单」点“签发招聘信用书”。</div></div>'));
+  covs.forEach(cv=>{ const r=el('div','list-row');
+    r.innerHTML=`<div class="info"><div class="t">${escapeHtml(cv.candidateName)} · ${cv.code}</div><div class="s">底薪 ${yuan(cv.snapshot.baseSalaryAmt)} · 达标 ${yuan(cv.snapshot.thresholdTAmt)} · ${cv.issuedDate}</div></div>`;
+    const pr=el('button','btn ghost sm','重打'); pr.onclick=()=>printCovenant(cv); r.appendChild(pr); cov.appendChild(r); });
+  p.appendChild(cov);
+  return p;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function exportEnvelope(){ const env=buildEnvelope(); const blob=new Blob([JSON.stringify(env,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`skab_dingjia_${REAL_TODAY}.json`; a.click();
+  markExported(); renderNudge(); toast('已导出信封'); }
+
+/* ---- 页面⑤：系数矩阵 + 自检 ---- */
+function pgSettings(){
+  const p=el('div','page wide');
+  p.appendChild(el('div','banner-info','本工具系数为<b>全球四十年实证基准值</b>，中国本土系数校准中——你可按自己行业/城市覆盖任一格（尤其 <code>minWageTable</code> 请填你所在城市的真实最低工资）。全球证据给方向，你的数字定生死。'));
+  // 自检徽章
+  const test=el('div','card'); test.style.marginBottom='18px'; test.style.padding='18px';
+  const res=runSelfTests();
+  const pass=res.filter(r=>r.ok).length, tot=res.length;
+  const pill=el('div','summary-pill '+(pass===tot?'ok':'no'),`对拍自检 ${pass}/${tot} ${pass===tot?'全绿 ✓':'有红 ✗'}`);
+  test.appendChild(pill);
+  const badges=el('div','badges');
+  res.forEach(r=>{ const b=el('span','tb '+(r.ok?'ok':'no'),`${r.ok?'✓':'✗'} ${r.id}`); b.title=r.msg||r.id; badges.appendChild(b); });
+  test.appendChild(badges);
+  if(pass<tot) test.appendChild(el('div','hint','红色项：'+res.filter(r=>!r.ok).map(r=>r.id+'（'+r.msg+'）').join('；')));
+  p.appendChild(test);
+  // 矩阵编辑
+  const m=el('div','card'); m.style.padding='18px';
+  m.appendChild(el('h3',null,'系数矩阵'));
+  m.appendChild(el('div','hint','每格金框可覆盖（写 MatrixOverride，经 getCoef 生效）。金额单位见列名。'));
+  m.appendChild(matrixEditor());
+  const reset=el('button','btn ghost sm','恢复出厂'); reset.style.marginTop='14px';
+  reset.onclick=()=>{ if(confirm('清空所有覆盖，恢复出厂系数？')){ clearOverrides(); if(app.results)compute(REAL_TODAY); render(); toast('已恢复出厂'); } };
+  m.appendChild(reset);
+  p.appendChild(m);
+  return p;
+}
+function matrixEditor(){
+  const wrap=el('div','matrix');
+  // cityBase / minWage（元）
+  const t1=el('table',''); t1.innerHTML=`<tr><th>线级</th><th>底薪基数（元/月）</th><th>最低工资（元/月）</th></tr>`;
+  [['tier1','一线'],['tier2','二线'],['tier34','三四线']].forEach(([k,l])=>{
+    const tr=el('tr');
+    tr.innerHTML=`<td>${l}</td>
+      <td><input data-path="cityBase.${k}" data-fen="1" value="${getCoef('cityBase.'+k)/100}"></td>
+      <td><input data-path="minWageTable.${k}" data-fen="1" value="${getCoef('minWageTable.'+k)/100}"></td>`;
+    t1.appendChild(tr); });
+  wrap.appendChild(t1);
+  // levelMultiplier
+  wrap.appendChild(el('div','sub',`<div style="margin:14px 0 4px">层级倍数 [预警,有效,高效,领先]</div>`));
+  const t2=el('table',''); t2.innerHTML=`<tr><th>层级</th><th>预警</th><th>有效</th><th>高效</th><th>领先</th></tr>`;
+  [['sales','销售'],['manager','主管'],['executive','高管']].forEach(([k,l])=>{
+    const tr=el('tr'); let cells=`<td>${l}</td>`;
+    for(let i=0;i<4;i++) cells+=`<td><input data-path="levelMultiplier.${k}.${i}" value="${getCoef('levelMultiplier.'+k)[i]}"></td>`;
+    tr.innerHTML=cells; t2.appendChild(tr); });
+  wrap.appendChild(t2);
+  // 其它标量
+  wrap.appendChild(el('div','sub',`<div style="margin:14px 0 4px">关键标量</div>`));
+  const t3=el('table',''); t3.innerHTML=`<tr><th>系数</th><th>值</th><th>说明</th></tr>`;
+  [['longTermRate','长期分红占比','0.05–0.15'],['socialCostRate','社保系数',''],
+   ['midYearAttritionFactor','新人年中流失折半','kEff 用'],['p90ColdFactor','头部倍数（冷启动）',''],
+   ['recruitFeeDefaultAmt','招聘直接费（元）','fen']].forEach(([k,l,note])=>{
+    const tr=el('tr'); const isFen=k==='recruitFeeDefaultAmt';
+    tr.innerHTML=`<td style="text-align:left">${l}</td><td><input data-path="${k}" ${isFen?'data-fen="1"':''} value="${isFen?getCoef(k)/100:getCoef(k)}"></td><td class="sub" style="text-align:left">${note}</td>`;
+    t3.appendChild(tr); });
+  wrap.appendChild(t3);
+  setTimeout(()=>{ wrap.querySelectorAll('input[data-path]').forEach(inp=>{
+    inp.onchange=()=>{ let v=parseFloat(inp.value); if(isNaN(v))return;
+      if(inp.dataset.fen) v=Math.round(v*100); setOverride(inp.dataset.path,v);
+      if(app.results)compute(REAL_TODAY); toast('已覆盖：'+inp.dataset.path); }; }); },0);
+  return wrap;
+}
+
+/* ---- 打印：信用书 / 方案书 ---- */
+function coverFlow(){ const name=prompt('候选人姓名（≤10字）'); if(!name)return;
+  const cv=issueCovenant(name.slice(0,10)); if(!cv){ toast('请先算账'); return; } printCovenant(cv); renderNudge(); }
+function printCovenant(cv){
+  const s=cv.snapshot, z=$('#printzone');
+  z.innerHTML=`<div class="print-doc"><div class="cov">
+    <div class="code">${cv.code}</div>
+    <h1>销售岗位薪酬信用书</h1>
+    <div class="body">兹承诺：<b>${escapeHtml(cv.candidateName)}</b> 入职后担任<b>销售</b>（<b>${gradeName(s.tierGrade)}</b>档），
+      月度底薪 <b>${yuan(s.baseSalaryAmt)}</b>；月度达标收入 <b>${yuan(s.thresholdTAmt)}</b>（含提成，提成按毛利口径、比例 <b>${s.commissionRate!=null?pct(s.commissionRate):'—'}</b>）；
+      本信用书编号 <b>${cv.code}</b>，一经签发，条款不因业绩上调而单方下调。</div>
+    <div class="legal">依中国劳动法与司法实践，用人单位单方下调已约定提成/降薪，须负举证责任并经民主程序，否则劳动者可主张按原标准补发。本信用书即把这份「不可单方反悔」白纸黑字化——它保护员工，也帮你少打一场大概率会输的仲裁。</div>
+    <div class="sign"><div>签发日期：${cv.issuedDate}</div><div>——公司盖章处——</div></div>
+    <div class="disc">本报告为经营测算参考，不构成法律、税务或投资建议。</div>
+  </div><div class="print-foot">授权：${AUTHORIZED_CLIENT}｜销冠定价器 v2.5</div></div>`;
+  window.print();
+}
+function printPlan(){
+  if(!app.results){ toast('请先算账'); return; }
+  const R=app.results, I=app.inputs, z=$('#printzone');
+  const inputRows=Object.keys(LABELS).map(k=>{ let v=I[k]; if(v==null)v='—';
+    else if(WAN_FIELDS.has(k)) v=wan(v); else if(RATE_FIELDS.has(k)) v=pct(v);
+    else if(ENUMS[k]){ const f=ENUMS[k].find(x=>x[0]===v); v=f?f[1]:v; }
+    return `<tr><td style="text-align:left">${LABELS[k]}</td><td>${v}</td></tr>`; }).join('');
+  z.innerHTML=`<div class="print-doc">
+    <h1 style="font-size:24px;text-align:center">销售人力方案书</h1>
+    <p style="text-align:center;color:#666">${'方案 '+REAL_TODAY}</p>
+    <div style="text-align:center;margin:24px 0;padding:20px;background:#f8f8fb;border-radius:10px">
+      <div style="color:#888">今年已注定漏损 ≈</div><div style="font-size:32px;font-weight:800">${wan(R.total.total)}</div></div>
+    <h3 style="margin-top:20px">输入回执（13 项）</h3>
+    <table class="grid" style="width:100%">${inputRows}</table>
+    <h3 style="margin-top:20px">五张账单摘要</h3>
+    <table class="grid" style="width:100%">
+      <tr><td style="text-align:left">A 销售提成率 r</td><td>${R.A.sales.r!=null?pct(R.A.sales.r):'—'}（全链负担 ${pct(R.A.burdenRate)}）</td></tr>
+      <tr><td style="text-align:left">B 六步链真实需招</td><td>${R.B.ok?R.B.S6+' 人（天真 '+R.B.S1+'，暴露 '+wan(R.B.exposeAmt)+'）':'—'}</td></tr>
+      <tr><td style="text-align:left">C 单人流失价签（简版3项）</td><td>${wan(R.C.tag)}（年账 ${wan(R.C.annual)}）</td></tr>
+      <tr><td style="text-align:left">D 主管缺口</td><td>${R.D.gap} 人</td></tr>
+      <tr><td style="text-align:left">E 团队奖 TIS</td><td>${R.E.TIS.toFixed(0)}（${R.E.light==='green'?'绿':R.E.light==='amber'?'黄':'红'}）</td></tr>
+    </table>
+    <p style="margin-top:24px;font-size:11px;color:#999;text-align:center">本报告为经营测算参考，不构成法律、税务或投资建议。</p>
+    <div class="print-foot">授权：${AUTHORIZED_CLIENT}｜销冠定价器 v2.5</div>
+  </div>`;
+  window.print();
+}
+
+/* ============================================================================
+   7. 对拍自检套件（25 条徽章；时钟统一注入 TEST_TODAY，公约 C-14/R-11）
+   ========================================================================== */
+const TEST_TODAY='2026-07-13';
+function W(w){ return w*1e6; } // 万元→分
+function eqPct(rate,exp){ return rate!=null && (rate*100).toFixed(1)===exp; }
+function eqWan(fen,exp){ return (fen/1e6).toFixed(1)===exp; }
+function baseB(){ return {cityTier:'tier1',cycleTier:'regular',tierGrade:'effective',
+  targetPersonalMonthlyGrossAmt:W(9),nextYearTargetGrossAmt:W(1000),lastYearPerCapitaGrossAmt:W(100),
+  salesCount:5,managerCount:1,attritionRate:0.35,hiringCycleDays:45,blendedMarginRate:0.30,
+  complementLevel:'partial',attributableLevel:'partial'}; }
+function runSelfTests(){
+  const T=[]; const ok=(id,cond,msg)=>T.push({id,ok:!!cond,msg:cond?'':(msg||'不符')});
+  const savedOv=deepClone(_overrides); clearOverrides(); // 出厂系数下自检
+  try{
+    /* T-A1：对拍A（函数级注入）*/
+    const inpA={cityTier:'tier1',cycleTier:'short',tierGrade:'effective',
+      targetPersonalMonthlyGrossAmt:100000*100, nextYearTargetGrossAmt:1200*W(1)/1e6*1e6, // 1200万
+      blendedMarginRate:0.30, salesCount:10};
+    inpA.nextYearTargetGrossAmt=W(1200);
+    const A1=calcCardA(inpA,2,10);
+    ok('T-A1', eqPct(A1.rows[0].r,'19.5')&&eqPct(A1.rows[1].r,'4.7')&&eqPct(A1.rows[2].r,'2.9')
+      &&eqPct(A1.burdenRate,'27.1')&&eqPct(A1.fullBurden,'47.0'),
+      `r=${pct(A1.rows[0].r)}/${pct(A1.rows[1].r)}/${pct(A1.rows[2].r)} 负担=${pct(A1.burdenRate)} 全口径=${pct(A1.fullBurden)}`);
+    /* T-A2：底薪吃穿现金目标（B≥T×0.9）→闸①W-02拦截，该层 r 不渲染 */
+    setOverride('cityBase.tier1',2000000); // 20000元 → 销售 B=20000×1.5×1.0=30000 ≥ T×0.9=27000 → blocked
+    const A2=calcCardA({cityTier:'tier1',cycleTier:'short',tierGrade:'effective',targetPersonalMonthlyGrossAmt:W(9),nextYearTargetGrossAmt:W(1200),blendedMarginRate:0.3,salesCount:10},2,10);
+    clearOverrides();
+    ok('T-A2', A2.rows[0].blocked===true && A2.rows[0].r===null && A2.gates.some(g=>g.code==='W-02'),
+      `blocked=${A2.rows[0].blocked} r=${A2.rows[0].r} W-02=${A2.gates.some(g=>g.code==='W-02')}`);
+    /* T-A3：G=0→r=null "—" */
+    const A3=calcCardA({cityTier:'tier1',cycleTier:'short',tierGrade:'effective',targetPersonalMonthlyGrossAmt:0,nextYearTargetGrossAmt:W(1200),blendedMarginRate:0.3,salesCount:10},2,10);
+    ok('T-A3', A3.rows[0].r===null, 'G=0 应为 null');
+    /* T-B1：对拍B */
+    const B1=calcCardB(baseB(),TEST_TODAY,2027);
+    ok('T-B1', B1.S1===5&&B1.S6===16&&eqPct(B1.overRate,'68.8')&&eqWan(B1.exposeAmt,'461.2')
+      &&B1.latestMonth===1&&B1.latestHire==='2026-11-17'&&B1.isLate===false,
+      `S1=${B1.S1} S6=${B1.S6} over=${pct(B1.overRate)} exp=${wan(B1.exposeAmt)} 月=${B1.latestMonth} 开招=${B1.latestHire}`);
+    /* T-B2：I6=0→整卡 — */
+    const B2=calcCardB({...baseB(),lastYearPerCapitaGrossAmt:0},TEST_TODAY,2027);
+    ok('T-B2', B2.ok===false, 'I6=0 应整卡不算');
+    /* T-B3：I7=20/I6=100万/I5=1000万→S1=0 */
+    const B3=calcCardB({...baseB(),salesCount:20},TEST_TODAY,2027);
+    ok('T-B3', B3.S1===0 && B3.S6===Math.max(0,Math.ceil(B3.gapCap/B3.kEff1)), `S1=${B3.S1} S6=${B3.S6}`);
+    /* T-B4：跨板块咬合 */
+    const B4=calcCardB({cityTier:'tier1',cycleTier:'short',tierGrade:'effective',targetPersonalMonthlyGrossAmt:W(9),
+      nextYearTargetGrossAmt:W(1800),lastYearPerCapitaGrossAmt:W(100),salesCount:10,managerCount:1,
+      attritionRate:0.30,hiringCycleDays:45,blendedMarginRate:0.30,complementLevel:'partial',attributableLevel:'partial'},TEST_TODAY,2026);
+    ok('T-B4', B4.S6===20&&B4.S1===8&&eqPct(B4.overRate,'60.0')&&B4.latestHire==='2025-11-17'&&B4.lateDays===238,
+      `S6=${B4.S6} S1=${B4.S1} over=${pct(B4.overRate)} 开招=${B4.latestHire} 晚=${B4.lateDays}`);
+    /* T-C1：对拍C */
+    const C1=calcCardC(baseB());
+    ok('T-C1', eqWan(C1.tag,'61.2')&&eqWan(C1.annual,'107.0')&&eqWan(C1.oteLow,'54.0')&&eqWan(C1.oteHigh,'72.0'),
+      `价签=${wan(C1.tag)} 年账=${wan(C1.annual)} OTE=${wan(C1.oteLow)}-${wan(C1.oteHigh)}`);
+    /* T-C2：招聘费改2万→价签=62.67万 */
+    setOverride('recruitFeeDefaultAmt',W(2));
+    const C2=calcCardC(baseB()); clearOverrides();
+    ok('T-C2', eqWan(C2.tag,'62.7'), `价签=${wan(C2.tag)}（期望 62.7）`);
+    /* T-D1：对拍D heads=21 */
+    const D1=calcCardD(baseB(),21);
+    ok('T-D1', D1.spanCap===8&&D1.managerNeeded===3&&D1.gap===2&&D1.coachMin===0, `上限=${D1.spanCap} 需=${D1.managerNeeded} 缺=${D1.gap} 辅导=${D1.coachMin}`);
+    /* T-D2：I8=0→分母取1 */
+    const D2=calcCardD({...baseB(),managerCount:0},21);
+    ok('T-D2', D2.curSpan===21, `现跨度=${D2.curSpan}`);
+    /* T-E1 / T-E2 */
+    const E1=calcCardE({salesCount:5,complementLevel:'partial',attributableLevel:'partial'});
+    ok('T-E1', Math.round(E1.TIS)===70&&E1.light==='green', `TIS=${E1.TIS} ${E1.light}`);
+    const E2=calcCardE({salesCount:27,complementLevel:'solo',attributableLevel:'no'});
+    ok('T-E2', Math.round(E2.TIS)===0&&E2.light==='red', `TIS=${E2.TIS} ${E2.light}`);
+    /* T-F16-1：三档 */
+    const M=generateMenu(W(100),3*10000*100,false); // Q=100万, B=3万元
+    const t=M.tiers;
+    ok('T-F16-1', eqWan(t[0].quota,'80.0')&&t[0].bonus/100===22700&&t[1].bonus/100===30000&&t[2].bonus/100===44100
+      &&(t[0].dev*100).toFixed(2)==='0.18'&&(t[1].dev*100).toFixed(2)==='0.00'&&(t[2].dev*100).toFixed(2)==='0.09'
+      &&t[0].unitReturn<t[1].unitReturn&&t[1].unitReturn<t[2].unitReturn,
+      `奖金=${t[0].bonus/100}/${t[1].bonus/100}/${t[2].bonus/100} 偏差=${(t[0].dev*100).toFixed(2)}/${(t[1].dev*100).toFixed(2)}/${(t[2].dev*100).toFixed(2)}`);
+    /* T-F16-2：闸③触发→W-19拦截 */
+    const M2=generateMenu(W(100),3*10000*100,true);
+    ok('T-F16-2', M2.blocked===true&&M2.code==='W-19', '闸③应拦截菜单');
+    /* T-F16-3：登记→落库带🔒、信封含 MenuChoice */
+    const beforeN=listMenuChoices().length;
+    const rec=addMenuChoice('张三_TEST','high',[{quotaAmt:W(80),bonusAmt:2270000},{quotaAmt:W(100),bonusAmt:3000000},{quotaAmt:W(120),bonusAmt:4410000}]);
+    const env=buildEnvelope(); const inEnv=env.entities.MenuChoice.some(x=>x.choiceId===rec.choiceId&&x.irrevocable===true);
+    // 清理测试记录
+    saveJSON(PREFIX+'menuchoices',listMenuChoices().filter(x=>x.choiceId!==rec.choiceId));
+    ok('T-F16-3', rec.irrevocable===true&&inEnv&&env.board==='dingjia', '登记irrevocable且信封含MenuChoice');
+    /* T-F18-1：3000万/5人/底薪5500→W-20红 ratio=333% */
+    const inpF={cityTier:'tier1',cycleTier:'regular',nextYearTargetGrossAmt:W(3000),lastYearPerCapitaGrossAmt:W(100),salesCount:5};
+    const F1=gateFraudRisk({currentBaseSalaryAmt:5500*100},inpF,null);
+    ok('T-F18-1', F1.code==='W-20'&&F1.light==='red'&&eqPct(F1.ratioCur,'333.3'), `code=${F1.code} ratio=${pct(F1.ratioCur)}`);
+    /* T-F18-2：底薪8000→W-20b黄 */
+    const F2=gateFraudRisk({currentBaseSalaryAmt:8000*100},inpF,null);
+    ok('T-F18-2', F2.code==='W-20b'&&F2.light==='amber', `code=${F2.code}`);
+    /* T-F18-3：advisory+contract→红；pure_sales+margin→绿 */
+    const A_red=gateAlignment({positionType:'advisory',currentCommissionBase:'contract_amount'});
+    const A_grn=gateAlignment({positionType:'pure_sales',currentCommissionBase:'margin_based'});
+    ok('T-F18-3', A_red.code==='W-21'&&A_grn.light==='green', '同向性闸判定');
+    /* T-F19-1：有菜单未选护栏→锁；选后解锁 */
+    const G_lock=checkGuardrail(true,null), G_open=checkGuardrail(true,'refund_rate');
+    ok('T-F19-1', G_lock.locked===true&&G_open.locked===false, '护栏软锁');
+    /* T-F19-2：底线=4→W-23；2→静默 */
+    const P4=countProcessRedlines(4), P2=countProcessRedlines(2);
+    ok('T-F19-2', P4.warn===true&&P2.warn===false, '过程红线阈值');
+    /* T-F19-3：探索保底 全周期有定义 */
+    const ec=c2=>explorationContract({cityTier:'tier1',cycleTier:c2}).floorMonths;
+    ok('T-F19-3', ec('short')===9&&ec('regular')===11&&ec('midLong')===13&&ec('long')===14&&ec('ultraLong')===14,
+      `${ec('short')}/${ec('regular')}/${ec('midLong')}/${ec('long')}/${ec('ultraLong')}`);
+    /* T-F20-1：勾3→精确3行 */
+    const L=leakSandbox(['no_discount','push_deadline','forbid_backlog']);
+    ok('T-F20-1', L.length===3&&L.find(x=>x.measure==='push_deadline').w==='period_end_push', `${L.length} 行`);
+    /* T-合1：闸⑥ 销售底薪 < 最低工资 → W-29；其余层不阻断照算 */
+    setOverride('cityBase.tier1',150000); // 1500元 → 销售 B=1500×1.5×1=2250 < 最低工资 2420
+    const H1b=calcCardA({cityTier:'tier1',cycleTier:'short',tierGrade:'effective',targetPersonalMonthlyGrossAmt:W(9),nextYearTargetGrossAmt:W(1200),blendedMarginRate:0.3,salesCount:10},2,10);
+    const w29=H1b.gates.some(g=>g.code==='W-29'); const stillCalc=H1b.rows[1].r!=null;
+    clearOverrides();
+    ok('T-合1', w29===true&&stillCalc===true, `W-29=${w29} 其余仍算=${stillCalc}`);
+    /* T-合2：minWageTable Override 生效经 getCoef */
+    setOverride('minWageTable.tier1',300000); setOverride('cityBase.tier1',190000); // sales B=1900×1.5=2850<3000
+    const H2=calcCardA({cityTier:'tier1',cycleTier:'short',tierGrade:'effective',targetPersonalMonthlyGrossAmt:W(9),nextYearTargetGrossAmt:W(1200),blendedMarginRate:0.3,salesCount:10},2,10);
+    const w29b=H2.gates.some(g=>g.code==='W-29'); clearOverrides();
+    ok('T-合2', w29b===true, `Override minWage 后 W-29=${w29b}`);
+  }catch(e){ ok('EXCEPTION',false,String(e&&e.message||e)); }
+  // 还原用户覆盖
+  _overrides=savedOv; _resolved=null; saveJSON(OV_KEY,_overrides);
+  return T;
+}
+
+/* ============================================================================
+   8. 启动
+   ========================================================================== */
+document.querySelectorAll('#nav a').forEach(a=>a.onclick=e=>{e.preventDefault();nav(a.dataset.pg);});
+$('#nudgeBtn').onclick=exportEnvelope;
+render();
+console.log('销冠定价器 v2.5 自检：',runSelfTests().map(t=>`${t.id}:${t.ok?'✓':'✗ '+t.msg}`).join('  '));
+</script>
