@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>销冠算账器 v3.3 · 经营真相层</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🧮</text></svg>" />
+<style>
+/* ============================================================================
+   销冠算账器 v3.3 · 设计语言
+   借鉴：Stripe/Ramp/Mercury（暖中性浅底、单一发丝线、去饱和状态色）、
+        Linear（FLIP 排名翻转、克制的微交互）、Metabase/Looker（英雄数 + 证据 + 出处，
+        缺失显 — 而非 0）、Gong/Clari（判定+凭据）。全部手写 CSS，无框架无 CDN。
+   ==========================================================================*/
+:root{
+  --bg:#FAFAFA; --card:#FFFFFF; --panel:#F6F7F9; --panel2:#F1F3F5;
+  --ink:#1A1A1A; --ink2:#5C6470; --ink3:#8A909A; --ink4:#C4C8CE;
+  --line:#E6E8EB; --line2:#EEF0F2;
+  --green:#137333; --green-bg:#E6F4EA;
+  --amber:#B25E09; --amber-bg:#FEF3E2;
+  --red:#B3261E; --red-bg:#FCE8E6; --red-hero:#D93025;
+  --blue:#1A56DB; --blue-bg:#EAF1FE;
+  --radius:10px; --radius-sm:7px;
+  --shadow:0 1px 2px rgba(16,24,40,.05);
+  --shadow-lift:0 4px 16px rgba(16,24,40,.08);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cnum" 1;}
+.num{font-feature-settings:"tnum" 1,"cnum" 1;font-variant-numeric:tabular-nums;}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--blue);text-decoration:none}
+::selection{background:#DCE6FB}
+
+/* ---- 布局：左固定导航 + 右内容 ---- */
+#app{display:flex;min-height:100vh}
+#nav{width:236px;flex:0 0 236px;background:var(--card);border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:20px 0}
+.brand{padding:0 22px 18px;border-bottom:1px solid var(--line2);margin-bottom:10px}
+.brand .logo{font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand .sub{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.brand .mode{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.05em}
+.mode.full{background:var(--green-bg);color:var(--green)}
+.mode.free{background:var(--amber-bg);color:var(--amber)}
+.navlist{flex:1;overflow-y:auto;padding:4px 12px}
+.navitem{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
+  color:var(--ink2);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:1px;user-select:none;position:relative}
+.navitem:hover{background:var(--panel)}
+.navitem.active{background:var(--panel2);color:var(--ink);font-weight:600}
+.navitem.active::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;background:var(--ink);border-radius:0 3px 3px 0}
+.navitem .n{font-size:11px;color:var(--ink4);width:16px;text-align:center;font-weight:700}
+.navitem.locked{opacity:.5}
+.navitem .lockicon{margin-left:auto;font-size:11px;color:var(--ink4)}
+.nav-foot{padding:12px 22px 0;border-top:1px solid var(--line2);margin-top:8px;font-size:11px;color:var(--ink3)}
+
+#main{flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{height:52px;flex:0 0 52px;border-bottom:1px solid var(--line);background:rgba(250,250,250,.85);
+  backdrop-filter:saturate(180%) blur(8px);display:flex;align-items:center;gap:14px;padding:0 32px;position:sticky;top:0;z-index:30}
+#topbar .sig{font-size:12px;color:var(--ink3)}
+#topbar .sig b{color:var(--ink2);font-weight:600}
+#topbar .spacer{flex:1}
+#topbar .pill{font-size:11.5px;color:var(--ink2);background:var(--panel);border:1px solid var(--line);
+  padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+#content{flex:1;padding:32px 40px 80px;max-width:1180px;width:100%}
+.screen{display:none;animation:fade .35s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---- 通用组件 ---- */
+.page-h{margin-bottom:8px}
+.page-h h1{font-size:22px;font-weight:700;letter-spacing:-.015em}
+.page-h .lede{color:var(--ink2);font-size:14px;margin-top:4px;max-width:70ch}
+.section-gap{height:28px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1000px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.card.pad0{padding:0;overflow:hidden}
+.card .label{font-size:11.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.045em}
+.hero-num{font-size:52px;font-weight:700;letter-spacing:-.025em;line-height:1;margin:8px 0 6px}
+.hero-num.red{color:var(--red-hero)} .hero-num.green{color:var(--green)}
+.metric-num{font-size:28px;font-weight:600;letter-spacing:-.01em}
+.unit{font-size:.6em;color:var(--ink3);font-weight:600;margin-left:1px}
+.delta{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:5px;margin-top:2px}
+.delta .basis{color:var(--ink3)}
+.dash{color:var(--ink4)}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;line-height:1.5}
+.chip.g{background:var(--green-bg);color:var(--green)} .chip.a{background:var(--amber-bg);color:var(--amber)}
+.chip.r{background:var(--red-bg);color:var(--red)} .chip.b{background:var(--blue-bg);color:var(--blue)}
+.chip.n{background:var(--panel2);color:var(--ink2)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 8px}
+.dot.g{background:var(--green)} .dot.a{background:var(--amber)} .dot.r{background:var(--red-hero)} .dot.n{background:var(--ink4)}
+
+.src{font-size:12px;color:var(--ink3);margin-top:8px;display:flex;align-items:flex-start;gap:5px;line-height:1.5}
+.src .pin{flex:0 0 auto}
+.asof{font-size:11.5px;color:var(--ink3);font-weight:400}
+.asof.stale{color:var(--amber)}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+table.tbl th{text-align:left;font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;
+  padding:10px 14px;border-bottom:1px solid var(--line)}
+table.tbl td{padding:11px 14px;border-bottom:1px solid var(--line2);color:var(--ink)}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl td.num,table.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.tbl tr.hoverable:hover{background:var(--panel)}
+.rowmove{transition:transform .55s cubic-bezier(.2,0,0,1),background .3s}
+
+.btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:8px 15px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:var(--card);color:var(--ink);transition:.12s}
+.btn:hover{background:var(--panel);border-color:#D5D9DE}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:#000}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--blue)}
+.btn.ghost:hover{background:var(--blue-bg)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* action_card：系统永不自动执行，一切走建议卡 */
+.action-card{border:1px solid var(--line);border-left:3px solid var(--ink);background:var(--panel);
+  border-radius:var(--radius-sm);padding:14px 16px;margin-top:14px}
+.action-card.r{border-left-color:var(--red-hero)} .action-card.a{border-left-color:var(--amber)}
+.action-card.b{border-left-color:var(--blue)} .action-card.g{border-left-color:var(--green)}
+.action-card .ac-h{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.action-card .ac-body{font-size:13px;color:var(--ink2);line-height:1.6}
+
+/* 手风琴（证据展开） */
+.acc{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;background:var(--card)}
+.acc-h{display:flex;align-items:center;gap:11px;padding:14px 18px;cursor:pointer;user-select:none}
+.acc-h:hover{background:var(--panel)}
+.acc-h .chev{margin-left:auto;color:var(--ink3);transition:transform .2s;font-size:12px}
+.acc.open .chev{transform:rotate(90deg)}
+.acc-b{max-height:0;overflow:hidden;transition:max-height .28s ease}
+.acc.open .acc-b{max-height:1600px}
+.acc-b-inner{padding:2px 18px 18px;border-top:1px solid var(--line2)}
+.acc-title{font-weight:600;font-size:14px}
+.acc-meta{font-size:12px;color:var(--ink3)}
+
+.stat-strip{display:flex;flex-wrap:wrap;gap:22px;margin:12px 0}
+.stat-strip .st{min-width:90px}
+.stat-strip .st .k{font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.stat-strip .st .v{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat-strip .st .v small{font-size:11.5px;color:var(--ink3);font-weight:400}
+
+.banner{border-radius:var(--radius-sm);padding:11px 16px;font-size:13px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.banner.warn{background:var(--amber-bg);color:#7a4506;border:1px solid #F5D9A8}
+.banner.warn .btn{margin-left:auto}
+.callout{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;font-size:13px;color:var(--ink2);line-height:1.65}
+.callout .q{font-weight:600;color:var(--ink)}
+.fixed-note{font-size:12.5px;color:var(--ink3);font-style:normal;background:var(--panel);border:1px dashed var(--line);
+  border-radius:var(--radius-sm);padding:12px 14px;line-height:1.65;margin-top:12px}
+
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line2);font-size:14px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink2)} .kv .v{font-variant-numeric:tabular-nums;font-weight:600}
+.kv.total{border-top:2px solid var(--ink);margin-top:4px;padding-top:12px}
+.kv.total .k,.kv.total .v{font-weight:700;font-size:15px}
+.kv .v.neg{color:var(--red)}
+
+.lock-hero{text-align:center;padding:48px 24px;max-width:640px;margin:0 auto}
+.lock-hero .ic{font-size:40px}
+.lock-hero h2{font-size:24px;font-weight:700;margin:14px 0 8px}
+.lock-hero p{color:var(--ink2);font-size:14.5px;line-height:1.7}
+
+/* 徽章网格（自检） */
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.badge{border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 11px;font-size:12px;display:flex;align-items:center;gap:8px;background:var(--card)}
+.badge.ok{border-color:#BFE3C9;background:#F3FBF5}
+.badge.no{border-color:#F0C3BF;background:#FEF5F4}
+.badge .bi{font-weight:700}
+.badge.ok .bi{color:var(--green)} .badge.no .bi{color:var(--red-hero)}
+.badge .bid{font-weight:700;font-variant-numeric:tabular-nums}
+.badge .bd{color:var(--ink3);font-size:11px}
+
+.big-badge{display:inline-flex;align-items:center;gap:12px;padding:14px 22px;border-radius:var(--radius);font-weight:700;font-size:22px}
+.big-badge.ok{background:var(--green-bg);color:var(--green)}
+.big-badge.no{background:var(--red-bg);color:var(--red)}
+
+input,select{font-family:inherit;font-size:13.5px;padding:8px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--ink);width:100%}
+input:focus,select:focus{outline:none;border-color:var(--ink3);box-shadow:0 0 0 3px rgba(138,144,154,.12)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.field .hint{font-size:11.5px;color:var(--ink3);margin-top:4px}
+.coef-row{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line2)}
+.coef-row .cn{font-size:13px} .coef-row .cd{font-size:11.5px;color:var(--ink3)}
+
+.tag{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--panel2);color:var(--ink2);letter-spacing:.02em}
+.tag.new{background:var(--blue-bg);color:var(--blue)}
+.muted{color:var(--ink3)}
+.hr{height:1px;background:var(--line);margin:22px 0;border:none}
+.small{font-size:12px;color:var(--ink3)}
+.pin{color:var(--ink3)}
+
+/* 打印（《经营真相报告》A4） */
+@media print{
+  #nav,#topbar,.no-print{display:none!important}
+  #content{padding:0;max-width:none}
+  .screen{display:block!important;page-break-after:always}
+  body{background:#fff}
+  .card{box-shadow:none;border:1px solid #ccc}
+  .print-foot{display:block!important}
+}
+.print-foot{display:none;font-size:11px;color:#888;margin-top:20px;border-top:1px solid #ddd;padding-top:8px}
+
+/* 授-2 免费版：钩子/英雄数可见，明细锁（.locked）；导出与数据页永不锁 */
+body.free-mode #content .acc,
+body.free-mode #content table.tbl,
+body.free-mode #content .action-card:not(.free-ok){filter:blur(4.5px);opacity:.5;pointer-events:none;user-select:none;transition:filter .2s}
+.free-banner{background:var(--amber-bg);color:#7a4506;border:1px solid #F5D9A8;border-radius:var(--radius-sm);
+  padding:10px 15px;font-size:12.5px;display:flex;align-items:center;gap:9px;margin-bottom:16px}
+.free-banner .btn{margin-left:auto}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="nav">
+    <div class="brand">
+      <div class="logo">🧮 销冠算账器</div>
+      <div class="sub">经营真相层 · v3.3</div>
+      <div class="mode full" id="modeBadge">FULL</div>
+    </div>
+    <div class="navlist" id="navlist"></div>
+    <div class="nav-foot">
+      单文件 · 无后端 · 无网络<br/>数据只在你电脑
+    </div>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <div class="sig">授权：<b id="tenantName">演示客户</b></div>
+      <div class="spacer"></div>
+      <div class="pill" id="todayPill">📅 今天 2026-07-13</div>
+      <div class="pill no-print" id="lockPill" style="cursor:pointer">🔓 M21 已归一化</div>
+    </div>
+    <main id="content"></main>
+  </div>
+</div>
+
+<!-- ====================== 计算引擎（离线 35 断言全绿·逐字内联） ====================== -->
+<script>
+/* 销冠算账器 v3.3 计算引擎 —— 唯一权威口径：公约§4/§5 + 3号件三。
+   时钟注入（C-14）：含日期函数 today 显式传参，永不 new Date()。 */
+(function (root) {
+  'use strict';
+  var SK = {};
+  function safeDiv(a, b){ return (b===0||b==null||a==null)?null:a/b; } SK.safeDiv=safeDiv;
+  var COEFFICIENTS = {
+    socialCostRate:0.30, imbalanceGlobal:0.56, redrawGainBand:[0.02,0.07], envelopeStaleDays:90,
+    ahcTrustLine:60, minSampleDefault:5, p90ColdFactor:1.8,
+    territoryBand:[0.90,1.10], selfDevBonusFactor:0.5, discountLeakRedline:0.06, pushShareRedline:0.40,
+    scissorsAlert:0.30, uerMinObs:48, propertyMinEach:{people:4,months:6}, dviMinDeals:10,
+    categoryFuseMarginRate:0.22, categoryFuseShareRate:0.20, winRateCeiling:0.20, refundConcentrationX:3,
+    forcedDiscount:{rate:0.15,share:0.60}, leaverCategoryX:1.5, stopBleedDays:30, territoryStarveIdx:0.7,
+    dataGapWarn:0.10, personLeakX:1.5, p90MinSample:8, p90Method:'R7',
+    m34TailShare:1/3, m34BunchBand:0.10, m34DiffRedline:0.02, m34BunchRedline:1.5,
+    m35RankJumpShare:0.30, m36Band:0.15, m36Redline:0.40, m36MinManDays:30,
+    hongbaoDailyX:2, hongbaoRepeatN:3, scissorsBunchBand:0.15, threeYearScaleFactor:1.18
+  };
+  SK.COEFFICIENTS=COEFFICIENTS;
+  function getCoef(k){ return COEFFICIENTS[k]; } SK.getCoef=getCoef;
+  function round(x){ return Math.round(x); } SK.round=round;
+
+  function commission(paymentAmt,g,r){ if(paymentAmt==null||g==null||r==null)return null; return round(paymentAmt*g*r); }
+  SK.commission=commission;
+  var BONUS_TYPES=['instant_bonus','year_end_bonus','dividend','mentoring_share','recipe_royalty','sprint_vested','discretionary'];
+  SK.BONUS_TYPES=BONUS_TYPES;
+  function totalIncome(ctx){ var b=ctx.baseSalaryAmt||0,c=ctx.commissionAmt||0,bo=0;
+    (ctx.payouts||[]).forEach(function(p){ if(BONUS_TYPES.indexOf(p.type)>=0)bo+=(p.amount||0); }); return b+c+bo; }
+  SK.totalIncome=totalIncome;
+  function laborCost(ctx){ var b=ctx.baseSalaryAmt||0,
+    s=round(b*(ctx.socialCostRate!=null?ctx.socialCostRate:getCoef('socialCostRate'))),c=ctx.commissionAmt||0,p=0;
+    (ctx.payouts||[]).forEach(function(x){ p+=(x.amount||0); }); return b+s+c+p; }
+  SK.laborCost=laborCost;
+  function netContribution(s){ return (s.grossMarginAmt||0)-(s.laborCostAmt||0)-(s.opCostAmt||0)-(s.refundMarginAmt||0)-(s.discountMarginAmt||0); }
+  SK.netContribution=netContribution;
+  function leverageChain(c){ return (c.leads||0)*(c.convRate||0)*(c.aov||0)*(c.marginRate||0)-(c.laborCostAmt||0); }
+  SK.leverageChain=leverageChain;
+
+  var rampCurve12={ short:[0,12,25,42,60,73,85,93,100,100,100,100], regular:[0,5,12,22,35,48,60,72,82,90,96,100],
+    midLong:[0,0,5,12,20,30,42,53,63,72,80,87], long:[0,0,0,5,10,18,27,36,45,54,62,70], ultraLong:[0,0,0,0,5,10,16,23,30,37,44,50] };
+  SK.rampCurve12=rampCurve12;
+  function newHireYearRate(cycle,m){ var a=rampCurve12[cycle]; if(!a)return null; var u=13-m,s=0; for(var i=1;i<=u;i++)s+=(a[i]||0); return s/12/100; }
+  SK.newHireYearRate=newHireYearRate;
+
+  function m21Normalize(people){
+    var n=people.length; if(n===0)return{done:false,rows:[],imbalanceRate:null};
+    var totalLeads=people.reduce(function(a,p){return a+(p.leads||0);},0);
+    var totalMargin=people.reduce(function(a,p){return a+(p.grossMarginAmt||0);},0);
+    var perCapitaLeads=safeDiv(totalLeads,n); var band=getCoef('territoryBand');
+    var rows=people.map(function(p){
+      var index=safeDiv(p.leads,perCapitaLeads);
+      var over=index!=null&&index>band[1], under=index!=null&&index<band[0];
+      var unit=safeDiv(p.grossMarginAmt,p.leads);
+      var nb=(unit==null||perCapitaLeads==null)?null:unit*perCapitaLeads;
+      var ss=safeDiv(p.selfDevLeads||0,p.leads); var sf=1+(ss||0)*getCoef('selfDevBonusFactor');
+      var nm=nb==null?null:nb*sf;
+      return{id:p.id,name:p.name,leads:p.leads,grossMarginAmt:p.grossMarginAmt,selfDevLeads:p.selfDevLeads||0,
+        index:index,over:over,under:under,unitLeadMargin:unit,normMargin:nm,selfFactor:sf};
+    });
+    var bo=rows.slice().sort(function(a,b){return (b.grossMarginAmt||0)-(a.grossMarginAmt||0);});
+    bo.forEach(function(r,i){r.origRank=i+1;});
+    var bn=rows.slice().sort(function(a,b){var av=a.normMargin==null?-Infinity:a.normMargin,bv=b.normMargin==null?-Infinity:b.normMargin;return bv-av;});
+    bn.forEach(function(r,i){r.normRank=i+1;});
+    var ic=rows.filter(function(r){return r.over||r.under;}).length;
+    return{done:true,rows:rows,n:n,totalLeads:totalLeads,totalMargin:totalMargin,perCapitaLeads:perCapitaLeads,
+      imbalanceRate:safeDiv(ic,n),imbalCount:ic,redrawBand:[totalMargin*getCoef('redrawGainBand')[0],totalMargin*getCoef('redrawGainBand')[1]]};
+  }
+  SK.m21Normalize=m21Normalize;
+
+  function percentileR7(s,p){ var n=s.length; if(n===0)return null; if(n===1)return s[0];
+    var h=(n-1)*p,lo=Math.floor(h),f=h-lo; if(lo+1>=n)return s[n-1]; return s[lo]+f*(s[lo+1]-s[lo]); }
+  SK.percentileR7=percentileR7;
+  function realP90Factor(g){ var v=(g||[]).filter(function(x){return x!=null&&isFinite(x);});
+    if(v.length<getCoef('p90MinSample'))return null;
+    var s=v.slice().sort(function(a,b){return a-b;}), m=v.reduce(function(a,b){return a+b;},0)/v.length;
+    return safeDiv(percentileR7(s,0.90),m); }
+  SK.realP90Factor=realP90Factor;
+
+  function solveLinear(Ain,bin){ var n=Ain.length; var M=Ain.map(function(r,i){return r.slice().concat([bin[i]]);});
+    for(var col=0;col<n;col++){ var piv=col; for(var r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[piv][col]))piv=r;
+      if(Math.abs(M[piv][col])<1e-12)return null; var t=M[col];M[col]=M[piv];M[piv]=t; var pv=M[col][col];
+      for(var c=col;c<=n;c++)M[col][c]/=pv;
+      for(var r2=0;r2<n;r2++){ if(r2===col)continue; var f=M[r2][col]; for(var c2=col;c2<=n;c2++)M[r2][c2]-=f*M[col][c2]; } }
+    return M.map(function(r){return r[n];}); }
+  SK.solveLinear=solveLinear;
+  function olsFit(X,y){ var n=X.length,k=X[0].length,A=[],b=[]; for(var i=0;i<k;i++){A.push(new Array(k).fill(0));b.push(0);}
+    for(var r=0;r<n;r++)for(var a=0;a<k;a++){ b[a]+=X[r][a]*y[r]; for(var c=0;c<k;c++)A[a][c]+=X[r][a]*X[r][c]; }
+    var beta=solveLinear(A,b); if(!beta)return null;
+    var pred=X.map(function(row){return row.reduce(function(s,v,j){return s+v*beta[j];},0);});
+    return{beta:beta,pred:pred,resid:y.map(function(v,i){return v-pred[i];})}; }
+  SK.olsFit=olsFit;
+  function uerBand(resid,sigma){ if(resid==null||sigma==null||sigma===0)return null; if(resid>sigma)return'green'; if(resid<-sigma)return'red'; return'gray'; }
+  SK.uerBand=uerBand;
+  function stddev(arr){ var v=arr.filter(function(x){return x!=null;}); if(v.length===0)return null;
+    var m=v.reduce(function(a,b){return a+b;},0)/v.length; return Math.sqrt(v.reduce(function(a,b){return a+(b-m)*(b-m);},0)/v.length); }
+  SK.stddev=stddev;
+  function propertyValue(w,o,mw,mo){ var req=getCoef('propertyMinEach');
+    if(w.length<req.people||o.length<req.people||(mw!=null&&mw<req.months)||(mo!=null&&mo<req.months))return null;
+    return w.reduce(function(a,b){return a+b;},0)/w.length - o.reduce(function(a,b){return a+b;},0)/o.length; }
+  SK.propertyValue=propertyValue;
+  function personAttribution(x){ var kX=getCoef('personLeakX'),band=getCoef('territoryBand');
+    var leakD=(x.discountLeakRate!=null&&x.teamDiscountLeakRate!=null&&x.discountLeakRate>x.teamDiscountLeakRate*kX);
+    var leakC=(x.complaintRate!=null&&x.teamComplaintRate!=null&&x.complaintRate>x.teamComplaintRate*kX);
+    var eLeak=leakD||leakC; var eTer=(x.leadIndex!=null&&x.leadIndex<band[0]);
+    var verdict=eLeak?'leak':(eTer?'territory':'undetermined'); var badList=[];
+    if(leakD)badList.push('折扣泄漏率'+fmtPct(x.discountLeakRate)+'＞均值×'+kX);
+    if(leakC)badList.push('客诉率'+fmtPct(x.complaintRate)+'＞均值×'+kX);
+    return{verdict:verdict,badList:badList,eLeak:eLeak,eTerritory:eTer}; }
+  SK.personAttribution=personAttribution;
+
+  function amortizeForScissors(type,amount,pm){ if(amount==null)return null;
+    if(type==='year_end_bonus')return amount/12; if(type==='dividend')return pm?amount/pm:amount; return amount; }
+  SK.amortizeForScissors=amortizeForScissors;
+  function uerObsGate(n){ return (n||0)>=getCoef('uerMinObs'); } SK.uerObsGate=uerObsGate;
+
+  function dvi(x){ if(x.dealCount!=null&&x.dealCount<getCoef('dviMinDeals'))return null;
+    var lag=Math.min((x.medianEntryLagDays||0)/7,1);
+    return 25*(x.reportRate||0)+25*(1-lag)+25*(x.leadAttribRate||0)+25*(x.discountRecordRate||0); }
+  SK.dvi=dvi;
+  function dviBand(v){ if(v==null)return null; return v>70?'green':(v>=40?'amber':'red'); } SK.dviBand=dviBand;
+
+  function hijackVerdict(ev){ var e1=ev.ahc,e2=ev.m28Coverage,e3=ev.irrevocable;
+    if(e1==null||e2==null||e3==null){ var mi=[]; if(e1==null)mi.push('AHC'); if(e2==null)mi.push('M28 协议数'); if(e3==null)mi.push('irrevocable 条款');
+      return{verdict:'insufficient',missingList:mi}; }
+    var bad=(e1<getCoef('ahcTrustLine')?1:0)+(e2===0?1:0)+(e3===false?1:0); var bl=[];
+    if(e1<getCoef('ahcTrustLine'))bl.push('AHC '+e1+'<'+getCoef('ahcTrustLine'));
+    if(e2===0)bl.push('M28 覆盖 0%'); if(e3===false)bl.push('irrevocable 未开');
+    return{verdict:bad>=1?'pointed_hoarding':'not_supported',bad:bad,badList:bl}; }
+  SK.hijackVerdict=hijackVerdict;
+
+  function m33Evidence(x){ var e1=x.winRate!=null&&x.winRate<getCoef('winRateCeiling');
+    var e2=x.refundByCategoryX!=null&&x.refundByCategoryX>getCoef('refundConcentrationX');
+    var fd=getCoef('forcedDiscount'); var e3=x.discountRate!=null&&x.pushShare!=null&&x.discountRate>fd.rate&&x.pushShare>fd.share;
+    var e4=x.leaverLowMarginRatioMedian!=null&&x.teamLowMarginRatio!=null&&x.leaverLowMarginRatioMedian>x.teamLowMarginRatio*getCoef('leaverCategoryX');
+    return{e1:e1,e2:e2,e3:e3,e4:e4,any:e1||e2||e3||e4}; }
+  SK.m33Evidence=m33Evidence;
+
+  function gateDiscountLeak(ds){ var sd=0,sl=0,sp=0;
+    (ds||[]).forEach(function(d){ sd+=(d.discountAmt||0); sl+=(d.listPriceAmt||0); if(d.reason==='period_end_push')sp+=(d.discountAmt||0); });
+    var lr=safeDiv(sd,sl),ps=safeDiv(sp,sd);
+    return{leakRate:lr,pushShare:ps,sumDiscountAmt:sd,leakRed:lr!=null&&lr>getCoef('discountLeakRedline'),pushRed:ps!=null&&ps>getCoef('pushShareRedline')}; }
+  SK.gateDiscountLeak=gateDiscountLeak;
+  function scissors(cg,ig){ if(cg==null||ig==null)return null; return cg-ig; } SK.scissors=scissors;
+  function categoryFuse(mr,ps){ return mr!=null&&ps!=null&&mr<getCoef('categoryFuseMarginRate')&&ps>getCoef('categoryFuseShareRate'); }
+  SK.categoryFuse=categoryFuse;
+
+  function m34ArbitrageFromRates(tr,hr,typ,thr,bi){ var diff=(tr||0)-(hr||0),leak=Math.max(0,diff)*(typ||0);
+    return{tailRate:tr,headRate:hr,diff:diff,annualLeakAmt:leak,bunchIndex:bi,
+      red:diff>getCoef('m34DiffRedline')||(bi!=null&&bi>getCoef('m34BunchRedline'))}; }
+  SK.m34ArbitrageFromRates=m34ArbitrageFromRates;
+  function m35Misfire(o,nn,tn){ var j=o-nn,t=Math.ceil(tn*getCoef('m35RankJumpShare')); return{jump:j,threshold:t,misfire:j>=t}; }
+  SK.m35Misfire=m35Misfire;
+  function m36BunchRate(counts,base){ if(base==null)return null; var hi=Math.floor(base*(1+getCoef('m36Band'))),total=counts.length;
+    if(total<getCoef('m36MinManDays'))return{rate:null,band:[base,hi],reason:'insufficient'};
+    var inb=counts.filter(function(c){return c>=base&&c<=hi;}).length,rate=safeDiv(inb,total);
+    return{rate:rate,band:[base,hi],inBand:inb,total:total,red:rate!=null&&rate>getCoef('m36Redline')}; }
+  SK.m36BunchRate=m36BunchRate;
+  function hongbaoCheck(x){ var r1=x.dailyAvgCommission!=null&&x.amount<x.dailyAvgCommission*getCoef('hongbaoDailyX');
+    var r2=x.timing==='immediate'&&x.hasCondition===false&&(x.rolling12ImmediateUncondCount||0)>=getCoef('hongbaoRepeatN');
+    return{rule1:r1,rule2:r2}; }
+  SK.hongbaoCheck=hongbaoCheck;
+  function managerLift(m,c,t){ if(t!=null&&t<3)return null; return safeDiv(m,c); } SK.managerLift=managerLift;
+  function paybackProgress(g,l){ return safeDiv(g,l); } SK.paybackProgress=paybackProgress;
+  function stopBleedTriage(x){ var cand=(x.zeroEventDays>=getCoef('stopBleedDays'))&&x.isActivePaid;
+    if(!cand)return{candidate:false};
+    if(x.leadIndex!=null&&x.leadIndex<getCoef('territoryStarveIdx'))return{candidate:true,verdict:'starved',block:true};
+    if(x.uer!=null&&x.uer>0)return{candidate:true,verdict:'invisible_work',block:false};
+    return{candidate:true,verdict:'proceed',block:false}; }
+  SK.stopBleedTriage=stopBleedTriage;
+
+  function staleDays(today,exp){ var t=Date.parse(today+'T00:00:00Z'),e=Date.parse(exp+'T00:00:00Z');
+    if(isNaN(t)||isNaN(e))return null; return Math.round((t-e)/86400000); }
+  SK.staleDays=staleDays;
+  function isStale(today,exp){ var d=staleDays(today,exp); return d!=null&&d>getCoef('envelopeStaleDays'); } SK.isStale=isStale;
+
+  function buildEnvelope(exp,derived,entities,hash){ return{schema:'skab_v1',board:'suanzhang',exportedAt:exp,dataVersion:1,
+    coefficientsHash:hash||'',derived:derived||{},entities:entities||{}}; }
+  SK.buildEnvelope=buildEnvelope;
+  function toExternalRef(env,imp){ if(!env||!env.board)return null;
+    return{board:env.board,exportedAt:env.exportedAt||null,dataVersion:env.dataVersion||1,coefficientsHash:env.coefficientsHash||'',
+      derived:env.derived||{},entities:env.entities||{},importedAt:imp||null}; }
+  SK.toExternalRef=toExternalRef;
+
+  function fmtPct(rate,dp){ if(rate==null)return'—'; return (rate*100).toFixed(dp==null?1:dp)+'%'; } SK.fmtPct=fmtPct;
+  function fmtYuan(fen){ if(fen==null)return'—'; return '¥'+Math.round(fen/100).toLocaleString('en-US'); } SK.fmtYuan=fmtYuan;
+  function fmtWan(fen,dp){ if(fen==null)return'—'; return (fen/100/10000).toFixed(dp==null?1:dp)+' 万'; } SK.fmtWan=fmtWan;
+
+  SK.version='suanzhang-v3.3';
+  if(typeof module!=='undefined'&&module.exports)module.exports=SK;
+  root.SK=SK;
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+
+<!-- ====================== 应用层（状态 / 种子 / 渲染 / 授权 / 自检） ====================== -->
+<script>
+/* ============================================================================
+ * 销冠算账器 v3.3 · 应用层（状态 / 种子 / 路由 / 九屏渲染 / 授权 / 自检）
+ * 铁律：结论不硬编码（S-D16，一切 verdict 由引擎函数返回）；null→"—"；
+ *       系统永不自动执行（一切走 action_card）；跨板块字段只读 + 带 asOf 新鲜度。
+ * ==========================================================================*/
+(function () {
+'use strict';
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+var f = SK; // 引擎
+
+/* ---- 时钟注入（公约 C-14）：全应用唯一真实"今天"，下传所有含日期计算 ---- */
+var TODAY = '2026-07-13';   // 演示基准日（与 1/2 号同基准；真实部署由 UI 取系统时钟一次）
+
+/* ============================ 授权（公约【11】） ============================ */
+// 授-5：HTML 内唯一密钥材料 = 公钥（SPKI）。无 HMAC / 无 secretKey。
+var PUBLIC_KEY_SPKI_B64 = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEojwA7jsg8pDt9VQelkwKswSB3LZf4yBkdDrdIgdGzlwMq+x90IIMzYsbSbL0QUKEu97o73WslndS8BMv3o4ITw==';
+var SAMPLE_CODE = 'SKAB.eyJ0ZW5hbnQiOiLmvJTnpLrlrqLmiLciLCJib2FyZCI6InN1YW56aGFuZyIsImV4cGlyeSI6IjIwMjctMTItMzEifQ==.uyq1fE/unEheoxiKUkNas+nsR6WaW60GNmY4oM1GBW5nMx5rId2afHhAuAYeRC0/Fx5OPPpuPEiPKI/WO5WAWg==';
+
+var STORE = 'skab_suanzhang_';
+function load(k, d) { try { var v = localStorage.getItem(STORE + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem(STORE + k, JSON.stringify(v)); } catch (e) {} }
+
+var APP = {
+  today: TODAY,
+  buildMode: 'full',            // free | full（授-2：到期只降级不锁数据）
+  tenant: '演示客户',
+  m21done: load('m21done', true),
+  lastExportAt: load('lastExportAt', '2026-06-25'),
+  screen: 'home'
+};
+
+function b64ToBytes(b64) { var bin = atob(b64); var a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }
+async function verifyLicense(code) {
+  // 校验（离线，crypto.subtle.verify，浏览器原生，零 CDN）
+  try {
+    var parts = String(code).split('.');
+    if (parts.length !== 3 || parts[0] !== 'SKAB') return { ok: false, why: '格式不符' };
+    var payloadBytes = b64ToBytes(parts[1]);
+    var sig = b64ToBytes(parts[2]);
+    var payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+    if (!crypto || !crypto.subtle) return { ok: false, why: '浏览器不支持 WebCrypto' };
+    var pub = await crypto.subtle.importKey('spki', b64ToBytes(PUBLIC_KEY_SPKI_B64), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+    var ok = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pub, sig, payloadBytes);
+    if (!ok) return { ok: false, why: '签名无效（授-5：只有作者私钥能签，本文件只有公钥）' };
+    if (payload.board !== 'suanzhang') return { ok: false, why: '此码用于板块 ' + payload.board + '，非算账器' };
+    // 防调表（seenMaxDate）：系统日期 < 曾见过的最大日期 → 锁定
+    var seen = load('seenMaxDate', null);
+    if (seen && APP.today < seen) return { ok: false, why: '检测到系统日期被回拨' };
+    save('seenMaxDate', (seen && seen > APP.today) ? seen : APP.today);
+    var expired = APP.today > payload.expiry;   // 今天 > expiry → 降级 free
+    return { ok: true, tenant: payload.tenant, expiry: payload.expiry, mode: expired ? 'free' : 'full', expired: expired };
+  } catch (e) { return { ok: false, why: '解析失败：' + e.message }; }
+}
+
+/* ============================ 演示种子（核弹表 · 与件七对拍同源） ============================ */
+// M21 核弹表：A 原始#1→归一#8；J 原始#10→归一#1；失衡率 70%（金额单位=分）
+var PEOPLE = [
+  { id: 'A', name: '赵一（销冠）', leads: 180, grossMarginAmt: 12.0e6, selfDevLeads: 0 },
+  { id: 'B', name: '钱二', leads: 120, grossMarginAmt: 10.0e6, selfDevLeads: 0 },
+  { id: 'C', name: '孙三', leads: 120, grossMarginAmt: 9.5e6, selfDevLeads: 0 },
+  { id: 'D', name: '李四', leads: 100, grossMarginAmt: 8.0e6, selfDevLeads: 0 },
+  { id: 'E', name: '周五', leads: 100, grossMarginAmt: 7.5e6, selfDevLeads: 0 },
+  { id: 'F', name: '吴六', leads: 100, grossMarginAmt: 7.0e6, selfDevLeads: 0 },
+  { id: 'G', name: '郑七', leads: 85, grossMarginAmt: 6.0e6, selfDevLeads: 0 },
+  { id: 'H', name: '王八', leads: 85, grossMarginAmt: 5.0e6, selfDevLeads: 0 },
+  { id: 'I', name: '冯九', leads: 80, grossMarginAmt: 4.0e6, selfDevLeads: 0 },
+  { id: 'J', name: '陈十（垫底）', leads: 30, grossMarginAmt: 3.0e6, selfDevLeads: 0 }
+];
+var M21 = f.m21Normalize(PEOPLE);
+function row(id) { return M21.rows.filter(function (r) { return r.id === id; })[0]; }
+
+// 净贡献场景（T2/T3）
+var NETSCENE = { grossMarginAmt: 100e6, laborCostAmt: 46.667e6, opCostAmt: 15e6, refundMarginAmt: 2e6, discountMarginAmt: 7.2e6 };
+
+// UER 残差（T8/T9；给定预测的残差，团队均值 −0.4 万）
+var UER = { A: -1.5e6, B: -1.0e6, C: -0.9e6, D: -0.7e6, E: -0.5e6, F: 0.1e6, G: -0.3e6, H: -0.1e6, I: 0.0, J: 0.9e6 };
+var UER_ARR = Object.keys(UER).map(function (k) { return UER[k]; });
+var UER_MEAN = UER_ARR.reduce(function (a, b) { return a + b; }, 0) / UER_ARR.length;
+var UER_SIGMA = f.stddev(UER_ARR);
+
+// 折扣（T12 闸⑤）
+var DISCOUNTS = [
+  { listPriceAmt: 58e6, discountAmt: 4176000, reason: 'period_end_push' },
+  { listPriceAmt: 42e6, discountAmt: 3024000, reason: 'competitive_pressure' }
+];
+
+// 外部信封 ExternalRef（只读缓存）：留人器过期 184 天 → 触发新鲜度 S-20
+var REFS = {
+  liuren: f.toExternalRef({ board: 'liuren', exportedAt: '2026-01-10', dataVersion: 1,
+    derived: { ahc: 41 }, entities: { M28Agreement: [] } }, TODAY),
+  dingjia: f.toExternalRef({ board: 'dingjia', exportedAt: '2026-06-20', dataVersion: 1,
+    derived: { r: 0.2706, irrevocable: false }, entities: { PendingEvidence: [] } }, TODAY),
+  zhaoren: f.toExternalRef({ board: 'zhaoren', exportedAt: '2026-06-18', dataVersion: 1,
+    derived: { hiringCost: 1500000 }, entities: { HireBatch: [] } }, TODAY)
+};
+
+/* ============================ 新鲜度标注（§3.14 / A-21） ============================ */
+function asOf(board) {
+  var ref = REFS[board]; if (!ref || !ref.exportedAt) return '';
+  var d = f.staleDays(APP.today, ref.exportedAt);
+  var stale = f.isStale(APP.today, ref.exportedAt);
+  return '<span class="asof' + (stale ? ' stale' : '') + '" data-asof="' + ref.exportedAt + '">（数据截至 ' + ref.exportedAt + (stale ? '，已 ' + d + ' 天 🟡' : '') + '）</span>';
+}
+var BOARD_CN = { liuren: '留人器', dingjia: '定价器', zhaoren: '招人器', yuren: '育人器' };
+
+/* ============================ 屏幕清单 ============================ */
+var SCREENS = [
+  { id: 'home', n: '', icon: '🏠', name: '落地页' },
+  { id: 'territory', n: '2', icon: '🗺️', name: '地盘审计' },
+  { id: 'normalize', n: '3', icon: '💣', name: '归一化真相' },
+  { id: 'ledger', n: '4', icon: '📒', name: '净贡献总账' },
+  { id: 'uer', n: '5', icon: '🔬', name: 'UER 残差' },
+  { id: 'product', n: '6', icon: '📦', name: '产品证据包' },
+  { id: 'efficiency', n: '7', icon: '⚙️', name: '人效·错价·主管' },
+  { id: 'crime', n: '8', icon: '🚨', name: '罪证屏' },
+  { id: 'data', n: '9', icon: '🗄️', name: '数据与系数' }
+];
+// 需 M21 归一化才解锁的屏（闸① · A-11）
+var LOCKED_IF_NO_M21 = ['normalize', 'ledger', 'uer', 'efficiency', 'crime'];
+
+/* ============================ 渲染骨架 ============================ */
+function renderNav() {
+  var html = SCREENS.map(function (s) {
+    var locked = LOCKED_IF_NO_M21.indexOf(s.id) >= 0 && !APP.m21done && s.id !== 'normalize';
+    return '<div class="navitem' + (APP.screen === s.id ? ' active' : '') + (locked ? ' locked' : '') +
+      '" data-go="' + s.id + '"><span class="n">' + (s.n || '·') + '</span><span>' + s.icon + '</span><span>' +
+      esc(s.name) + '</span>' + (locked ? '<span class="lockicon">🔒</span>' : '') + '</div>';
+  }).join('');
+  $('#navlist').innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-go]'), function (el) {
+    el.onclick = function () { go(el.getAttribute('data-go')); };
+  });
+}
+
+function go(id) { APP.screen = id; renderNav(); renderScreen(); window.scrollTo(0, 0); }
+
+function renderScreen() {
+  var c = $('#content');
+  var backup = backupBanner();
+  // 闸① 硬锁（A-11）：M21 未运行 → 排名/淘汰/剪刀差/UER/罪证 全锁
+  if (LOCKED_IF_NO_M21.indexOf(APP.screen) >= 0 && !APP.m21done && APP.screen !== 'normalize') {
+    c.innerHTML = backup + lockScreen(); wire(); return;
+  }
+  var fn = ({ home: scHome, territory: scTerritory, normalize: scNormalize, ledger: scLedger, uer: scUer,
+    product: scProduct, efficiency: scEfficiency, crime: scCrime, data: scData })[APP.screen] || scHome;
+  // 授-2 免费版明细锁：数据页/落地页/地盘页永不锁（导出与授权必须可用）
+  var premium = ['normalize', 'ledger', 'uer', 'product', 'efficiency', 'crime'];
+  var freeGate = (APP.buildMode === 'free' && premium.indexOf(APP.screen) >= 0);
+  document.body.classList.toggle('free-mode', freeGate);
+  var freeBanner = freeGate ? '<div class="free-banner no-print">🔒 免费版：钩子与英雄数可见，明细已锁。' +
+    '<span class="muted">授-2：到期只降级不锁数据，导出与迁移永不锁定。</span>' +
+    '<button class="btn sm" data-act="goto:data">粘贴授权码解锁</button></div>' : '';
+  c.innerHTML = backup + freeBanner + fn() + printFoot();
+  wire();
+}
+
+function printFoot() {
+  return '<div class="print-foot">《经营真相报告》· 授权：' + esc(APP.tenant) +
+    ' · 生成于 ' + APP.today + ' · 经营净贡献口径，非财务报表口径。' +
+    ' ⚠️ 本报告不构成税务/法律实质建议。</div>';
+}
+
+// A-24 备份提醒红线（C-15）
+function backupBanner() {
+  var d = f.staleDays(APP.today, APP.lastExportAt);
+  if (d == null || d <= f.getCoef('minSampleDefault') * 0 + 14) return '';
+  return '<div class="banner warn no-print">💾 你已 ' + d + ' 天没备份数据了——导出一份信封 JSON，只要 10 秒。' +
+    '<span class="muted">「数据只在你电脑」的另一面是丢了没人兜底。</span>' +
+    '<button class="btn sm" data-act="goexport">立即导出</button></div>';
+}
+
+function lockScreen() {
+  return '<div class="card"><div class="lock-hero"><div class="ic">🔒</div>' +
+    '<h2>排名功能已锁定</h2>' +
+    '<p>📎 Zoltners（数千个销售辖区）：<b>约六成（≈56%）</b>的辖区太大或太小。如果一半以上的地盘是错的，' +
+    '那你的排行榜，一半在测地盘，不是测人。<br/><br/>在脏数据上做的每一个决策都在放大错误：你会把「地盘的红利」' +
+    '当成「销冠的方法论」教给全公司；你会淘汰坐在烂地盘上的强者；你的剪刀差、净贡献、价签、UER 全部被地盘污染。</p>' +
+    '<div class="btn-row" style="justify-content:center">' +
+    '<button class="btn primary" data-act="dom21">现在录入（3 分钟）</button>' +
+    '<button class="btn" data-act="skipm21">我全员自开发 → 跳过（记录声明）</button></div></div></div>';
+}
+
+/* ============================ 屏 1 · 落地页 ============================ */
+function scHome() {
+  return card('',
+    '<div class="page-h"><h1 style="font-size:30px">你养了 10 个销售，到底谁在赚钱、谁在赔钱，' +
+    '<span style="color:var(--ink3)">谁只是坐在一块好地盘上？</span></h1>' +
+    '<div class="lede" style="margin-top:12px">算账器是全系统的<b>真相层</b>：' +
+    'M21 剥离地盘 → M32 剥离可观测行为 → 剩下的，才是「人」。</div></div>' +
+    '<div class="grid g3" style="margin-top:24px">' +
+    heroMini('销售人力弹性', '0.34', '每 1 元投在销售身上的产出弹性', 'green') +
+    heroMini('广告弹性', '0.22', '同口径对比 · 销售支出约广告 3 倍', 'n') +
+    heroMini('全球辖区失衡', '≈56%', '太大或太小 · Zoltners 2000', 'a') +
+    '</div>' +
+    '<div class="src"><span class="pin">📎</span>『投在销售身上的每一块钱，比投在广告上的更有效——但几乎没人像研究广告那样研究销售人力（弹性 0.34 vs 0.22）』。' +
+    '弹性 0.34 源自 Albers-Mantrala-Sridhar 2010 JMR 元分析。</div>' +
+    '<div class="callout" style="margin-top:22px"><span style="font-size:16px">⚠️</span> <b>系统边界（必读）</b>：' +
+    '<span class="q">这个系统不会让一个卖不动的产品卖动。</span></div>' +
+    '<div class="fixed-note">🔒 隐私：数据不出你电脑——无后端、无网络请求、无埋点上传。全部计算在本机完成，' +
+    '导出与备份由你掌握。</div>' +
+    '<div class="btn-row"><button class="btn primary" data-act="start">开始算账 →</button>' +
+    '<button class="btn" data-act="goto:data">查看自检徽章</button></div>'
+  );
+}
+function heroMini(label, val, sub, cls) {
+  return '<div class="card"><div class="label">' + esc(label) + '</div>' +
+    '<div class="metric-num ' + (cls === 'green' ? '' : '') + '" style="' + (cls === 'green' ? 'color:var(--green)' : cls === 'a' ? 'color:var(--amber)' : '') + '">' + esc(val) + '</div>' +
+    '<div class="delta"><span class="basis">' + esc(sub) + '</span></div></div>';
+}
+
+/* ============================ 屏 2 · 地盘审计 ============================ */
+function scTerritory() {
+  var done = APP.m21done;
+  return card('',
+    '<div class="page-h"><h1>🗺️ 地盘审计 · 强制第一步</h1>' +
+    '<div class="lede">排名之前，先回答一个问题：你的线索，是不是平均分给了每个人？' +
+    '如果不是，那你现在的「业绩榜」测的是地盘，不是人。</div></div>' +
+    (done
+      ? '<div class="action-card g"><div class="ac-h">✅ 已完成归一化</div><div class="ac-body">' +
+        '本期共 ' + M21.n + ' 人、' + M21.totalLeads.toLocaleString() + ' 条线索，人均应得 ' +
+        Math.round(M21.perCapitaLeads) + ' 条。失衡率 <b>' + f.fmtPct(M21.imbalanceRate) + '</b>' +
+        '（全球基准 ≈56%）。排名/淘汰/剪刀差/UER/罪证 已全部解锁。</div>' +
+        '<div class="btn-row"><button class="btn primary" data-act="goto:normalize">看归一化真相 →</button></div></div>'
+      : lockScreen()
+    ) +
+    '<div class="hr"></div>' +
+    '<div class="label">唯一跳过路径</div>' +
+    '<div class="callout" style="margin-top:8px">若你声明「全员 100% 自开发线索」，可跳过地盘归一化——' +
+    '系统会记录此声明，并在所有排名页顶固定标注。<div class="btn-row">' +
+    '<button class="btn sm" data-act="skipm21">声明全员自开发</button></div></div>'
+  );
+}
+
+/* ============================ 屏 3 · 归一化真相（核弹屏） ============================ */
+function scNormalize() {
+  var orig = M21.rows.slice().sort(function (a, b) { return a.origRank - b.origRank; });
+  var A = row('A'), J = row('J');
+  var x = A.index;                         // 销冠份额倍数
+  var y = f.safeDiv(J.unitLeadMargin, A.unitLeadMargin);  // 单位线索产出：J 是 A 的几倍
+  var g = M21.totalMargin;
+  var lo = M21.redrawBand[0], hi = M21.redrawBand[1];
+  var kill =
+    '<div class="action-card r"><div class="ac-h">💣 三句杀手</div><div class="ac-body">' +
+    '<p>①『你的销冠 <b>' + esc(A.name) + '</b>，业绩第一（' + f.fmtWan(A.grossMarginAmt) + '）。但他拿的是 ' + A.leads +
+    ' 条线索——平均份额的 <b>' + x.toFixed(1) + ' 倍</b>。归一化后，他排第 <b>' + A.normRank + '</b>。』</p>' +
+    '<p style="margin-top:8px">②『你的垫底 <b>' + esc(J.name) + '</b>，业绩最差（' + f.fmtWan(J.grossMarginAmt) + '），你正准备淘汰他。' +
+    '但他只拿到 ' + J.leads + ' 条线索，单位线索产出是销冠的 <b>' + y.toFixed(1) + ' 倍</b>。' +
+    '归一化后，他是<b>全队第一</b>。你正在淘汰你最强的人。』</p>' +
+    '<p style="margin-top:8px">③『团队失衡率 <b>' + f.fmtPct(M21.imbalanceRate) + '</b>（全球约六成）。📎 仅重新划分线索，' +
+    '销售额预计提升 2%–7%——不增加任何人手。按你 ' + f.fmtWan(g) + ' 的月毛利：每月 ¥' +
+    Math.round(lo / 100).toLocaleString() + '–' + Math.round(hi / 100).toLocaleString() + '，' +
+    '每年 ¥' + Math.round(lo * 12 / 100).toLocaleString() + '–' + Math.round(hi * 12 / 100).toLocaleString() + '。』</p>' +
+    '</div><div class="btn-row"><button class="btn primary" data-act="ac">采纳重划建议（生成沙盒）</button></div></div>';
+
+  var flipBtn = '<button class="btn sm no-print" data-act="flip">▶ 播放归一化翻转</button>';
+  var tbl = '<table class="tbl" id="rankTbl"><thead><tr>' +
+    '<th style="width:40px">榜</th><th>销售</th><th class="num">线索</th><th class="num">线索指数</th>' +
+    '<th class="num">原始毛利</th><th class="num">归一化毛利</th><th style="width:64px">归一名次</th></tr></thead><tbody>' +
+    orig.map(function (r) {
+      var idxChip = r.over ? '<span class="chip r">超配 ' + r.index.toFixed(2) + '</span>' :
+        r.under ? '<span class="chip a">欠配 ' + r.index.toFixed(2) + '</span>' :
+        '<span class="chip n">' + r.index.toFixed(2) + '</span>';
+      return '<tr class="hoverable rowmove" data-id="' + r.id + '">' +
+        '<td class="num muted">' + r.origRank + '</td>' +
+        '<td>' + esc(r.name) + '</td>' +
+        '<td class="num">' + r.leads + '</td>' +
+        '<td class="num">' + idxChip + '</td>' +
+        '<td class="num">' + f.fmtWan(r.grossMarginAmt) + '</td>' +
+        '<td class="num"><b>' + f.fmtWan(r.normMargin) + '</b></td>' +
+        '<td class="num"><span class="chip ' + (r.normRank <= 3 ? 'g' : r.normRank >= 8 ? 'r' : 'n') + '">#' + r.normRank + '</span></td></tr>';
+    }).join('') + '</tbody></table>';
+
+  return card('',
+    '<div class="page-h"><h1>💣 归一化真相 · 核弹屏</h1>' +
+    '<div class="lede">同样一张榜，剥掉地盘之后，谁在上、谁在下，完全反过来。</div></div>' +
+    '<div class="grid g3" style="margin-top:20px">' +
+    '<div class="card"><div class="label">团队失衡率</div><div class="hero-num red">' + f.fmtPct(M21.imbalanceRate) + '</div>' +
+    '<div class="delta"><span class="basis">全球基准 ≈56% · 超此即 🔴</span></div></div>' +
+    '<div class="card"><div class="label">销冠归一名次</div><div class="hero-num">#' + A.normRank + '<span class="unit"> / ' + M21.n + '</span></div>' +
+    '<div class="delta">原始 #' + A.origRank + ' → 归一 #' + A.normRank + '　<span class="basis">拿了 ' + x.toFixed(1) + '× 份额</span></div></div>' +
+    '<div class="card"><div class="label">垫底归一名次</div><div class="hero-num green">#' + J.normRank + '</div>' +
+    '<div class="delta">原始 #' + J.origRank + ' → 归一 #' + J.normRank + '　<span class="basis">单位产出 ' + y.toFixed(1) + '× 销冠</span></div></div>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin:24px 0 8px">' +
+    '<div class="label">原始榜 → 归一化榜</div>' + flipBtn + '</div>' +
+    '<div class="card pad0">' + tbl + '</div>' +
+    '<div class="src"><span class="pin">📎</span>归一化排名 = 全系统排名唯一合法输入（A-11）。重划增益 2–7% 为 Zoltners 铁证（HBR/Xactly 复现）。</div>' +
+    kill
+  );
+}
+
+/* ============================ 屏 4 · 净贡献总账 + 十二道闸 ============================ */
+function scLedger() {
+  var s = NETSCENE;
+  var net = f.netContribution(s);
+  var rate = f.safeDiv(net, s.grossMarginAmt);
+  var roi = f.safeDiv(s.grossMarginAmt, s.laborCostAmt);
+  var ledger =
+    '<div class="card"><div class="label">经营净贡献（本期）</div>' +
+    '<div class="hero-num">' + f.fmtYuan(net) + '<span class="unit"> · ' + f.fmtPct(rate) + '</span></div>' +
+    '<div class="delta"><span class="basis">经营净贡献口径，非财务报表口径 · 目标准确率 90%</span></div>' +
+    '<div style="margin-top:14px">' +
+    kv('毛利（Σ 回款 × 品类毛利率）', f.fmtYuan(s.grossMarginAmt)) +
+    kv('− 人力成本 laborCost', '−' + f.fmtYuan(s.laborCostAmt), true) +
+    kv('− 自定义经营成本（按天摊）', '−' + f.fmtYuan(s.opCostAmt), true) +
+    kv('− 退款毛利冲减', '−' + f.fmtYuan(s.refundMarginAmt), true) +
+    kv('− 折扣毛利泄漏', '−' + f.fmtYuan(s.discountMarginAmt), true) +
+    '<div class="kv total"><span class="k">= 经营净贡献</span><span class="v">' + f.fmtYuan(net) + '</span></div>' +
+    '</div></div>';
+  var roiCard = '<div class="card"><div class="label">团队 labor_roi</div>' +
+    '<div class="metric-num">' + roi.toFixed(2) + '</div><div class="delta"><span class="basis">毛利 ÷ laborCost</span></div></div>';
+
+  return card('',
+    '<div class="page-h"><h1>📒 净贡献总账</h1><div class="lede">五行账：毛利 − 人力 − 经营 − 退款 − 折扣 = 净贡献。' +
+    '每一道闸都可展开，附 📎 出处；建议一律走 action_card，系统永不自动执行。</div></div>' +
+    '<div class="grid g2" style="margin-top:18px;align-items:start">' + ledger + roiCard + '</div>' +
+    '<div class="section-gap"></div><div class="label">十二道闸</div><div style="margin-top:10px">' + gatesList() + '</div>'
+  );
+}
+
+function gatesList() {
+  var g5 = f.gateDiscountLeak(DISCOUNTS);
+  var hj = f.hijackVerdict({ ahc: REFS.liuren.derived.ahc, m28Coverage: (REFS.liuren.entities.M28Agreement || []).length === 0 ? 0 : null, irrevocable: REFS.dingjia.derived.irrevocable });
+  // M28 覆盖：留人器已导入但 0 份协议 → 覆盖 0（e2=0）
+  var m28cov = 0, inService = M21.n;
+  var gates = [];
+  gates.push(acc('gate5', '⑤ 折扣泄漏', chipFor(g5.leakRed || g5.pushRed), gate5Body(g5)));
+  gates.push(acc('gate9', '⑨ 品类泄漏熔断', chipFor(true), gate9Body()));
+  gates.push(acc('gate11', '⑪ 敲竹杠（三证据链）', chipFor(true), gate11Body(hj, m28cov, inService)));
+  gates.push(acc('gate6', '⑥ 提拔预测 M23（八维度）', '<span class="chip n">展开</span>', gate6Body()));
+  gates.push(acc('gate7', '⑦ 剪刀差', '<span class="chip n">展开</span>', gate7Body()));
+  gates.push(acc('gate3', '③ 报销永不进收入', '<span class="chip g">铁律</span>',
+    '<div class="ac-body">报销（reimburse）只进 laborCost 成本侧，永不计入 totalIncome 收入侧。这条写进宪法函数，代码层不可绕过。</div>'));
+  return gates.join('');
+}
+function chipFor(red) { return red ? '<span class="chip r">🔴 触发</span>' : '<span class="chip g">🟢 正常</span>'; }
+
+function gate5Body(g) {
+  return '<div class="ac-body">你的折扣泄漏率 <b>' + f.fmtPct(g.leakRate) + '</b>' +
+    (g.leakRed ? ' 🔴（红线 6%）' : '') + '。📎 Larkin (2014) JLE：定价扭曲损失 6–8% 收入，你正落在这个区间。' +
+    '更狠的一层：折扣里 <b>' + f.fmtPct(g.pushShare) + '</b> 打的原因是「期末冲刺」' + (g.pushRed ? ' 🔴（红线 40%）' : '') +
+    '——不是巧合，是你的提成结构在诱导销售砍价。他在用你的毛利，买他自己的提成。</div>' +
+    '<div class="src"><span class="pin">⚠️</span>「漏水守恒」（Holmström & Milgrom 1991）：堵死砍价，水会从别处漏——押单、囤单、藏难单。你不是消灭作弊，是给作弊指定一个便宜出口。</div>' +
+    '<div class="action-card b"><div class="ac-h">建议</div><div class="ac-body">打开《销冠定价器》→ 方案风洞，压平提成拐点。</div></div>';
+}
+function gate9Body() {
+  var fuse = f.categoryFuse(0.18, 0.25);
+  return '<div class="ac-body">品类 <b>C 类</b> 占你 25% 的回款，只贡献 <b>' + (fuse ? '低于' : '') + '</b>毛利，毛利率 18% —— ' +
+    (fuse ? '已触发低价熔断线（<22%）🔴' : '正常') + '。同样的人，卖 A 品类每单毛利更高。' +
+    '你的销售花了 25% 的时间，在一个给你赚得最少的东西上。</div>' +
+    '<div class="action-card b"><div class="ac-body">打开 M33 产品证据包 →</div></div>';
+}
+function gate11Body(hj, cov, total) {
+  var ahc = REFS.liuren.derived.ahc;
+  var head = '<div class="ac-body">你的团队 UER 均值 = <b>' + f.fmtWan(UER_MEAN) + '/人/月</b>。' +
+    '📌 第四定理（Hart，诺贝尔经济学奖 2016）：你不给他控制权，他就不会投入那些你测不到的努力。三种可能：①在藏 ②在漏水 ③地盘质量差。</div>' +
+    '<div class="stat-strip">' +
+    '<div class="st"><div class="k">AHC 信用分</div><div class="v">' + (ahc == null ? '<span class="dash">—</span>' : ahc) + ' <small>' + asOf('liuren') + '</small></div></div>' +
+    '<div class="st"><div class="k">M28 产权协议</div><div class="v">' + cov + '/' + total + ' <small>' + asOf('liuren') + '</small></div></div>' +
+    '<div class="st"><div class="k">方案 irrevocable</div><div class="v">' + (REFS.dingjia.derived.irrevocable === true ? '是' : REFS.dingjia.derived.irrevocable === false ? '否' : '<span class="dash">—</span>') + ' <small>' + asOf('dingjia') + '</small></div></div>' +
+    '</div>';
+  // verdict 由引擎返回（S-D16：禁硬编码）
+  var body;
+  if (hj.verdict === 'pointed_hoarding') {
+    body = '<div class="action-card r"><div class="ac-h"><span class="dot r"></span>证据指向①（在藏）</div><div class="ac-body">' +
+      '三项里有 <b>' + hj.bad + '</b> 项不利（' + hj.badList.join('、') + '）。在这个信用条件下，「他在藏」是最省事的解释——测不到的努力可以被事后剥夺，所以他不会投。</div>' +
+      '<div class="btn-row"><button class="btn sm" data-act="ac">开启不可撤销条款</button>' +
+      '<button class="btn sm" data-act="ac">给销冠签 M28</button>' +
+      '<button class="btn sm" data-act="ac">三个月后回来看这个数</button></div></div>';
+  } else if (hj.verdict === 'not_supported') {
+    body = '<div class="action-card a"><div class="ac-h"><span class="dot a"></span>三个证据都不支持「他在藏」</div><div class="ac-body">' +
+      '你在信用这一侧已经做到了——UER 为负更可能是②漏水或③地盘。系统在这个条件下<b>不建议</b>继续追究「藏努力」，也不建议再加产权。</div>' +
+      '<div class="btn-row"><button class="btn sm" data-act="goto:ledger">折扣泄漏明细（闸⑤）</button>' +
+      '<button class="btn sm" data-act="goto:normalize">各人线索指数（M21）</button></div></div>';
+  } else {
+    body = '<div class="action-card"><div class="ac-h"><span class="dot n"></span>证据不全，系统不下结论</div><div class="ac-body">' +
+      '<b>' + (hj.missingList || []).join('、') + '</b> 尚未导入。UER 为负本身只说明「这里有事情发生」。</div>' +
+      '<div class="btn-row"><button class="btn sm" data-act="goto:data">导入留人器信封（board=liuren）</button></div></div>';
+  }
+  return head + body +
+    '<div class="src"><span class="pin">⚠️</span>诚实边界：这是相关性非因果，要证因果用 M31 系数实验室做 A/B。verdict 由判定函数返回，话术库无写死结论（S-D16）。</div>';
+}
+function gate6Body() {
+  return '<div class="ac-body">八维度体检（归一排名 / 客户集中度 / 月度方差 / 陪访带教 / 成就vs自恋 / 折扣泄漏 / 客诉退款 / UER）。' +
+    '⚠️ 以业绩而非管理潜质提拔，📎 QJE 实测：被提拔者售前业绩每翻倍，其下属产出约 −6%～−7.5%。' +
+    '🔑 更重要的问题：你为什么一定要提拔？当一线已被强绩效薪酬充分激励，公司就会降低业绩在提拔中的权重。</div>' +
+    '<div class="src"><span class="pin">🟡</span>「提拔临界点」为跨板块占位：1号 v2.5 尚无此功能，点击提示「定价器后续版本提供」（S-C13）。</div>';
+}
+function gate7Body() {
+  return '<div class="ac-body">剪刀差 = 贡献增长率 − 收入增长率 = 借款利率的计量器。' +
+    '正值大：他在给你打白工，你在向他借钱，利率越来越高——他会走。≈0：收支平衡。' +
+    '负值大：🔴 你在向未来透支，今天付的钱是明年的产出——最危险，因为它看起来像「团队士气高」。</div>';
+}
+
+/* ============================ 屏 5 · UER 残差 ============================ */
+function scUer() {
+  var rows = M21.rows.slice().sort(function (a, b) { return a.normRank - b.normRank; });
+  var A = row('A');
+  // A 个人归因（3.3b）：折扣 11% > 团队 5%×1.5 → leak
+  var attr = f.personAttribution({ discountLeakRate: 0.11, teamDiscountLeakRate: 0.05, complaintRate: 0.03, teamComplaintRate: 0.03, leadIndex: A.index });
+  var m28ImportedNone = (REFS.liuren.entities.M28Agreement || []).length === 0;
+  var pv = m28ImportedNone ? null : f.propertyValue([1], [1]); // 未导入分组 → "—（需留人器数据）"
+
+  var tbl = '<table class="tbl"><thead><tr><th>销售</th><th class="num">UER 残差</th><th style="width:64px">分档</th><th>解读（不下定论）</th></tr></thead><tbody>' +
+    rows.map(function (r) {
+      var u = UER[r.id]; var band = f.uerBand(u, UER_SIGMA);
+      var dot = '<span class="dot ' + (band === 'green' ? 'g' : band === 'red' ? 'r' : 'n') + '"></span>';
+      return '<tr class="hoverable"><td>' + esc(r.name) + '</td>' +
+        '<td class="num" style="color:' + (band === 'red' ? 'var(--red)' : band === 'green' ? 'var(--green)' : 'var(--ink)') + '">' + f.fmtWan(u) + '</td>' +
+        '<td>' + dot + '</td>' +
+        '<td class="muted">' + (band === 'red' ? '有事情发生（负残差）' : band === 'green' ? '超出可观测预期' : '在预期带内') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+
+  var aCard = uerACard(A, attr);
+
+  return card('',
+    '<div class="page-h"><h1>🔬 UER 残差 · 剥离可观测之后</h1>' +
+    '<div class="lede">第四定理引言：可观测努力解释不了的部分，就是残差。它是信号，不是结论。</div></div>' +
+    '<div class="card" style="margin-top:16px"><div class="label">团队 UER 均值</div>' +
+    '<div class="hero-num ' + (UER_MEAN < 0 ? 'red' : 'green') + '">' + f.fmtWan(UER_MEAN) + '</div>' +
+    '<div class="delta"><span class="basis">' + (UER_MEAN < 0 ? '团队整体为负 🔴 → 触发闸⑪敲竹杠三证据链' : '正常') + '</span></div></div>' +
+    '<div class="fixed-note">📌 <b>三种解释必须全部展示，绝不下定论</b>：UER 是一个信号，不是一个结论。它告诉你「这里有事情发生」，' +
+    '不告诉你「发生了什么事」。要弄清楚原因，请看三个分项，或用 M31 系数实验室做 A/B。（S-03，代码写死不可编辑）</div>' +
+    '<div class="section-gap"></div><div class="card pad0">' + tbl + '</div>' + aCard +
+    '<div class="section-gap"></div>' +
+    '<div class="card"><div class="label">产权价值（M28 分组 · 相关性非因果）</div>' +
+    '<div class="metric-num">' + (pv == null ? '<span class="dash">—（需留人器数据）</span>' : f.fmtWan(pv)) + '</div>' +
+    '<div class="fixed-note">⚠️ 这是相关性，不是因果。有产权协议的人 UER 更高，可能因为产权，也可能因为你本来就把产权给了更强的人。' +
+    '要证明因果，请用 M31 做一次随机对照实验。[ 启动实验 5：M28 产权化带教 vs 一次性奖金 ]（S-04）</div></div>'
+  );
+}
+function uerACard(A, attr) {
+  var block;
+  if (attr.verdict === 'leak') {
+    block = '<div class="action-card r"><div class="ac-h"><span class="dot r"></span>证据指向②（' + attr.badList.join('、') + '）</div>' +
+      '<div class="ac-body">他在用你的毛利，买他自己的提成。</div>' +
+      '<div class="btn-row"><button class="btn sm" data-act="goto:crime">查看他的 DiscountEntry 明细</button></div></div>';
+  } else if (attr.verdict === 'territory') {
+    block = '<div class="action-card a"><div class="ac-h"><span class="dot a"></span>证据指向③（地盘）</div>' +
+      '<div class="ac-body">他的线索指数只有 ' + A.index.toFixed(2) + '（合理带下沿 0.90）——先补足他的线索，再谈他这个人。</div></div>';
+  } else {
+    block = '<div class="action-card"><div class="ac-h"><span class="dot n"></span>三查无异常</div>' +
+      '<div class="ac-body">折扣、客诉、地盘三查无异常。「①他在藏」与其他测不到的原因无法区分——系统不下结论。用 M31 做一次 A/B。</div></div>';
+  }
+  return '<div class="acc open" style="margin-top:14px"><div class="acc-h"><span class="dot r"></span>' +
+    '<span class="acc-title">' + esc(A.name) + ' 的 UER 卡</span>' +
+    '<span class="acc-meta" style="margin-left:auto">残差 ' + f.fmtWan(UER.A) + ' 🔴</span></div>' +
+    '<div class="acc-b"><div class="acc-b-inner">' +
+    '<div class="ac-body">' + esc(A.name) + ' 的可观测努力（' + A.leads + ' 条线索、高转化、高客单），按杠杆链应产出更高净贡献，实际残差 ' + f.fmtWan(UER.A) + '。' +
+    '三种可能：①他在藏（第四定理）②他在漏水（折扣泄漏率 11%，团队均值 5%）③地盘质量差（但他的线索指数是 ' + A.index.toFixed(2) + '——他拿的是最多的）。</div>' +
+    block + '</div></div></div>';
+}
+
+/* ============================ 屏 6 · 产品证据包 ============================ */
+function scProduct() {
+  var ev = f.m33Evidence({ winRate: 0.16, refundByCategoryX: 3.4, discountRate: 0.17, pushShare: 0.62, leaverLowMarginRatioMedian: 0.7, teamLowMarginRatio: 0.4 });
+  var cards = [
+    evCard('① 赢单天花板', ev.e1, '赢单率 16% < 20% 上限', '📎 顶级销售也撞到同一堵墙 → 产品/定位问题'),
+    evCard('② 品类退款集中', ev.e2, '某品类退款 3.4× 团队均值', '退款集中在特定品类 = 该品类承诺与交付有缺口'),
+    evCard('③ 被迫折扣', ev.e3, '折扣率 17% > 15% ∧ 压价占比 62% > 60%', '不是销售爱砍价，是产品撑不住原价'),
+    evCard('④ 离职者品类', ev.e4, '离职者低毛利品类占比 1.75× 团队', '强销先流失——销冠最不能忍受「卖不动」')
+  ];
+  return card('',
+    '<div class="page-h"><h1>📦 产品证据包</h1><div class="lede">四组证据，指向同一个问题：也许问题不在人，在产品。</div></div>' +
+    '<div class="grid g2" style="margin-top:16px">' + cards.join('') + '</div>' +
+    '<div class="callout" style="margin-top:20px;border-left:3px solid var(--ink)">' +
+    '以上是数据。判断归你。但请记住系统的边界：<span class="q">这个系统不会让一个卖不动的产品卖动。</span>' +
+    '销售只是产品的传声筒。产品是地基。地基不稳，一定翻车。而产品不好的公司，销冠会最先流失——因为销冠最不能忍受「卖不动」。' +
+    '如果你看完这四组数据，仍然认为产品没有问题——我们尊重你的判断。系统会继续为你优化其他环节。' +
+    '但我们必须诚实地告诉你：如果问题在地基，那么我们能帮你的，最多是让翻车晚一点发生。' +
+    '<div class="small" style="margin-top:8px">（S-06，代码写死不可编辑）</div></div>'
+  );
+}
+function evCard(title, hit, stat, note) {
+  return '<div class="card"><div class="acc-h" style="padding:0;cursor:default"><span class="dot ' + (hit ? 'r' : 'n') + '"></span>' +
+    '<span class="acc-title">' + esc(title) + '</span>' + (hit ? '<span class="chip r" style="margin-left:auto">触发</span>' : '<span class="chip g" style="margin-left:auto">未触发</span>') + '</div>' +
+    '<div class="stat-strip"><div class="st"><div class="v" style="font-size:15px">' + esc(stat) + '</div></div></div>' +
+    '<div class="src"><span class="pin">📎</span>' + esc(note) + '</div></div>';
+}
+
+/* ============================ 屏 7 · 人效 / 错价 / 品类 / 主管 ============================ */
+function scEfficiency() {
+  var payback = f.paybackProgress(NETSCENE.grossMarginAmt, NETSCENE.laborCostAmt);
+  var J = row('J');
+  var triage = f.stopBleedTriage({ zeroEventDays: 34, isActivePaid: true, leadIndex: J.index, uer: UER.J });
+  var lift = f.managerLift(1.28e6, 1.0e6, 8);   // 归一化人均：主管队 vs 全公司
+  var dviV = f.dvi({ reportRate: 0.85, medianEntryLagDays: 3, leadAttribRate: 0.34, discountRecordRate: 0.40, dealCount: 100 });
+  var dviB = f.dviBand(dviV);
+
+  var triBody;
+  if (triage.verdict === 'starved') {
+    triBody = '<div class="action-card r"><div class="ac-h"><span class="dot r"></span>止血拦截</div><div class="ac-body">' +
+      esc(J.name) + ' 连续 34 天零事件。但他的线索指数只有 <b>' + J.index.toFixed(2) + '</b>——他一个月只拿到 ' + J.leads + ' 条线索。' +
+      '🔴 这不是他不干活，这是你没给他饭吃。在止血之前，请先补足他的线索。</div></div>';
+  } else if (triage.verdict === 'invisible_work') {
+    triBody = '<div class="action-card a"><div class="ac-body">他 UER > 0：在做系统看不到的事，先谈一次再说。</div></div>';
+  } else {
+    triBody = '<div class="action-card"><div class="ac-body">双校验通过，进入淘汰讨论（仍需 M35 误杀预检）。</div></div>';
+  }
+
+  return card('',
+    '<div class="page-h"><h1>⚙️ 人效 · 错价 · 品类 · 主管</h1></div>' +
+    '<div class="grid g3" style="margin-top:16px">' +
+    '<div class="card"><div class="label">团队回本进度</div><div class="metric-num">' + f.fmtPct(payback) + '</div>' +
+    '<div class="delta"><span class="basis">累计毛利 ÷ 累计人力成本（含期初）</span></div></div>' +
+    '<div class="card"><div class="label">主管增益（归一化）</div><div class="metric-num">' + (lift == null ? '—' : lift.toFixed(2) + '×') + '</div>' +
+    '<div class="delta"><span class="basis">主管队归一人均 ÷ 全司归一人均 · 任期≥3月</span></div></div>' +
+    '<div class="card"><div class="label">DVI 数据可见度</div><div class="metric-num" style="color:' + (dviB === 'green' ? 'var(--green)' : dviB === 'amber' ? 'var(--amber)' : 'var(--red)') + '">' + Math.round(dviV) + '</div>' +
+    '<div class="delta"><span class="basis">' + (dviB === 'amber' ? '🟡 40–70' : dviB === 'green' ? '🟢 >70' : '🔴 <40') + ' · 供留人器 M29</span></div></div>' +
+    '</div>' +
+    '<div class="section-gap"></div><div class="label">止血分诊 · 双校验</div>' + triBody +
+    '<div class="src"><span class="pin">📎</span>换差主管 = 白得一个人；主管效应主要是教学成分（Lazear-Shaw-Stanton 2015）。主管唯一合法考核指标 = 归一化人均，且对全队可见。</div>' +
+    '<div class="section-gap"></div>' +
+    '<div class="action-card b"><div class="ac-h">扩编算钱器（只读沙盒）</div><div class="ac-body">' +
+    'Zoltners 边际判据：加人加到边际 = 边际；三年最优规模 ×1.18。此沙盒不落库、不写员工数据。</div></div>'
+  );
+}
+
+/* ============================ 屏 8 · 罪证屏 ============================ */
+function scCrime() {
+  var m34 = f.m34ArbitrageFromRates(0.087, 0.031, 600e6, 50e6, 2.6);
+  var counts = []; for (var i = 0; i < 61; i++) counts.push(32); for (var j = 0; j < 39; j++) counts.push(20);
+  var m36 = f.m36BunchRate(counts, 30);
+  var hb = f.hongbaoCheck({ amount: 20000, dailyAvgCommission: 30000, timing: 'immediate', hasCondition: false, rolling12ImmediateUncondCount: 3 });
+  var J = row('J'), mis = f.m35Misfire(J.origRank, J.normRank, M21.n);
+
+  return card('',
+    '<div class="page-h"><h1>🚨 罪证屏 · 三台打印机</h1><div class="lede">导入历史即出。这些钱不在任何报表上——它们被「冲刺」「底线」「人情折算」吃掉了。</div></div>' +
+    '<div class="grid g2" style="margin-top:16px;align-items:start">' +
+    '<div class="card"><div class="label">M34 时点套利</div>' +
+    '<div class="hero-num red">' + f.fmtWan(m34.annualLeakAmt) + '</div>' +
+    '<div class="delta"><span class="basis">年化泄漏 · 阈值区间密度 ' + m34.bunchIndex + '×</span></div>' +
+    '<div class="stat-strip"><div class="st"><div class="k">末段折扣率</div><div class="v">' + f.fmtPct(m34.tailRate) + '</div></div>' +
+    '<div class="st"><div class="k">平时折扣率</div><div class="v">' + f.fmtPct(m34.headRate) + '</div></div>' +
+    '<div class="st"><div class="k">时段差</div><div class="v">' + (m34.diff * 100).toFixed(1) + ' pp</div></div></div>' +
+    '<div class="src"><span class="pin">📎</span>Larkin JLE 2014：同一病灶损失 6–8% 收入。✅ 不建议砍奖金（Steenburgh 2008：奖金努力增量压倒时点低效）。建议回定价器压平拐点。</div></div>' +
+
+    '<div class="card"><div class="label">M36 卡线率</div>' +
+    '<div class="hero-num red">' + f.fmtPct(m36.rate) + '</div>' +
+    '<div class="delta"><span class="basis">底线带 [' + m36.band[0] + ',' + m36.band[1] + '] · ' + m36.inBand + '/' + m36.total + ' 人天落带内</span></div>' +
+    '<div class="src"><span class="pin">📎</span>Falk & Kosfeld AER 2006：设了底线，多数人把产出降到底线附近——你的底线，成了他们的上限。✅ 改为上不封顶激励。</div></div>' +
+    '</div>' +
+
+    '<div class="section-gap"></div>' +
+    '<div class="acc open"><div class="acc-h"><span class="dot r"></span><span class="acc-title">M35 淘汰误杀预检 · ' + esc(J.name) + '</span>' +
+    '<span class="acc-meta" style="margin-left:auto">扣扳机前的最后核查</span></div><div class="acc-b"><div class="acc-b-inner">' +
+    '<div class="ac-body">你要开的 <b>' + esc(J.name) + '</b>：原始排名倒数第 ' + (M21.n - J.origRank + 1) + '，归一化后全队第 ' + J.normRank + '。' +
+    'jump = ' + mis.jump + ' ≥ 阈值 ' + mis.threshold + ' → 🔴 <b>误杀警报</b>。他的线索量全队倒数第 1（' + J.leads + ' 条），单位线索产出全队第 1。</div>' +
+    '<div class="src"><span class="pin">📎</span>末位淘汰兴衰史：GE 自己废除了它，微软为它付出「失落的十年」。相对排名杀死协作，且必然有人垫底。</div>' +
+    '<div class="btn-row"><button class="btn sm" data-act="ac">换地盘观察一季</button><button class="btn sm" data-act="ac">切换绝对生存线</button>' +
+    '<button class="btn sm" data-act="ac">仍坚持淘汰（留痕）</button></div></div></div></div>' +
+
+    '<div class="section-gap"></div><div class="label">红包体检记录</div>' +
+    '<div class="card" style="margin-top:10px">' +
+    (hb.rule1 ? '<div class="action-card a"><div class="ac-body">这笔 ¥200 的红包 < 他日均提成的 2 倍（¥600）——你正在把人情折算成时薪。📎 Heyman & Ariely：小额金钱把社会规范切换成市场规范（📎 Gneezy & Rustichini 2000《A Fine Is a Price》：切换不可逆）。要么给足走市场规范，要么零金额走人情。</div></div>' : '') +
+    (hb.rule2 ? '<div class="action-card a"><div class="ac-body">这是他 12 个月内第 3 笔即时无条件红包。📎 Chung & Narayandas JMR 2017：立刻发的无条件奖金让业绩不升反降。建议延迟至周末发放，并降低频次。</div></div>' : '') +
+    '<div class="small" style="margin-top:8px">红包体检不产生任何扣减建议（S-D11）。</div></div>'
+  );
+}
+
+/* ============================ 屏 9 · 数据与系数 + 信封 + 自检 ============================ */
+function scData() {
+  return card('',
+    '<div class="page-h"><h1>🗄️ 数据与系数</h1><div class="lede">录入中心 · 信封中心（跨板块只读消费）· 系数金框 · 自检徽章。</div></div>' +
+    licenseCard() +
+    '<div class="section-gap"></div>' + envelopeCard() +
+    '<div class="section-gap"></div>' + coefCard() +
+    '<div class="section-gap"></div>' + selfTestCard()
+  );
+}
+
+function licenseCard() {
+  return '<div class="card"><div class="label">授权（离线 · 零网络 · ECDSA P-256 非对称验签）</div>' +
+    '<div class="ac-body" style="margin-top:8px">当前：<b>' + esc(APP.tenant) + '</b> · 模式 <span class="chip ' + (APP.buildMode === 'full' ? 'g' : 'a') + '">' + APP.buildMode.toUpperCase() + '</span></div>' +
+    '<div class="field" style="margin-top:12px"><label>粘贴授权码激活</label>' +
+    '<input id="licInput" placeholder="SKAB-…" value="' + esc(SAMPLE_CODE) + '"/>' +
+    '<div class="hint" id="licMsg">' + (APP.licMsg || '授-5：本文件内只有公钥，拿到文件也无法伪造签名。到期只降级（free），永不锁数据、导出永不锁定（授-2/4）。') + '</div></div>' +
+    '<div class="btn-row"><button class="btn primary" data-act="verifyLic">验证并激活</button>' +
+    '<button class="btn" data-act="downgrade">模拟到期降级 free</button></div></div>';
+}
+
+function envelopeCard() {
+  var env = buildOwnEnvelope();
+  var refsHtml = ['dingjia', 'zhaoren', 'liuren'].map(function (b) {
+    var r = REFS[b]; if (!r) return '';
+    var stale = f.isStale(APP.today, r.exportedAt);
+    return '<div class="kv"><span class="k">' + BOARD_CN[b] + '（board=' + b + '）</span>' +
+      '<span class="v ' + (stale ? '' : '') + '">最后导入于 ' + r.exportedAt + (stale ? ' <span class="chip a">🟡 已 ' + f.staleDays(APP.today, r.exportedAt) + ' 天</span>' : '') + '</span></div>';
+  }).join('');
+  return '<div class="card"><div class="label">信封中心（§3.13 契约 · 跨板块只读）</div>' +
+    '<div class="grid g2" style="margin-top:12px;align-items:start">' +
+    '<div><div class="acc-title" style="font-size:13px">导出 board=suanzhang</div>' +
+    '<div class="small" style="margin:6px 0">derived：realP90Factor / dvi / imbalanceRate / uerTeamMean</div>' +
+    '<pre class="fixed-note num" style="white-space:pre-wrap;max-height:190px;overflow:auto">' + esc(JSON.stringify(env, null, 1).slice(0, 1200)) + ' …</pre>' +
+    '<div class="btn-row"><button class="btn primary" data-act="doexport">导出信封 JSON</button></div></div>' +
+    '<div><div class="acc-title" style="font-size:13px">已导入（ExternalRef · 只读）</div>' + refsHtml +
+    '<div class="fixed-note">🔴 单向铁律：对导入字段只读，永不回写。同 board 再次导入 = 整条覆盖。' +
+    '过期不阻断计算、不改判定——只标注（三权分立：数值权归老板）。</div></div>' +
+    '</div></div>';
+}
+function buildOwnEnvelope() {
+  var derived = {
+    realP90Factor: f.realP90Factor([5, 6, 7, 8, 9, 10, 11, 12, 14, 18]),
+    dvi: Math.round(f.dvi({ reportRate: 0.85, medianEntryLagDays: 3, leadAttribRate: 0.34, discountRecordRate: 0.40, dealCount: 100 })),
+    imbalanceRate: M21.imbalanceRate,
+    uerTeamMean: UER_MEAN
+  };
+  return f.buildEnvelope(APP.today, derived, { Deal: [], Category: [], ProcessBaseline: [] }, 'demo-hash');
+}
+
+function coefCard() {
+  var keys = ['socialCostRate', 'discountLeakRedline', 'pushShareRedline', 'ahcTrustLine', 'personLeakX', 'envelopeStaleDays', 'm36Redline', 'p90MinSample'];
+  var rows = keys.map(function (k) {
+    return '<div class="coef-row"><div><div class="cn">' + k + '</div></div>' +
+      '<input class="num" data-coef="' + k + '" value="' + f.getCoef(k) + '"/></div>';
+  }).join('');
+  return '<div class="card"><div class="label">COEFFICIENTS 金框（数值权归老板 · 三权分立）</div>' +
+    '<div style="margin-top:10px">' + rows + '</div>' +
+    '<div class="fixed-note">权威源：跨板块系数以《0号公约》§5 为准；本板块专属以件二增补为准。' +
+    'ahcTrustLine / envelopeStaleDays 等双侧系数改动须两侧同步（R-04）。</div></div>';
+}
+
+/* ---- 自检：22 条对拍（浏览器内跑同一引擎）---- */
+function runSelfTest() {
+  var approx = function (a, b, e) { return a != null && Math.abs(a - b) <= (e || 1e-6); };
+  var A = row('A'), J = row('J');
+  var T = [];
+  function t(id, desc, ok) { T.push({ id: id, desc: desc, ok: !!ok }); }
+
+  var payment = 200e6, mr = 0.5, r = 0.2706, gm = payment * mr;
+  t('T1', '提成占毛利27.06%', approx(+((f.commission(payment, mr, r) / gm) * 100).toFixed(2), 27.06));
+  var net = f.netContribution(NETSCENE);
+  t('T2', '净贡献¥291,330（29.1%）', f.fmtYuan(net) === '¥291,330' && f.fmtPct(net / NETSCENE.grossMarginAmt) === '29.1%');
+  t('T3', 'labor_roi=2.14', approx(+(NETSCENE.grossMarginAmt / NETSCENE.laborCostAmt).toFixed(2), 2.14));
+  t('T4', '失衡率70%', f.fmtPct(M21.imbalanceRate) === '70.0%');
+  t('T5', 'rank(J)=1', J.normRank === 1);
+  t('T6', 'rank(A)=8（原始#1）', A.normRank === 8 && A.origRank === 1 && J.origRank === 10);
+  t('T7', 'DVI=54🟡', Math.round(f.dvi({ reportRate: .85, medianEntryLagDays: 3, leadAttribRate: .34, discountRecordRate: .40, dealCount: 100 })) === 54);
+  t('T8', 'A 的 UER=−1.5万🔴', f.fmtWan(UER.A) === '-1.5 万' && f.uerBand(UER.A, UER_SIGMA) === 'red');
+  var la = f.personAttribution({ discountLeakRate: .11, teamDiscountLeakRate: .05, complaintRate: .03, teamComplaintRate: .03, leadIndex: 1.8 });
+  var te = f.personAttribution({ discountLeakRate: .04, teamDiscountLeakRate: .05, complaintRate: .02, teamComplaintRate: .03, leadIndex: .3 });
+  var un = f.personAttribution({ discountLeakRate: .05, teamDiscountLeakRate: .05, complaintRate: .03, teamComplaintRate: .03, leadIndex: 1.0 });
+  t('T8b', '3.3b 三分支 leak/territory/undetermined', la.verdict === 'leak' && te.verdict === 'territory' && un.verdict === 'undetermined');
+  t('T9', 'J 的 UER=+0.9万🟢；均值−0.4万', f.fmtWan(UER.J) === '0.9 万' && f.uerBand(UER.J, UER_SIGMA) === 'green' && f.fmtWan(UER_MEAN) === '-0.4 万');
+  t('T10', '观测<48→UER=null', f.uerObsGate(40) === false && f.uerObsGate(48) === true);
+  t('T11', '剪刀差摊薄：年终奖12万÷12', f.amortizeForScissors('year_end_bonus', 12e6, 1) === 1e6);
+  var g5 = f.gateDiscountLeak(DISCOUNTS);
+  t('T12', '闸⑤ 泄漏7.2%红/期末58%红', f.fmtPct(g5.leakRate) === '7.2%' && g5.leakRed && f.fmtPct(g5.pushShare) === '58.0%' && g5.pushRed);
+  var m34 = f.m34ArbitrageFromRates(.087, .031, 600e6, 50e6, 2.6);
+  t('T13', 'M34 差5.6pp/泄漏33.6万/聚集2.6', approx(+(m34.diff * 100).toFixed(1), 5.6) && f.fmtWan(m34.annualLeakAmt) === '33.6 万' && m34.bunchIndex === 2.6 && m34.red);
+  var mis = f.m35Misfire(10, 1, 10);
+  t('T14', 'M35 jump=9≥3 警报', mis.jump === 9 && mis.threshold === 3 && mis.misfire);
+  var cc = []; for (var i = 0; i < 61; i++) cc.push(32); for (var k = 0; k < 39; k++) cc.push(20);
+  var m36 = f.m36BunchRate(cc, 30), few = f.m36BunchRate(cc.slice(0, 20), 30);
+  t('T15', 'M36 卡线率61%红；<30人天→null', f.fmtPct(m36.rate) === '61.0%' && m36.red && few.rate === null);
+  var hb = f.hongbaoCheck({ amount: 20000, dailyAvgCommission: 30000, timing: 'immediate', hasCondition: false, rolling12ImmediateUncondCount: 3 });
+  t('T16', '红包 rule①②触发·无扣减', hb.rule1 && hb.rule2);
+  var sa = f.stopBleedTriage({ zeroEventDays: 30, isActivePaid: true, leadIndex: 0.3, uer: null });
+  var sb = f.stopBleedTriage({ zeroEventDays: 30, isActivePaid: true, leadIndex: 1.0, uer: 5e5 });
+  t('T17', '止血 idx0.3拦截 / UER>0提示', sa.block && sa.verdict === 'starved' && !sb.block && sb.verdict === 'invisible_work');
+  var env = buildOwnEnvelope();
+  t('T18', '信封 derived 四项齐全 + 导入 ExternalRef', ['realP90Factor', 'dvi', 'imbalanceRate', 'uerTeamMean'].every(function (kk) { return kk in env.derived; }) && REFS.liuren.derived.ahc === 41);
+  t('T19', 'realP90Factor=1.44（R-7）；<8→null', approx(+f.realP90Factor([5, 6, 7, 8, 9, 10, 11, 12, 14, 18]).toFixed(2), 1.44) && f.realP90Factor([5, 6, 7]) === null);
+  var v1 = f.hijackVerdict({ ahc: 41, m28Coverage: 0, irrevocable: false });
+  var v2 = f.hijackVerdict({ ahc: 85, m28Coverage: 0.4, irrevocable: true });
+  var v3 = f.hijackVerdict({ ahc: null, m28Coverage: null, irrevocable: false });
+  t('T20', '闸⑪ 三分支 V-A/V-B/V-C', v1.verdict === 'pointed_hoarding' && v1.bad === 3 && v2.verdict === 'not_supported' && v2.bad === 0 && v3.verdict === 'insufficient' && v3.missingList.indexOf('AHC') >= 0);
+  var d = f.staleDays(APP.today, '2026-01-10');
+  t('T21', '新鲜度 staleDays=184>90；过期不改 verdict', d === 184 && f.isStale(APP.today, '2026-01-10') && v1.verdict === 'pointed_hoarding');
+  return T;
+}
+
+function selfTestCard() {
+  var T = runSelfTest();
+  var pass = T.filter(function (x) { return x.ok; }).length, total = T.length;
+  var badges = T.map(function (x) {
+    return '<div class="badge ' + (x.ok ? 'ok' : 'no') + '"><span class="bi">' + (x.ok ? '✓' : '✗') + '</span>' +
+      '<span class="bid">' + x.id + '</span><span class="bd">' + esc(x.desc) + '</span></div>';
+  }).join('');
+  return '<div class="card"><div class="label">自检徽章 · 件七 22 条对拍（浏览器内跑同一引擎）</div>' +
+    '<div style="margin:14px 0"><span class="big-badge ' + (pass === total ? 'ok' : 'no') + '">' +
+    (pass === total ? '✅ ' : '⚠️ ') + pass + ' / ' + total + ' 绿</span>' +
+    '<span class="small" style="margin-left:14px">TEST_TODAY=2026-07-13（公约 C-14/R-11）· ' + (pass === total ? '三绿 = 收货' : '有红 = 原样发回修') + '</span></div>' +
+    '<div class="badge-grid">' + badges + '</div></div>';
+}
+
+/* ============================ 通用小工具 ============================ */
+function card(x, inner) { return '<div class="screen active">' + inner + '</div>'; }
+function kv(k, v, neg) { return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v' + (neg ? ' neg' : '') + '">' + v + '</span></div>'; }
+function acc(id, title, chip, body) {
+  return '<div class="acc" id="' + id + '"><div class="acc-h" data-acc="' + id + '"><span class="acc-title">' + esc(title) + '</span>' +
+    '<span style="margin-left:auto">' + chip + '</span><span class="chev">▶</span></div>' +
+    '<div class="acc-b"><div class="acc-b-inner">' + body + '</div></div></div>';
+}
+
+/* ---- 事件接线 ---- */
+function wire() {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-acc]'), function (el) {
+    el.onclick = function () { var a = document.getElementById(el.getAttribute('data-acc')); a.classList.toggle('open'); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-act]'), function (el) {
+    el.onclick = function () { act(el.getAttribute('data-act'), el); };
+  });
+  // 数值权归老板：系数金框可改，改后全应用重算（三权分立）
+  Array.prototype.forEach.call(document.querySelectorAll('[data-coef]'), function (el) {
+    el.onchange = function () {
+      var k = el.getAttribute('data-coef'); var v = parseFloat(el.value);
+      if (!isNaN(v)) { f.COEFFICIENTS[k] = v; renderScreen(); }
+    };
+  });
+}
+
+function act(a, el) {
+  if (a === 'start') return go('territory');
+  if (a.indexOf('goto:') === 0) return go(a.split(':')[1]);
+  if (a === 'goexport' || a === 'doexport') return doExport();
+  if (a === 'dom21' || a === 'skipm21') { APP.m21done = true; save('m21done', true); renderNav(); return go('normalize'); }
+  if (a === 'flip') return playFlip();
+  if (a === 'verifyLic') return doVerify();
+  if (a === 'downgrade') { APP.buildMode = 'free'; save('buildMode', 'free'); refreshChrome(); alert('已模拟到期降级为 free。授-2/4：数据一字不动、导出永不锁定。'); return renderScreen(); }
+  if (a === 'ac') return toast(el, '已生成 action_card（系统永不自动执行·由你点击后才动）');
+}
+
+function toast(el, msg) {
+  var old = el.textContent; el.textContent = '✓ ' + msg; el.disabled = true;
+  setTimeout(function () { el.textContent = old; el.disabled = false; }, 1600);
+}
+
+function playFlip() {
+  // FLIP：原始榜 → 归一榜（Linear 缓动）
+  var tbody = document.querySelector('#rankTbl tbody'); if (!tbody) return;
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  var first = {}; rows.forEach(function (tr) { first[tr.dataset.id] = tr.getBoundingClientRect().top; });
+  rows.sort(function (a, b) {
+    return (row(a.dataset.id).normRank) - (row(b.dataset.id).normRank);
+  });
+  rows.forEach(function (tr) { tbody.appendChild(tr); });
+  rows.forEach(function (tr) {
+    var last = tr.getBoundingClientRect().top; var dy = first[tr.dataset.id] - last;
+    tr.style.transform = 'translateY(' + dy + 'px)'; tr.style.transition = 'none';
+    requestAnimationFrame(function () { tr.style.transition = 'transform .6s cubic-bezier(.2,0,0,1)'; tr.style.transform = ''; });
+  });
+}
+
+function doExport() {
+  var env = buildOwnEnvelope();
+  var blob = new Blob([JSON.stringify(env, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob); var a = document.createElement('a');
+  a.href = url; a.download = 'skab_suanzhang_' + APP.today + '.json'; a.click();
+  URL.revokeObjectURL(url);
+  APP.lastExportAt = APP.today; save('lastExportAt', APP.today); renderScreen();
+}
+
+async function doVerify() {
+  var inp = document.getElementById('licInput'); var msg = document.getElementById('licMsg');
+  var res = await verifyLicense(inp.value.trim());
+  if (!res.ok) { APP.licMsg = '🔴 验证失败：' + esc(res.why); if (msg) msg.innerHTML = APP.licMsg; return; }
+  APP.tenant = res.tenant; APP.buildMode = res.mode; save('buildMode', res.mode);
+  APP.licMsg = '✅ 验证通过 · 授权 <b>' + esc(res.tenant) + '</b> · 到期 ' + res.expiry + ' · 模式 ' + res.mode.toUpperCase() +
+    (res.expired ? '（已过期 → 降级 free，数据与导出不受影响）' : '');
+  refreshChrome(); renderScreen();
+}
+
+function refreshChrome() {
+  $('#tenantName').textContent = APP.tenant;
+  var mb = $('#modeBadge'); mb.textContent = APP.buildMode.toUpperCase();
+  mb.className = 'mode ' + APP.buildMode;
+}
+
+/* ---- 顶栏锁 pill（演示：切换 M21 归一化状态）---- */
+function wireChrome() {
+  $('#todayPill').textContent = '📅 今天 ' + APP.today;
+  $('#lockPill').onclick = function () {
+    APP.m21done = !APP.m21done; save('m21done', APP.m21done);
+    $('#lockPill').textContent = APP.m21done ? '🔓 M21 已归一化' : '🔒 M21 未归一化';
+    renderNav(); renderScreen();
+  };
+  $('#lockPill').textContent = APP.m21done ? '🔓 M21 已归一化' : '🔒 M21 未归一化';
+  refreshChrome();
+}
+
+/* ---- 启动 ---- */
+APP.buildMode = load('buildMode', 'full');
+wireChrome();
+renderNav();
+renderScreen();
+window.__SK_SELFTEST__ = runSelfTest;   // 供无头验证
+})();
+
+</script>
+</body>
+</html>
