@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 /* 端到端校验：无头 Chromium 打开构建产物，逐板块巡检 + 实时联动断言 + 持久化 + 自检徽章 */
-import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
+
+// playwright：本地 node_modules 优先，回退全局安装
+const pwCandidates = ['playwright', '/opt/node22/lib/node_modules/playwright/index.mjs'];
+let chromium = null;
+for (const c of pwCandidates) {
+  try { ({ chromium } = await import(c)); break; } catch (e) { /* next */ }
+}
+if (!chromium) { console.error('未找到 playwright'); process.exit(2); }
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const url = 'file://' + join(root, 'dist', 'index.html');

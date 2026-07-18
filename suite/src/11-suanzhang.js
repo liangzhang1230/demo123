@@ -340,7 +340,7 @@
         const discMonths = {}; db.discounts.forEach(d => { discMonths[SK.monthOf(d.discountDate)] = 1; });
         const dealMonths = m12.filter(m => Object.keys(c.idx.cnt).some(sp => G(c.idx.cnt, sp, m) > 0));
         const discountRecordRate = dealMonths.length ? dealMonths.filter(m => discMonths[m]).length / dealMonths.length : 0;
-        dvi = SK.clamp(E.dvi({ reportRate, medianEntryLagDays: 0, leadAttribRate, discountRecordRate, dealCount: dealCur }), 0, 100);
+        dvi = Math.round(SK.clamp(E.dvi({ reportRate, medianEntryLagDays: 0, leadAttribRate, discountRecordRate, dealCount: dealCur }), 0, 100));
       }
     }
 

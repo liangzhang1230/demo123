@@ -33,7 +33,7 @@
         ${kpi('本月经营净贡献', sz && sz.ledger ? fmt.wan(sz.ledger.net) : DASH, sz && sz.ledger ? '净贡献率 ' + fmt.pct(sz.ledger.rate) : '', sz && sz.ledger && sz.ledger.net < 0 ? 'red' : 'green', 'suanzhang', 'ledger')}
         ${kpi('团队 labor_roi', sz ? fmt.num(sz.laborRoi, 2) : DASH, '毛利 ÷ 人力成本', sz && sz.laborRoi != null && sz.laborRoi < 1 ? 'red' : '', 'suanzhang', 'ledger')}
         ${kpi('地盘失衡率', sz ? fmt.pct(sz.imbalanceRate, 0) : DASH, '全球基准 ≈56%', sz && sz.imbalanceRate > 0.56 ? 'red' : 'amber', 'suanzhang', 'territory')}
-        ${kpi('团队 UER 均值', sz && sz.uerTeamMean != null ? fmt.num(sz.uerTeamMean, 2) : DASH, '可观测行为之外的残差', sz && sz.uerTeamMean != null && sz.uerTeamMean < 0 ? 'red' : '', 'suanzhang', 'uer')}
+        ${kpi('团队 UER 均值', sz && sz.uerTeamMean != null ? (sz.uerTeamMean < 0 ? '−' : '+') + fmt.wan(Math.abs(sz.uerTeamMean)) : DASH, '可观测行为之外的残差/人·月', sz && sz.uerTeamMean != null && sz.uerTeamMean < 0 ? 'red' : '', 'suanzhang', 'uer')}
         ${kpi('老板信用分 AHC', lr ? fmt.num(lr.ahc) : DASH, '及格线 60 · 员工可见', lr && lr.ahc != null ? (lr.ahc < 60 ? 'red' : lr.ahc < 80 ? 'amber' : 'green') : '', 'liuren', 'overview')}
         ${kpi('监督指数 SII', lr ? fmt.num(lr.sii) : DASH, '越低越好 · >60 红', lr && lr.sii > 60 ? 'red' : lr && lr.sii > 30 ? 'amber' : 'green', 'liuren', 'overview')}
         ${kpi('销冠流失价签', lr && lr.priceTagHeadline != null ? fmt.wan(lr.priceTagHeadline) : DASH, '月毛利×(招聘+回本)期', 'red', 'liuren', 'pricetag')}
