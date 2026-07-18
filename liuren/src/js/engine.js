@@ -37,9 +37,12 @@ const Engine = (() => {
     const dvi = (sz && sz.derived && sz.derived.dvi != null) ? sz.derived.dvi : null;
 
     const a = DB.governance.ahcInputs, cA = getCoef('ahc'), wA = cA.w;
+    // irrevocable 覆盖 = 前程合约中 irrevocable 占比（0 合约→回退 ahcInputs.irrevocableRatio）
+    const covs = DB.entities.Covenant || [];
+    const irrRatio = covs.length ? covs.filter(c => c.irrevocable).length / covs.length : (a.irrevocableRatio || 0);
     const ahcRaw =
       wA[0] * a.honoredRatio +
-      wA[1] * a.irrevocableRatio +
+      wA[1] * irrRatio +
       wA[2] * (1 - Math.min(a.interceptCount / cA.interceptCap, 1)) +
       wA[3] * (1 - Math.min(a.ratchetCount / cA.ratchetCap, 1));
     const ahc = Math.round(ahcRaw);

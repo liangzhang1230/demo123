@@ -68,6 +68,9 @@ const UI = (() => {
       { id: 'dividend', name: '蓝图与分红', ico: '🎯' },
       { id: 'sales', name: '钱途页（销售端）', ico: '🌱' },
     ] },
+    { label: '数据', items: [
+      { id: 'people', name: '员工档案', ico: '👥' },
+    ] },
     { label: '系统', items: [
       { id: 'system', name: '信封与实验室', ico: '📦' },
       { id: 'selftest', name: '系数与自检', ico: '✅' },
@@ -115,8 +118,9 @@ const UI = (() => {
     const fixes = buildFixList(ind);
 
     return `<div class="stack">
-      <div><h1 class="section-title">治理体检 · 四指数</h1>
+      <div class="card-head"><div><h1 class="section-title">治理体检 · 四指数</h1>
         <div class="section-desc">${esc(SCRIPTS.L01({ sii: ind.sii.value, ei: ind.ei.value, ahc: ind.ahc.value }))}</div></div>
+        <button class="btn btn--primary no-print" data-act="editGov">✎ 编辑体检输入</button></div>
       <div class="kpi-grid">${cards}</div>
 
       <div class="grid grid-2">
@@ -148,8 +152,9 @@ const UI = (() => {
     const pt = Engine.priceTag(DB, S.today);
     const rows = pt.items.map(it => `<tr><td>${esc(it.name)}</td><td class="num mono">${it.amt == null ? '<span class="dash">—</span>' : Money.wan(it.amt)}</td><td class="muted tiny">${esc(it.scope)}</td></tr>`).join('');
     return `<div class="stack">
-      <div><h1 class="section-title">流失价签 · 权威 6 项口径</h1>
+      <div class="card-head"><div><h1 class="section-title">流失价签 · 权威 6 项口径</h1>
         <div class="section-desc">定价器卡C / 招人器 F15 为简版（各 3 项）；本 6 项为全系统权威口径。第⑤⑥项互不重叠、不得双计同一笔。</div></div>
+        <button class="btn btn--primary no-print" data-act="editPriceTag">✎ 编辑价签输入</button></div>
       <div class="grid grid-2">
         <div class="card"><div class="card-head"><div><div class="card-title">${esc(pt.name)} · 若今天离职</div>
           <div class="card-sub">≈近6月月均毛利 ×（招聘周期 + 批均回本）</div></div>
@@ -206,8 +211,9 @@ const UI = (() => {
     }).join('');
     const ovr = DB.entities.OverrideEvent.slice(-5).map(o => `<div class="kv"><span class="k">${esc(o.at)} · ${esc(o.action)}</span><span class="v">🔴 已拦截 · 全员可见</span></div>`).join('') || '<p class="muted tiny">暂无拦截记录。</p>';
     return `<div class="stack">
-      <div><h1 class="section-title">产权 M28 · 配方产权与带教对价</h1>
+      <div class="card-head"><div><h1 class="section-title">产权 M28 · 配方产权与带教对价</h1>
         <div class="section-desc">带教分成＝徒弟月净贡献 ×5%×12月；配方使用费＝团队净贡献增量 ×2%×24月。irrevocable 下调在代码层无成功路径——尝试即留痕 + AHC 扣分 + 全员可见。</div></div>
+        <button class="btn btn--primary no-print" data-act="addM28">＋ 新建协议</button></div>
       <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>师傅</th><th>类型</th><th class="num">费率</th><th class="num">时长</th><th class="num">对价</th><th>状态</th><th>拦截演示</th></tr></thead><tbody>${rows}</tbody></table></div></div>
       <div class="grid grid-2">
         <div class="card"><div class="card-title">拦截记录（G3 留痕 · 全员可见）</div>${ovr}
@@ -234,7 +240,7 @@ const UI = (() => {
       <div class="grid grid-2">
         <div class="card"><div class="card-title">该谈名单 · 五触发源</div><div class="card-sub" style="margin-bottom:10px">系统永不指导「谈什么」，只告诉你「该谈谁」。</div>
           <div class="table-wrap"><table class="table"><thead><tr><th>员工</th><th>触发</th><th>理由</th></tr></thead><tbody>${talkRows}</tbody></table></div>
-          ${bangyan ? actionCard('warning', `榜眼预警：${bangyan.name}`, esc(SCRIPTS.L09({ name: bangyan.name, m: 3, r: 2, sc: Rate.pct(bangyan.pp.scissors) })), '<button class="btn btn--sm">生成单独承诺（前程合约）</button>', 'Ahearne 2025 JM：中上段是流失与被挖高危带。') : ''}
+          ${bangyan ? actionCard('warning', `榜眼预警：${bangyan.name}`, esc(SCRIPTS.L09({ name: bangyan.name, m: 3, r: 2, sc: Rate.pct(bangyan.pp.scissors) })), `<button class="btn btn--sm" data-act="addCovenant" data-sp="${esc(bangyan.spId)}">生成单独承诺（前程合约）</button>`, 'Ahearne 2025 JM：中上段是流失与被挖高危带。') : ''}
         </div>
         <div class="card"><div class="card-head"><div class="card-title">依赖度雷达</div>${dep.value == null ? '' : badge(dep.band, bandWord(dep.band))}</div>
           <div class="hero-num" style="color:var(--${dep.band || 'info'})">${dep.value == null ? '—' : Rate.pct(dep.value)}</div>
@@ -251,7 +257,27 @@ const UI = (() => {
           <div class="btn-row"><button class="btn btn--primary" data-act="leaveWizard">启动离职登记</button></div>
           <div class="tiny muted" style="margin-top:10px">📎 中国连锁企业 RCT：指定名单一对一周聊，流失率降 1.7pp。</div>
         </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-head"><div class="card-title">前程合约（M16.4 · 主管不可见）</div><button class="btn btn--sm btn--primary" data-act="addCovenant">＋ 新建合约</button></div>
+          ${covenantList()}
+        </div>
+        <div class="card"><div class="card-title">M30 双通道 · 异议与建议</div><div class="card-sub" style="margin-bottom:8px">红线③实体化：负面标记必有异议入口；提出异议永不进考核路径。</div>
+          ${m30List()}
+        </div>
       </div>${BORDER}</div>`;
+  }
+  function covenantList() {
+    const cs = DB.entities.Covenant;
+    if (!cs.length) return `<div class="empty" style="padding:24px"><div class="empty-icon">📜</div><div class="empty-title">暂无前程合约</div><div class="tiny">点「新建合约」为高危/榜眼员工拼装承诺。</div></div>`;
+    return cs.map(c => `<div class="kv"><span class="k">${esc(masterName(c.employeeId))} · ${esc(c.promiseText || '承诺')}</span><span class="v">${c.bothConfirmed ? badge('success', '双方确认') : `<button class="btn btn--sm" data-act="confirmCovenant" data-id="${esc(c.covId)}">待确认</button>`} ${c.irrevocable ? badge('gold', '🔒') : ''}</span></div>`).join('');
+  }
+  function m30List() {
+    const objs = DB.entities.ObjectionEntry, sugs = DB.entities.SuggestionEntry;
+    const objRows = objs.length ? objs.map(o => `<div class="kv"><span class="k">异议 · ${esc(({bad_debt:'坏账',stop_bleed:'止血',cull_suggest:'汰评估',rank_bottom:'末位',other:'其他'})[o.reason] || o.reason)}${o.status !== 'pending' ? '' : (o.createdAt && D.diffDays(o.createdAt, S.today) > 7 ? ' <span class="tiny" style="color:var(--warning)">(>7天已失效)</span>' : '')}</span><span class="v">${o.status === 'pending' ? `<button class="btn btn--sm" data-act="resolveObj" data-id="${esc(o.objId)}" data-r="accepted">采纳</button> <button class="btn btn--sm" data-act="resolveObj" data-id="${esc(o.objId)}" data-r="upheld">维持</button>` : badge(o.status === 'accepted' ? 'success' : 'neutral', o.status === 'accepted' ? '已采纳' : '维持原判')}</span></div>`).join('') : '<div class="tiny muted">暂无异议。</div>';
+    const sugRows = sugs.length ? sugs.map(s => `<div class="kv"><span class="k">建议 · ${esc(s.content).slice(0, 20)}${s.employeeId ? '' : '（匿名）'}</span><span class="v">${s.status === 'pending' ? `<button class="btn btn--sm" data-act="resolveSug" data-id="${esc(s.sugId)}" data-r="adopted">采纳</button> <button class="btn btn--sm" data-act="resolveSug" data-id="${esc(s.sugId)}" data-r="ignored">忽略</button>` : badge(s.status === 'adopted' ? 'success' : 'neutral', s.status === 'adopted' ? '已采纳' : s.status)}</span></div>`).join('') : '<div class="tiny muted">暂无建议。</div>';
+    return `${objRows}<div class="hr" style="margin:10px 0"></div>${sugRows}
+      ${objs.length === 0 ? `<div class="banner banner--warning" style="margin-top:10px"><span class="b-ico">ℹ️</span><div>${esc(SCRIPTS.L03())}</div></div>` : ''}`;
   }
   function precheckPanel() {
     const spOpts = DB.entities.Salesperson.filter(s => s.isActive).map(s => `<option value="${s.spId}">${esc(s.name)}</option>`).join('');
@@ -278,7 +304,7 @@ const UI = (() => {
       <div class="tiny muted" style="margin-top:8px">🔴 体检永不清零池——只警告，数值权归老板。</div>`;
     }
     return `<div class="stack">
-      <h1 class="section-title">蓝图与分红 · 创业三级梯</h1>
+      <div class="card-head"><h1 class="section-title">蓝图与分红 · 创业三级梯</h1><button class="btn btn--primary no-print" data-act="editDividend">✎ 编辑三重闸与池</button></div>
       <div class="grid grid-2">
         <div class="card"><div class="card-head"><div class="card-title">① 三重闸 · 发不发（资格门）</div><div class="hero-num sm" style="color:var(--${div.threeGatePass ? 'success' : 'danger'})">${div.threeGatePass ? '✓' : '池 0'}</div></div>
           ${gateRows}<div class="tiny muted" style="margin-top:6px">老板设、独立启停、不达池=0、不重分。数值权归老板。</div></div>
@@ -286,8 +312,8 @@ const UI = (() => {
           ${fourHtml}</div>
       </div>
       <div class="grid grid-2">
-        <div class="card"><div class="card-title">经营蓝图（与考核隔离）</div>
-          ${DB.blueprint.milestones.map(m => `<div class="kv"><span class="k">${esc(m.name)}</span><span class="v">${m.done ? badge('success', '已达') : badge('neutral', '进行中')}</span></div>`).join('')}
+        <div class="card"><div class="card-head"><div class="card-title">经营蓝图（与考核隔离）</div><button class="btn btn--sm" data-act="addMilestone">＋ 里程碑</button></div>
+          ${DB.blueprint.milestones.map(m => `<div class="kv"><span class="k">${esc(m.name)}</span><span class="v"><button class="btn btn--sm ${m.done ? '' : 'btn--ghost'}" data-act="toggleMilestone" data-id="${esc(m.id)}">${m.done ? '✓ 已达' : '标记达成'}</button></span></div>`).join('') || '<div class="tiny muted">暂无里程碑。</div>'}
           <div class="tiny muted" style="margin-top:6px">蓝图进度不被任何考核函数调用（闸⑩）。</div></div>
         <div class="card"><div class="card-title">履约总账（双时间戳 · 全员可见）</div>
           <div class="kv"><span class="k">履约率（滚 12 月）</span><span class="v"><b>${Rate.pct(DB.governance.ahcInputs.honoredRatio)}</b></span></div>
@@ -326,8 +352,8 @@ const UI = (() => {
       <div class="grid grid-2">
         <div class="card"><div class="kpi-label">⑥ 战绩</div><div class="kpi-foot">你的里程碑与灯塔纪录（自动 + 老板手填，修改留痕全员可见）。</div></div>
         <div class="card"><div class="kpi-label">⑦ 灯塔 + 双入口</div>
-          <div class="btn-row" style="margin-top:8px"><button class="btn btn--sm">我有异议</button><button class="btn btn--sm">我有个建议（可匿名）</button></div>
-          <div class="tiny muted" style="margin-top:6px">提出异议永不进考核路径。</div></div>
+          <div class="btn-row" style="margin-top:8px"><button class="btn btn--sm" data-act="raiseObjection">我有异议</button><button class="btn btn--sm" data-act="raiseSuggestion">我有个建议（可匿名）</button></div>
+          <div class="tiny muted" style="margin-top:6px">提出异议永不进考核路径。异议不可匿名；建议可匿名且仍计 EI 分母。</div></div>
       </div>
     </div>`;
   }
@@ -387,22 +413,54 @@ const UI = (() => {
       </div>
       <div><h2 class="card-title" style="margin-bottom:10px">件七 · 验收用例集（T1–T19）</h2><div class="badge-grid">${tcards}</div></div>
       <div><h2 class="card-title" style="margin:16px 0 10px">件六 · 红线断言（可运行子集）</h2><div class="badge-grid">${acards}</div></div>
-      <div class="card"><div class="card-title">系数总表（结构权系统 / 数值权老板）</div>
-        <div class="tiny muted" style="margin-top:6px">全部系数经 getCoef 取用；数值权归老板（可覆盖）。此处为只读速览，编辑入口在各功能页。</div>
-        <div class="grid grid-3" style="margin-top:10px">
-          <div class="kv"><span class="k">AHC 信任线</span><span class="v">${getCoef('ahcTrustLine')}</span></div>
-          <div class="kv"><span class="k">爬坡缺口红线</span><span class="v">${Rate.pct(getCoef('rampGapShareRedline'))}</span></div>
-          <div class="kv"><span class="k">接手劣化(慢性)</span><span class="v">${Rate.pct(getCoef('pipelineDecayInPriceTag'))}</span></div>
-          <div class="kv"><span class="k">交接折损(急性)</span><span class="v">${Rate.pct(getCoef('handoverLossRate'))}</span></div>
-          <div class="kv"><span class="k">信封过期阈值</span><span class="v">${getCoef('envelopeStaleDays')} 天</span></div>
-          <div class="kv"><span class="k">备份提醒阈值</span><span class="v">${getCoef('backupNudgeDays')} 天</span></div>
+      <div class="card"><div class="card-head"><div class="card-title">系数总表 · 可编辑（结构权系统 / 数值权老板）</div>
+        <div class="btn-row"><button class="btn btn--primary btn--sm" data-act="saveCoef">保存系数</button><button class="btn btn--sm" data-act="resetCoef">恢复出厂</button></div></div>
+        <div class="tiny muted" style="margin:6px 0 12px">全部系数经 getCoef 取用；改这里＝改判定。写入 coefOverride，四指数/闸/价签随之实时重算。</div>
+        <div class="grid grid-3">
+          ${coefField('ahcTrustLine', 'AHC 信任线', 1)}
+          ${coefField('rampGapShareRedline', '爬坡缺口红线', 0.01)}
+          ${coefField('pipelineDecayInPriceTag', '接手劣化(慢性)', 0.01)}
+          ${coefField('handoverLossRate', '交接折损(急性)', 0.01)}
+          ${coefField('handoverSavableShare', '可救比例', 0.01)}
+          ${coefField('socialCostRate', '社保系数', 0.01)}
+          ${coefField('longTermRate', '长期占比→分红池', 0.01)}
+          ${coefField('rampGapShareRedline', '', 0)}
+          ${coefField('envelopeStaleDays', '信封过期阈值(天)', 1)}
+          ${coefField('backupNudgeDays', '备份提醒阈值(天)', 1)}
+          ${coefField('silentMonthsDefault', '静默认可月数', 1)}
+          ${coefField('dividendPayoutDelayDays', '分红发放延迟(天)', 1)}
         </div>
       </div>
     </div>`;
   }
+  // 系数编辑字段（标量）。scalar<1 视为比率输入；否则整数/小数。
+  function coefField(key, label, step) {
+    if (!label) return '';
+    const v = getCoef(key);
+    return `<label class="field"><span class="field-label">${esc(label)}</span><input type="number" step="${step}" data-coef="${key}" value="${v}"><span class="field-hint">出厂 ${COEF_DEFAULT[key]}</span></label>`;
+  }
+
+  // ========================================================================
+  // 员工档案 CRUD
+  // ========================================================================
+  function screenPeople() {
+    const rows = DB.entities.Salesperson.map(s => `<tr style="${s.isActive ? '' : 'opacity:.5'}">
+      <td>${esc(s.name)}</td><td class="mono tiny">${esc(s.phone)}</td>
+      <td>${({tier1:'一线',tier2:'二线',tier3:'三线',tier34:'三四线'})[s.cityTier] || s.cityTier}</td>
+      <td>${({sales:'销售',manager:'主管',executive:'高管'})[s.positionType] || s.positionType} · L${s.level}</td>
+      <td class="mono tiny">${esc(s.hireDate)}</td><td class="num mono">${Money.cny(s.baseSalaryAmt)}</td>
+      <td>${s.isActive ? badge('success', '在职') : badge('neutral', '离职')}</td>
+      <td><button class="btn btn--sm" data-act="editPerson" data-id="${esc(s.spId)}">编辑</button>
+        <button class="btn btn--sm" data-act="togglePerson" data-id="${esc(s.spId)}">${s.isActive ? '停用' : '恢复'}</button></td></tr>`).join('');
+    return `<div class="stack">
+      <div class="card-head"><div><h1 class="section-title">员工档案</h1><div class="section-desc">Salesperson 最小字段集（全板块共用）。一切留人功能以人为基准。</div></div>
+        <button class="btn btn--primary no-print" data-act="addPerson">＋ 新增员工</button></div>
+      <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>姓名</th><th>手机</th><th>城市档</th><th>岗位/层级</th><th>入职日</th><th class="num">底薪</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+      ${BORDER}</div>`;
+  }
 
   // ---- 路由 ----
-  const ROUTES = { overview: screenOverview, pricetag: screenPriceTag, gates: screenGates, m28: screenM28, retention: screenRetention, dividend: screenDividend, sales: screenSales, system: screenSystem, selftest: screenSelfTest };
+  const ROUTES = { overview: screenOverview, pricetag: screenPriceTag, gates: screenGates, m28: screenM28, retention: screenRetention, dividend: screenDividend, sales: screenSales, people: screenPeople, system: screenSystem, selftest: screenSelfTest };
   function render() {
     document.documentElement.dataset.theme = DB.settings.theme === 'auto' ? '' : DB.settings.theme;
     // 闸① 全锁：算账器未导入 → 除系统/自检外全部锁屏
