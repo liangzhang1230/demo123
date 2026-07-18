@@ -135,6 +135,8 @@ h2.big{font-size:27px;font-weight:680;letter-spacing:-.02em;margin:6px 0}
 .field .suffix .u{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:12px;pointer-events:none}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.splitcols{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start}
+@media(max-width:900px){.splitcols{grid-template-columns:1fr}}
 
 /* stat / hero */
 .stat{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px}
@@ -198,10 +200,6 @@ tr:last-child td{border-bottom:none}
 .badge.no{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 30%,transparent)}
 .badge .m{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
-.locked{position:relative}
-.locked::after{content:"🔒 升级 full 版解锁 · 到期只降级不锁数据(授-2)";position:absolute;inset:0;
-  background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(3px);
-  display:grid;place-items:center;font-size:13px;color:var(--ink-2);font-weight:600;border-radius:var(--r-lg);z-index:5}
 
 .boundary{text-align:center;color:var(--ink-3);font-size:13px;padding:26px 0 8px;font-style:italic}
 .kbd{font-family:var(--mono);font-size:11px;background:var(--sunken);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
@@ -226,7 +224,6 @@ tr:last-child td{border-bottom:none}
     <nav class="nav" id="nav"></nav>
     <div class="foot">
       <div class="toolrow">
-        <button class="chipbtn" id="modeBtn" title="BUILD_MODE 单机授权粒度">full 版</button>
         <button class="chipbtn" id="clockBtn" title="UI 层唯一取钟点，向下注入(公约 C-14)">演示钟</button>
         <button class="chipbtn" id="themeBtn">主题</button>
       </div>
@@ -485,7 +482,7 @@ const Store={
 const DEF_INPUTS={ targetYearGrossWan:1800, perCapitaWan:100, salesCount:10, cycleTier:'short',
   attritionRate:0.30, hiringCycleDays:45, fullLoadWan:28, managerCount:2 };
 const S = {
-  route: location.hash.slice(1) || 'home',
+  route: location.hash.slice(1) || 'input',
   mode: Store.get('mode','full'),
   demoClock: Store.get('demoClock',true),
   theme: Store.get('theme','auto'),
@@ -564,7 +561,7 @@ function render(){
   bind();
   window.scrollTo(0,0);
 }
-window.addEventListener('hashchange',()=>{ S.route = location.hash.slice(1)||'home'; render(); });
+window.addEventListener('hashchange',()=>{ S.route = location.hash.slice(1)||'input'; render(); });
 
 /* ---------- 顶部横幅：备份提醒(A-24) + free 降级说明 + 信封过期 ---------- */
 function banners(){
@@ -574,9 +571,6 @@ function banners(){
   if(dd > coef()('backupNudgeDays') && !S.bannerDismissed){
     const head = last ? `你已 <b>${dd}</b> 天没备份数据了` : `你还没导出过备份`;
     b.push(`<div class="banner warn"><span>💾</span><span>${head}——导出一份信封 JSON，只要 10 秒。<a href="#data">去导出 →</a>　“数据不出你电脑”的另一面是“数据只在你电脑”，丢数据由系统主动防（A-24）。</span><span class="x" data-act="dismissBanner">×</span></div>`);
-  }
-  if(S.mode==='free'){
-    b.push(`<div class="banner info"><span>🔓</span><span>当前 <b>free 版</b>：双算法对比与“晚 X 天”钩子可见，十二闸/招聘包/效度实验室锁定。<b>到期只降级不锁数据</b>，信封导出永不锁定（授-2）。</span></div>`);
   }
   $('#banners').innerHTML = b.join('');
 }
@@ -621,29 +615,53 @@ function vInput(){
       ${hint?`<div class="hint">${hint}</div>`:''}</div>`;
   const cycleOpt=[['short','短周期 · 满产 9 月'],['regular','常规 · 12 月'],['midLong','中长 · 15 月'],['long','长 · 18 月'],['ultraLong','超长 · 24 月']]
     .map(([v,t])=>`<option value="${v}" ${i.cycleTier===v?'selected':''}>${t}</option>`).join('');
-  return `<div class="wrap">
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-        <div class="sect-h" style="margin:0">CapacityInputs · 8 项（永不预填，参考灰字）</div>
-        <span class="grow"></span>
-        <button class="btn sm" data-act="loadSample">示例数据（对拍全套）</button>
+  return `<div class="wrap" style="max-width:1120px">
+    <div class="splitcols">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+          <div class="sect-h" style="margin:0">填 8 个数 · 右边实时出结果</div>
+          <span class="grow"></span>
+          <button class="btn sm" data-act="loadSample">一键填示例</button>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin-bottom:16px">🔴 系统不问你“打算招几个”——双算法自己跑。你只填现状与目标，边填边看右侧结果变。</p>
+        <div class="grid2">
+          ${F('targetYearGrossWan','① 明年目标年毛利',i.targetYearGrossWan,'万元')}
+          ${F('perCapitaWan','② 人均年实际毛利（去年真值）',i.perCapitaWan,'万元','不是配额')}
+          ${F('salesCount','③ 现有销售人数',i.salesCount,'人')}
+          <div class="field"><label>④ 成交周期档</label><select data-inp="cycleTier">${cycleOpt}</select><div class="hint">短周期=快消/满产9月</div></div>
+          ${F('attritionRate','⑤ 年流失率',i.attritionRate,'0–1','全球约 0.35')}
+          ${F('hiringCycleDays','⑥ 招聘周期',i.hiringCycleDays,'天','参考 45 天')}
+          ${F('fullLoadWan','⑦ 单人全负担年成本',i.fullLoadWan,'万元','底薪+社保+提成')}
+          ${F('managerCount','⑧ 现有销售主管人数',i.managerCount,'人','供主管编制')}
+        </div>
+        <hr class="hair">
+        <button class="btn ghost sm" data-act="resetInputs">恢复默认</button>
       </div>
-      <p class="muted" style="font-size:12.5px;margin-bottom:16px">🔴 系统不问你“打算招几个”——双算法自己跑。这里只填现状与目标。</p>
-      <div class="grid2">
-        ${F('targetYearGrossWan','① 明年目标年毛利',i.targetYearGrossWan,'万元')}
-        ${F('perCapitaWan','② 人均年实际毛利（去年真值，不是配额）',i.perCapitaWan,'万元','接算账器后自动')}
-        ${F('salesCount','③ 现有销售人数',i.salesCount,'人')}
-        <div class="field"><label>④ 成交周期档</label><select data-inp="cycleTier">${cycleOpt}</select><div class="hint">接通后取成交周期中位数</div></div>
-        ${F('attritionRate','⑤ 年流失率',i.attritionRate,'0–1','全球基准约 35%（填 0.35）')}
-        ${F('hiringCycleDays','⑥ 招聘周期',i.hiringCycleDays,'天','行业参考 45 天')}
-        ${F('fullLoadWan','⑦ 单人全负担年成本',i.fullLoadWan,'万元','接定价器后=laborCost×12+hiring_cost')}
-        ${F('managerCount','⑧ 现有销售主管人数',i.managerCount,'人','供第七步主管编制')}
+      <div class="card" style="position:sticky;top:66px;background:var(--surface-2)">
+        <div class="sect-h">实时结果</div>
+        <div id="livePreview">${renderPreviewHTML(E.capacityChain(currentInputs(),ctx()))}</div>
       </div>
-      <hr class="hair">
-      <div style="display:flex;gap:10px"><a class="btn pri" href="#result" data-act="commitInputs">算 → 看结果</a><button class="btn ghost" data-act="resetInputs">恢复默认</button></div>
     </div>
   </div>`;
 }
+function renderPreviewHTML(r){
+  const late=r.isLate;
+  return `<div class="versus" style="margin:0 0 12px">
+      <div class="vs-cell bad" style="padding:12px 8px"><div class="lab" style="font-size:11px">❌ 拍脑袋</div><div class="big num" style="font-size:38px">${r.naiveHires}</div></div>
+      <div class="vs-mid">→</div>
+      <div class="vs-cell good" style="padding:12px 8px"><div class="lab" style="font-size:11px">✅ 该招</div><div class="big num" style="font-size:38px">${r.trueHires}</div></div>
+    </div>
+    <div style="text-align:center;margin-bottom:14px"><span class="pill ${r.overRate>0.20?'red':'green'} num">产能高估率 ${E.fmtPct(r.overRate)}</span></div>
+    <table style="font-size:13px"><tbody>
+      <tr><td>最晚开招日</td><td class="num" style="${late?'color:var(--red);font-weight:650':''}">${r.latestStart}</td></tr>
+      <tr><td>${late?'已晚':'还剩'}</td><td class="num" style="${late?'color:var(--red);font-weight:650':''}">${late?r.lateDays:(-r.lateDays)} 天</td></tr>
+      <tr><td>目标编制</td><td class="num">${r.targetHeads} 人</td></tr>
+      <tr><td>需主管 / 缺</td><td class="num">${r.managerNeeded} / ${r.mgrGap}</td></tr>
+      <tr><td>每多招一人净增</td><td class="num">${E.fmtWan(r.netGain)}</td></tr>
+    </tbody></table>
+    <a class="btn pri" href="#result" style="width:100%;justify-content:center;margin-top:14px">看完整结果与十二闸 →</a>`;
+}
+function updatePreview(){ const el=$('#livePreview'); if(el) el.innerHTML=renderPreviewHTML(E.capacityChain(currentInputs(),ctx())); }
 
 /* ============================================================================
    屏 3 · 结果（核心屏）
@@ -697,7 +715,7 @@ function vResult(){
     </div>
 
     <!-- 十二道闸 -->
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">十二道闸 · 逐闸展开 = 现象 → 机制 → 📎出处 → 建议</div>
       ${gates.map(gateRow).join('')}
       <p class="muted" style="font-size:12px;margin-top:10px">④–⑫ 需招聘包 / 漏斗 / 练习数据点亮，见对应屏。此处显示已可判定的 6 闸。</p>
@@ -738,7 +756,7 @@ function vHire(){
     ['charisma','魅力气场','🔴>30%触闸⑤ · 硬顶10%'],['experience','经验年限','🔴>0触闸④ · 硬顶0']];
   const dt=E.darkTriadScore(S.dt);
   const dtF=(k,label)=>`<div class="wrow"><span class="wl">${label}</span><input type="range" min="0" max="100" data-dt="${k}" value="${S.dt[k]}"><span class="wv num">${S.dt[k]}</span></div>`;
-  return `<div class="wrap"><div class="card ${S.mode==='free'?'locked':''}">
+  return `<div class="wrap"><div class="card">
     <div class="sect-h">组件① 题库权重（Σ=100 硬校验 · 即时灯 闸④⑤⑥）</div>
     ${dims.map(([k,t,h])=>`<div class="wrow">
       <span class="wl">${t}</span>
@@ -755,7 +773,7 @@ function vHire(){
     </div>
   </div>
 
-  <div class="card ${S.mode==='free'?'locked':''}">
+  <div class="card">
     <div class="sect-h">组件③ 黑暗三角评分（行为编码，非人格测评）</div>
     <p class="muted" style="font-size:12.5px;margin-bottom:10px">=30×归因外部程度 + 30×细节缺失度 + 25×(魅力−细节) + 15×自我提及频率　🔴 招聘阶段限定 / 入职即销毁 / 不出人格报告 / 候选人知情异议权</p>
     ${dtF('externalAttrib','归因外部')}${dtF('detailMissing','细节缺失')}${dtF('charisma','魅力分')}${dtF('detail','细节分')}${dtF('selfMention','自我提及')}
@@ -763,7 +781,7 @@ function vHire(){
     <p class="muted" style="font-size:11.5px;margin-top:6px">正向模式：低魅力 + 高细节 + 归因内部 + 能精确复述失败与改进。</p>
   </div>
 
-  <div class="card ${S.mode==='free'?'locked':''}">
+  <div class="card">
     <div class="sect-h">组件⑤ 适应性样本（可打印 · 只打一项：打法换没换）</div>
     <div class="grid2">
       <div class="stat"><div class="k">卡甲 · 价格敏感型个体老板</div><div class="s" style="font-size:13px;color:var(--ink-2);margin-top:6px">只关心多少钱、能不能再便宜。</div></div>
@@ -796,22 +814,22 @@ function vFunnel(){
   const bonusTag=E.priceTag(currentInputs());
   const bonus=E.referralBonus(bonusTag.tagAmt);
   return `<div class="wrap">
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F4 招聘漏斗五池（只前进一格或流失）</div>
       <div class="pools">${pools.map(([p,t])=>`<div class="pool"><h4>${t}<span class="num">${byPool(p).length}</span></h4>
         ${byPool(p).map(c=>`<div class="cand">${esc(c.name)}<br><span class="muted" style="font-size:11px">${E.maskPhone(c.phone)} · ${c.sourceChannel}</span></div>`).join('')||'<div class="muted" style="font-size:11px;margin-top:8px">—</div>'}</div>`).join('')}</div>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">查重三条（姓名脱敏 / 在职拦截 / 离职放行黄条）</div>
       <table><thead><tr><th>场景</th><th class="num">手机(脱敏)</th><th>判定</th><th>说明</th></tr></thead><tbody>${demo}</tbody></table>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F7 薪酬水温 · 四灯（滚动窗 · 阈值可调 · 样本<3 灰）</div>
       <div class="grid2" style="grid-template-columns:repeat(4,1fr)">
         ${lights.map(([t,v,c])=>`<div class="stat"><div class="k">${t}</div><div class="v num" style="font-size:20px;color:var(--${c})">${v}</div></div>`).join('')}
       </div>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F15 渠道质量归因 QCS · 内推奖定价</div>
       <table><thead><tr><th>渠道</th><th class="num">存活90</th><th class="num">留存12</th><th class="num">人均净贡献</th><th class="num">QCS</th></tr></thead><tbody>
         ${qcs.map(c=>`<tr><td>${c.name}</td><td class="num">${E.fmtPct(c.survive90,0)}</td><td class="num">${E.fmtPct(c.retain12,0)}</td><td class="num">${E.fmtWan(c.netMean)}</td><td class="num"><b>${Math.round(c.q)}</b></td></tr>`).join('')}
@@ -829,7 +847,7 @@ function vBatch(){
   const gap=E.cognitiveGap(42,19);
   const r=E.capacityChain(currentInputs(),ctx());
   return `<div class="wrap">
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F6 批次 vintage（存活 / 爬坡 / 回本 · 不满 t 显“—”）</div>
       <table><thead><tr><th>批次</th><th class="num">S(30)</th><th class="num">S(90)</th><th class="num">爬坡完成</th><th class="num">回本日</th></tr></thead><tbody>
         <tr><td>2026-Q1</td><td class="num">100%</td><td class="num">83%</td><td class="muted">—</td><td class="muted">—</td></tr>
@@ -837,7 +855,7 @@ function vBatch(){
       </tbody></table>
       <p class="muted" style="font-size:11.5px;margin-top:8px">🔴 爬坡完成日 = 连续 3 月月度毛利 ≥ 人均配额×80%，严禁用“第一单”判定。某周期档 ≥5 批次完整爬坡 → 自动替换出厂曲线。</p>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">闸⑪ 练习量（前 14 天 &lt; 50 → S 曲线右移 · 🔴 永不阻止打电话）</div>
       <div class="grid3">
         <div class="stat"><div class="k">示例新人练习</div><div class="v num" style="color:var(--red)">${pg.count} / ${pg.floor}</div><div class="s">🔴 不达标</div></div>
@@ -846,7 +864,7 @@ function vBatch(){
       </div>
       <p style="font-size:13px;color:var(--ink-2);margin-top:10px">📎 前两周 50–100 次模拟通话可把爬坡缩短 37%；系统只提示，不锁电话——让他现在上线，是在浪费你的线索。</p>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">闸⑫ 认知鸿沟（分子只取 confirmed · no_response &gt;7 天自动 confirmed）</div>
       <div class="grid3">
         <div class="stat"><div class="k">主管上报</div><div class="v num">42 次</div></div>
@@ -871,7 +889,7 @@ function vLab(){
   const sc=E.overrideScorecard(SIM.f14_against,SIM.f14_comply,SIM.f14_over,SIM.f14_dec);
   const rline=(lab,rr,note)=>`<tr><td>${lab}</td><td class="num"><b style="color:var(--${rr.r==null?'ink-3':rr.r>0.2?'green':rr.r<-0.05?'red':'amber'})">${rr.r==null?'—':(rr.r>0?'+':'')+rr.r.toFixed(2)}</b></td><td class="muted" style="font-size:12px">${note}</td></tr>`;
   return `<div class="wrap">
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F11 预测效度追踪器（内置模拟集 12 人 · 12 个月后回验）</div>
       <table><thead><tr><th>面试维度</th><th class="num">r（vs 12月归一化毛利）</th><th>结论</th></tr></thead><tbody>
         ${rline('成就动机',rAch,'✅ 你复现了全球 .41——题库有效')}
@@ -880,7 +898,7 @@ function vLab(){
       </tbody></table>
       <p class="muted" style="font-size:11.5px;margin-top:8px">🔴 三条封顶不可绕过：样本<30 禁校准 · 经验永 0% · 魅力永 ≤10%。样本<12 → 整屏“—（需算账器归一化数据）”。📎 Satornino 2023 JM。</p>
     </div>
-    <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="card">
       <div class="sect-h">F12 黑暗三角崩塌追踪（分>70 ∧ 月∈[10,18] ∧ 近3月环比<−40%）</div>
       <div class="grid3">
         <div class="stat"><div class="k">高分者</div><div class="v num">${cs.n} 人</div><div class="s">${cs.lowSample?'低样本(<8)':'样本充足'}</div></div>
@@ -890,13 +908,13 @@ function vLab(){
       <p class="muted" style="font-size:12px;margin-top:10px">⚠️ 本预测永不进考核、永不影响提成、永不对该员工可见；系统只输出【提前做传承预案（留人器 M16.8）】，永不输出【建议开除】。</p>
     </div>
     <div class="grid2">
-      <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="card">
         <div class="sect-h">F13 排序效应验证闭环</div>
         <div class="stat"><div class="k">RPI（读定价器方案）</div><div class="v num">${rpi.toFixed(2)}</div><div class="s">≥0.60 预测筛进赌徒/黑暗三角</div></div>
         <p style="font-size:13px;color:var(--ink-2);margin-top:10px">黑暗中位 ${dark.median}（均值 ${dark.teamMean}）· 成就中位 ${ach.median}（均值 ${ach.teamMean}）→ <span class="pill ${verdict==='verified'?'red':'grey'}">${verdict==='verified'?'✅ 预测被验证':'未验证'}</span></p>
         <p class="muted" style="font-size:11.5px;margin-top:6px">你不是招不到好人——你在用一个只有赌徒会应聘的薪酬结构。</p>
       </div>
-      <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="card">
         <div class="sect-h">F14 例外权追踪器（推翻测评）</div>
         <div class="stat"><div class="k">EPS = 推翻组 − 遵从组</div><div class="v num" style="color:var(--red)">${E.fmtWan(sc.eps)}</div></div>
         <p style="font-size:13px;color:var(--ink-2);margin-top:10px">推翻率 <b>${E.fmtPct(sc.overrideRate)}</b>（配额 20%）${sc.warn?'<span class="pill red">🟡 预警</span>':''}　推翻组存活 ${E.fmtPct(SIM.f14_s2,0)} vs 遵从组 ${E.fmtPct(SIM.f14_s1,0)}</p>
@@ -1019,7 +1037,8 @@ function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show')
 function bind(){
   // 输入
   $('#view').querySelectorAll('[data-inp]').forEach(el=>{
-    el.addEventListener('change',()=>{ const k=el.dataset.inp; S.inputs[k]= el.type==='number'?parseFloat(el.value)||0:el.value; save('inputs'); });
+    const upd=()=>{ const k=el.dataset.inp; S.inputs[k]= el.type==='number'?(parseFloat(el.value)||0):el.value; save('inputs'); updatePreview(); };
+    el.addEventListener('input',upd); el.addEventListener('change',upd);
   });
   // 权重滑杆
   $('#view').querySelectorAll('[data-w]').forEach(el=>{
@@ -1047,13 +1066,14 @@ function bind(){
   });
   $('#banners').querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',()=>handleAct(el.dataset.act)));
   // 侧栏
-  $('#modeBtn').onclick=()=>{ S.mode=S.mode==='full'?'free':'full'; save('mode'); syncTools(); render(); };
   $('#clockBtn').onclick=()=>{ S.demoClock=!S.demoClock; save('demoClock'); syncTools(); render(); };
   $('#themeBtn').onclick=cycleTheme;
 }
 function handleAct(act,e){
   switch(act){
-    case 'loadSample': S.inputs={...DEF_INPUTS}; save('inputs'); toast('已载入对拍示例（1800万/100万/10人/短期）'); location.hash='#result'; break;
+    case 'loadSample': S.inputs={...DEF_INPUTS}; save('inputs');
+      if(S.route==='input'){ render(); toast('已填入示例，右侧结果已更新'); } else { toast('已载入示例'); location.hash='#result'; }
+      break;
     case 'commitInputs': save('inputs'); break;
     case 'resetInputs': S.inputs={...DEF_INPUTS}; save('inputs'); render(); toast('已恢复默认'); break;
     case 'resetWeights': S.weights={...E.DEFAULT_COEF.hiringWeightsFactory}; save('weights'); render(); break;
@@ -1088,8 +1108,7 @@ function importEnv(e){
 }
 function cycleTheme(){ const o=['auto','light','dark']; S.theme=o[(o.indexOf(S.theme)+1)%3]; save('theme'); applyTheme(); toast('主题：'+S.theme); }
 function applyTheme(){ if(S.theme==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',S.theme); }
-function syncTools(){ $('#modeBtn').textContent=S.mode==='full'?'full 版':'free 版'; $('#modeBtn').classList.toggle('act',S.mode==='full');
-  $('#clockBtn').textContent=S.demoClock?'演示钟':'真实钟'; $('#clockBtn').classList.toggle('act',S.demoClock); }
+function syncTools(){ $('#clockBtn').textContent=S.demoClock?'演示钟':'真实钟'; $('#clockBtn').classList.toggle('act',S.demoClock); }
 
 /* ============================================================================
    启动
