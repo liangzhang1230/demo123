@@ -84,7 +84,7 @@ const link4 = await page.evaluate(() => {
   const before = SK.X('liuren').ahc;
   const ag = SK.DB.m28Agreements.find(a => a.irrevocable);
   if (!ag) return null;
-  const fn = SK.actions['lr.m28-try-downgrade'] || SK.actions['lr.try-downgrade'] || SK.actions['lr.m28-downgrade'];
+  const fn = SK.actions['lr.try-down'] || SK.actions['lr.m28-try-downgrade'] || SK.actions['lr.try-downgrade'] || SK.actions['lr.m28-downgrade'];
   if (!fn) return { skip: true };
   const ic0 = SK.DB.governance.ahcInputs.interceptCount;
   fn({ id: ag.m28Id, m28Id: ag.m28Id });
