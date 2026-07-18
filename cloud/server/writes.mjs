@@ -39,6 +39,16 @@ export async function put(db, ctx, table, row, eventType) {
 }
 
 /**
+ * 纯事件 append（无表行变更的业务动作留痕，如 plan_adopted）。
+ * 与 put/patch 的事件写完全同构；🔴 禁止用它替代表行双写——有表行的写必须走 put/patch。
+ */
+export async function logEvent(db, ctx, type, targetId, payload) {
+  await db.query(
+    `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
+    [ctx.tenantId, type, ctx.actorId, targetId != null ? String(targetId) : null, JSON.stringify(payload ?? {})]);
+}
+
+/**
  * 表行 UPDATE + 事件 append，同一事务。
  * changes：snake_case 列 → 新值；updated_by = ctx.actorId、updated_at = DB now() 自动补。
  * WHERE 恒带 tenant_id（A-C01 隔离）。0 行命中 → 抛错（事务回滚，事件不落）。
