@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>30 天造一个替代选项 · 销冠底牌</title>
+<style>
+:root{
+  --bg:#E9E4D6;
+  --sheet:#FCFBF6;
+  --sheet2:#F3F0E6;
+  --ink:#2A2620;
+  --soft:#7A7362;
+  --rule:#CFC8B4;
+  --chop:#C1272D;
+  --ok:#2F6E52;
+  --warn:#94701A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:repeating-linear-gradient(90deg,transparent,transparent 119px,rgba(42,38,32,.04) 119px,rgba(42,38,32,.04) 120px);
+  font-family:var(--sans);color:var(--ink);
+  padding:20px 12px 60px;-webkit-font-smoothing:antialiased;
+}
+.sheet{max-width:780px;margin:0 auto;background:var(--sheet);
+  border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 6px 22px rgba(42,38,32,.14);position:relative}
+.sheet::after{content:"";position:absolute;inset:6px;border:1px solid rgba(207,200,180,.55);pointer-events:none}
+
+header{padding:26px 26px 18px;border-bottom:2px solid var(--ink);position:relative}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--soft);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:.06em;margin:8px 0 6px;line-height:1.25}
+.sub{font-size:12.5px;color:var(--soft);line-height:1.7;max-width:54ch}
+.serial{position:absolute;top:26px;right:26px;font-family:var(--mono);font-size:10.5px;color:var(--chop);
+  border:1px solid var(--chop);padding:3px 7px;letter-spacing:.05em}
+
+section{padding:20px 26px 8px}
+legend,h2.leg{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--chop);
+  padding-bottom:7px;margin-bottom:4px;display:block;width:100%;border-bottom:1px solid var(--rule);font-weight:400}
+fieldset{border:none;margin-bottom:14px}
+
+.row{display:flex;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px dotted var(--rule)}
+.row:last-child{border-bottom:none}
+.row label{font-size:13.5px;flex:1;line-height:1.45}
+.row .hint{display:block;font-size:11px;color:var(--soft);margin-top:2px;line-height:1.5}
+input[type=number],select{font-family:var(--mono);font-size:14px;width:110px;text-align:right;
+  border:none;border-bottom:1.5px solid var(--ink);background:transparent;color:var(--ink);
+  padding:3px 4px;border-radius:0}
+select{text-align:left;width:190px;font-family:var(--sans);font-size:12.5px}
+input:focus,select:focus{outline:none;border-bottom-color:var(--chop);background:rgba(193,39,45,.05)}
+.unit{font-family:var(--mono);font-size:11px;color:var(--soft);width:26px}
+.range-row{padding:11px 0;border-bottom:1px dotted var(--rule)}
+.range-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px}
+.range-val{font-family:var(--mono);font-weight:700;color:var(--chop)}
+input[type=range]{width:100%;margin-top:9px;accent-color:var(--chop)}
+
+.alert{font-size:12px;line-height:1.7;background:var(--sheet2);border-left:2px solid var(--warn);
+  padding:9px 11px;margin-top:8px;color:var(--soft)}
+.alert b{color:var(--ink)}
+
+/* 排班表主体 */
+.week{border:1px solid var(--ink);margin-bottom:14px;background:var(--sheet)}
+.week-h{display:flex;align-items:baseline;gap:10px;padding:9px 13px;border-bottom:1px solid var(--ink);background:var(--sheet2)}
+.week-h .d{font-family:var(--mono);font-size:11px;color:var(--chop);letter-spacing:.1em}
+.week-h .t{font-family:var(--serif);font-size:15.5px;font-weight:700;letter-spacing:.04em}
+.week-h .why{margin-left:auto;font-size:10.5px;color:var(--soft)}
+.task{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-bottom:1px dotted var(--rule);cursor:pointer}
+.task:last-child{border-bottom:none}
+.task input{margin-top:3px;width:16px;height:16px;flex-shrink:0;accent-color:var(--chop);cursor:pointer}
+.task .tx{font-size:13.5px;line-height:1.6;flex:1}
+.task .tx b{font-family:var(--mono)}
+.task .tx .blank{font-family:var(--mono);color:var(--chop);padding:0 2px}
+.task .src{font-family:var(--mono);font-size:10px;color:var(--soft);white-space:nowrap;padding-top:3px}
+.task.done .tx{color:var(--soft);text-decoration:line-through;text-decoration-color:rgba(42,38,32,.3)}
+@media(max-width:560px){.task .src{display:none}}
+
+/* 筹码表 */
+.meterbox{border-top:2px solid var(--ink);padding:22px 26px 26px;position:relative}
+.meter{position:relative;height:34px;border:1px solid var(--ink);margin:14px 0 8px;background:
+  linear-gradient(90deg,rgba(193,39,45,.14) 0 25%,rgba(148,112,26,.14) 25% 55%,rgba(47,110,82,.10) 55% 85%,rgba(47,110,82,.22) 85% 100%)}
+.meter i{position:absolute;top:-7px;bottom:-7px;width:3px;background:var(--ink)}
+@media (prefers-reduced-motion:no-preference){.meter i{transition:left .3s cubic-bezier(.3,1.2,.4,1)}}
+.meter i::after{content:attr(data-v);position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:12px;font-weight:700;background:var(--sheet);padding:0 4px;white-space:nowrap}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--soft);margin-bottom:16px}
+.milestone{display:flex;gap:10px;align-items:flex-start;border:1px dashed var(--chop);padding:11px 13px;
+  font-size:13px;line-height:1.6;cursor:pointer;margin-bottom:16px;background:rgba(193,39,45,.03)}
+.milestone input{margin-top:3px;width:16px;height:16px;accent-color:var(--chop);flex-shrink:0;cursor:pointer}
+.milestone b{color:var(--chop)}
+
+.verdict{border:1px solid var(--ink);background:var(--sheet2);margin-bottom:16px}
+.verdict h3{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--soft);
+  padding:9px 15px;border-bottom:1px solid var(--rule);font-weight:400}
+.vbody{padding:14px 15px 16px}
+.vtitle{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.05em;margin-bottom:8px}
+.vtext{font-size:13.5px;line-height:1.8}
+.vtext b{color:var(--chop)}
+
+.btn{display:inline-block;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--sheet);
+  background:var(--ink);border:none;padding:10px 22px;cursor:pointer;letter-spacing:.04em}
+.btn:hover{background:#3d3830}
+.btn:focus-visible{outline:2px solid var(--chop);outline-offset:2px}
+.copied{font-family:var(--mono);font-size:11px;color:var(--ok);margin-left:10px;opacity:0}
+.copied.on{opacity:1}
+@media (prefers-reduced-motion:no-preference){.copied{transition:opacity .2s}}
+
+.notice{margin-top:18px;font-size:11.5px;color:var(--soft);line-height:1.8;
+  border-left:2px solid var(--rule);padding-left:12px}
+.notice b{color:var(--ink)}
+footer{padding:16px 26px 22px;border-top:1px dotted var(--rule);font-size:11px;
+  color:var(--soft);line-height:1.75}
+footer b{color:var(--ink)}
+@media(max-width:600px){
+  h1{font-size:22px}.serial{position:static;display:inline-block;margin-bottom:10px}
+  header{padding:20px 16px 15px}section{padding:16px 16px 6px}.meterbox{padding:18px 16px 22px}
+  select{width:160px}input[type=number]{width:90px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header>
+  <div class="serial">底牌 · 前置工具 01</div>
+  <div class="eyebrow">LEVERAGE BUILDER / 30-DAY ROSTER</div>
+  <h1>30 天造一个替代选项</h1>
+  <p class="sub">你谈判的底气，不是嘴硬，是手里有没有"另一个选择"（底069）。没有筹码的人谈不了判——但筹码是<b>造</b>出来的，不是等出来的。这张排班表管 30 天：把"想找找机会"变成打了钩的格子。</p>
+</header>
+
+<section>
+  <fieldset>
+    <legend>甲 · 你现在的处境</legend>
+    <div class="row">
+      <label for="status">你现在的状态</label>
+      <select id="status">
+        <option value="onjob">在职，骑驴找马</option>
+        <option value="gap1">已离职，空窗 3 个月内</option>
+        <option value="gap2">已离职，空窗超过 3 个月</option>
+      </select>
+    </div>
+    <div class="range-row">
+      <div class="range-head"><span>每周能挤出来的小时数</span><span class="range-val" id="v_hours">6 小时</span></div>
+      <input type="range" id="hours" min="3" max="20" value="6" step="1" aria-label="每周可投入小时数">
+    </div>
+    <div class="row">
+      <label for="ties">你的"点头之交"有几个<span class="hint">前同事、老客户、同行群里说过话的——不是好友，是认识的人。你下一份工作，大概率是他们给的（底064）</span></label>
+      <input type="number" id="ties" value="8" min="0" max="99" step="1">
+      <span class="unit">人</span>
+    </div>
+    <div class="row">
+      <label for="goal">30 天后你要用这个筹码干什么</label>
+      <select id="goal">
+        <option value="stay">跟现在这家谈薪／谈条件</option>
+        <option value="offer">谈手里那个新 offer</option>
+        <option value="both">两头都要谈</option>
+      </select>
+    </div>
+    <div class="alert" id="gapAlert" hidden><b>空窗的时钟比你以为的快。</b>回电概率随空窗下降，大半伤害发生在头八个月（底067）——所以这张表是 30 天，不是 90 天。从今天的格子打起，别再整理简历第三遍了。</div>
+  </fieldset>
+</section>
+
+<section>
+  <h2 class="leg">乙 · 30 天排班 · 打上钩才算数</h2>
+  <div id="weeks"></div>
+</section>
+
+<div class="meterbox">
+  <h2 class="leg">丙 · 筹码表</h2>
+  <div class="meter"><i id="mark" data-v="空手" style="left:0%"></i></div>
+  <div class="ticks"><span>空手</span><span>有动静</span><span>有人选</span><span>有替代选项</span></div>
+
+  <label class="milestone"><input type="checkbox" id="milestone">
+    <span><b>关键一格：</b>任何一家给了意向——把它落到字面。"点头答应"和"亲手写下"，兑现率差一大截（底105）。哪怕只是一封邮件里的一句话，勾上这格，你就有筹码了。</span></label>
+
+  <div class="verdict">
+    <h3>今 日 判 定</h3>
+    <div class="vbody">
+      <div class="vtitle" id="vt">空手</div>
+      <div class="vtext" id="vx"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="copyBtn" type="button">复制我的 30 天排班表</button><span class="copied" id="copied">已复制，存进备忘录</span>
+
+  <div class="notice">
+    <b>这张表帮不了你的地方：</b>它造不出你没有的资历；它假设你真的愿意动——如果你其实想留下，直接去谈，别拿 30 天吓自己；它也管不了运气。它只负责一件事：让你 30 天后手里比今天多一个选择。<br><br>
+    <b>最后松一口。</b>造替代选项的目的不是一定要跳，是让你说"不"的时候声音不抖。非要挑"最好"那份工作的人，工资高了 20%，人却更难受（底126）——定个门槛，过线就停手。造出来之后不用它，也是一种用法。
+  </div>
+</div>
+
+<footer>
+  <b>这张表的记法。</b>任务里的 ⟨尖括号⟩ 是留给你填的空——填你自己的字，别抄任何人的样例。数量是按你填的"每周小时数"折算的建议值（🔧 作者推算，不是研究结论）；带（底XXX）的句子，是《销冠底牌》实证库里那条结论的编号，完整出处见实证库。<br><br>
+  本页不存任何数据，关掉就没了——所以打完钩点上面那个按钮，把排班表复制走。
+</footer>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const checked={};   // 任务勾选状态，按任务 key 存，重算排班时保留
+
+function plan(){
+  const h=+$('hours').value, ties=+$('ties').value, st=$('status').value, goal=$('goal').value;
+  const apply=Math.max(5,Math.round(h*1.5));          // 每周投递量：按可投入小时折算（🔧）
+  const talks=Math.max(2,Math.round(h/3));            // 每周约谈量（🔧）
+  const tieN=ties>0?Math.min(ties,10):0;
+  const w1=[
+    {k:'w1a',t:`把缝拓宽：写下 <span class="blank">⟨3⟩</span> 个你能卖的行业，每个行业列 <b>5</b> 家公司。写在纸上，不是记在脑子里——找不到工作，有时不是你不行，是你只在一条窄缝里找`,s:'底124'},
+    tieN>0
+      ?{k:'w1b',t:`给 <b>${tieN}</b> 个点头之交发一条消息：说你在看机会，问一句"你们那边或你知道的地方缺人吗"。你下一份工作，大概率不是熟人给的，是"点头之交"给的`,s:'底064'}
+      :{k:'w1b',t:`先把点头之交的名单列出来：<span class="blank">⟨10⟩</span> 个名字——前同事、老客户、同行群里说过话的。列完回到上面把人数改掉`,s:'底064'},
+    {k:'w1c',t:`把每天的动作写死：<span class="blank">⟨何时⟩</span><span class="blank">⟨在哪⟩</span><span class="blank">⟨怎么做⟩</span>。你没动起来，多半不是不够自律，是没写死这三格`,s:'底006'},
+    {k:'w1d',t:`简历改一版就发，别磨第三遍。本周先投 <b>${Math.round(apply/2)}</b> 份试水`,s:'🔧'}
+  ];
+  const w2=[
+    {k:'w2a',t:`动作量周：投出 <b>${apply}</b> 份、约到 <b>${talks}</b> 次通话或咖啡。找到工作靠的是"动作量"，不是"心态好"`,s:'底073'},
+    {k:'w2b',t:`挑 <b>2</b> 个信得过的人，当面说出"我在看机会"。一旦你当众说出口，就很难再改口——把这句话变成你的发条`,s:'底109'},
+    {k:'w2c',t:`写下预测：30 天后我手里会有 <span class="blank">⟨几⟩</span> 个进行中的选择？光是预测一下，你就更可能真去做`,s:'底110'}
+  ];
+  const w3=[
+    {k:'w3a',t:`面谈周：目标不是马上拿 offer，是让 <span class="blank">⟨2⟩</span> 家进入流程。你要的是"另一个选择"，不是"更好的自己"`,s:'底069'},
+    {k:'w3b',t:`每场面谈后 10 分钟，只记一件事：哪个问题把你问住了，下一场怎么答`,s:'🔧'},
+    {k:'w3c',t:`继续保底动作量：本周再投 <b>${apply}</b> 份——面谈热闹不等于有筹码，别停手`,s:'底073'}
+  ];
+  const w4goal={
+    stay:`带着筹码去谈现在这家：先把你要的写下来再进会议室`,
+    offer:`带着筹码去谈那个新 offer：两边比"体感年包"，用《Offer 真实价值折算器》算，别比月薪`,
+    both:`两头谈：先谈外面的，拿到数再谈里面的——顺序反了筹码就没了`
+  }[goal];
+  const w4=[
+    {k:'w4a',t:`把最热的一家推到字面：邮件、微信文字都行，要一句写下来的意向`,s:'底105'},
+    {k:'w4b',t:`设一个真截止日：第 30 天，向 <span class="blank">⟨谁⟩</span> 交代结果——知道自己会拖延，就给自己上真金白银的截止日期`,s:'底090'},
+    {k:'w4c',t:w4goal,s:'🔧'}
+  ];
+  return [
+    {d:'第 1–7 天',t:'铺面',why:'先把找的面变宽',ts:w1},
+    {d:'第 8–14 天',t:'上量',why:'动作量，不是心态',ts:w2},
+    {d:'第 15–21 天',t:'面谈',why:'采样，不是赶考',ts:w3},
+    {d:'第 22–30 天',t:'收口',why:'把热度变成字面',ts:w4}
+  ];
+}
+
+let PLAN=[];
+function renderWeeks(){
+  PLAN=plan();
+  $('weeks').innerHTML=PLAN.map(w=>`
+    <div class="week">
+      <div class="week-h"><span class="d">${w.d}</span><span class="t">${w.t}</span><span class="why">${w.why}</span></div>
+      ${w.ts.map(t=>`
+        <label class="task${checked[t.k]?' done':''}">
+          <input type="checkbox" data-k="${t.k}" ${checked[t.k]?'checked':''}>
+          <span class="tx">${t.t}</span><span class="src">${t.s}</span>
+        </label>`).join('')}
+    </div>`).join('');
+  render();
+}
+
+function render(){
+  $('v_hours').textContent=$('hours').value+' 小时';
+  $('gapAlert').hidden=$('status').value==='onjob';
+
+  const keys=PLAN.flatMap(w=>w.ts.map(t=>t.k));
+  const done=keys.filter(k=>checked[k]).length;
+  const ms=$('milestone').checked;
+  let pct=Math.round(done/keys.length*80);
+  if(ms)pct=Math.max(pct,88);
+  const lv=ms?3:pct>=55?2:pct>=25?1:0;
+  const names=['空手','有动静','有人选','有替代选项'];
+  $('mark').style.left=pct+'%';
+  $('mark').dataset.v=names[lv];
+  $('vt').textContent=names[lv];
+  $('vt').style.color=['var(--chop)','var(--warn)','var(--warn)','var(--ok)'][lv];
+  $('vx').innerHTML=[
+    `现在别上谈判桌。你谈判的底气，不是嘴硬，是手里有没有"另一个选择"（底069）。先把第一周的格子打上钩——第一格永远是最贵的一格。`,
+    `动起来了。别停下来评估"心态对不对"——找到工作靠的是动作量（底073）。给自己伪造一个"已经开始"的进度条，你会更难放弃（底014）：你已经开始了。`,
+    `有人进流程了。现在最重要的一件事：把最热的那家往<b>字面</b>推（底105）。口头的热情不是筹码，写下来的才是。`,
+    `可以去谈了。记住你造它的目的：不是一定要跳，是让你说"不"的时候声音不抖。定个门槛，过线就谈——别再等"更好的"（底126）。`
+  ][lv];
+}
+
+function planText(){
+  const st={onjob:'在职，骑驴找马',gap1:'已离职，空窗 3 个月内',gap2:'已离职，空窗超过 3 个月'}[$('status').value];
+  const goal={stay:'跟现在这家谈薪／谈条件',offer:'谈手里那个新 offer',both:'两头都要谈'}[$('goal').value];
+  const strip=s=>s.replace(/<[^>]+>/g,'');
+  const lines=[
+    '30 天造一个替代选项 · 我的排班表',
+    `处境：${st} ｜ 每周 ${$('hours').value} 小时 ｜ 点头之交 ${$('ties').value} 人 ｜ 30 天后：${goal}`,
+    ''
+  ];
+  PLAN.forEach(w=>{
+    lines.push(`【${w.d} · ${w.t}】`);
+    w.ts.forEach(t=>lines.push(`${checked[t.k]?'☑':'☐'} ${strip(t.t)}${t.s!=='🔧'?'（'+t.s+'）':''}`));
+    lines.push('');
+  });
+  lines.push(`${$('milestone').checked?'☑':'☐'} 关键一格：拿到任何一句写下来的意向（底105）`);
+  lines.push('');
+  lines.push('记法：⟨尖括号⟩是留给你填的空。数量是按每周小时数折算的建议值，可自己改。');
+  return lines.join('\n');
+}
+
+$('weeks').addEventListener('change',e=>{
+  const c=e.target.closest('input[data-k]');
+  if(!c)return;
+  checked[c.dataset.k]=c.checked;
+  c.closest('.task').classList.toggle('done',c.checked);
+  render();
+});
+['hours','ties','status','goal'].forEach(id=>{
+  $(id).addEventListener('input',renderWeeks);
+  $(id).addEventListener('change',renderWeeks);
+});
+$('milestone').addEventListener('change',render);
+$('copyBtn').addEventListener('click',()=>{
+  const txt=planText();
+  const done=()=>{ $('copied').classList.add('on'); setTimeout(()=>$('copied').classList.remove('on'),2000); };
+  const fb=()=>{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){}
+    document.body.removeChild(ta); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,fb); else fb();
+});
+
+renderWeeks();
+</script>
+</body>
+</html>

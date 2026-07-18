@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出单卡点诊断器 · 销冠底牌</title>
+<style>
+:root{
+  --bg:#DFE3E7;
+  --sheet:#FBFBF8;
+  --sheet2:#F1F2EE;
+  --ink:#20262B;
+  --soft:#68727A;
+  --rule:#C2CAD0;
+  --bad:#B23A32;
+  --ok:#2F6E52;
+  --warn:#94701A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(32,38,43,.05) 27px,rgba(32,38,43,.05) 28px);
+  font-family:var(--sans);color:var(--ink);
+  padding:20px 12px 60px;-webkit-font-smoothing:antialiased;
+}
+.sheet{max-width:800px;margin:0 auto;background:var(--sheet);
+  border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 6px 22px rgba(32,38,43,.14);position:relative}
+.sheet::after{content:"";position:absolute;inset:6px;border:1px solid rgba(194,202,208,.55);pointer-events:none}
+
+header{padding:26px 26px 18px;border-bottom:2px solid var(--ink);position:relative}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--soft);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:.06em;margin:8px 0 6px;line-height:1.25}
+.sub{font-size:12.5px;color:var(--soft);line-height:1.7;max-width:54ch}
+.serial{position:absolute;top:26px;right:26px;font-family:var(--mono);font-size:10.5px;color:var(--bad);
+  border:1px solid var(--bad);padding:3px 7px;letter-spacing:.05em}
+
+.meta{display:flex;flex-wrap:wrap;gap:0 28px;padding:12px 26px 16px;border-bottom:1px solid var(--rule)}
+.meta div{font-size:12px;color:var(--soft);display:flex;align-items:baseline;gap:7px}
+.meta input{border:none;border-bottom:1px solid var(--rule);background:transparent;font-family:var(--sans);
+  font-size:12.5px;color:var(--ink);padding:2px 4px;width:150px}
+.meta input:focus{outline:none;border-bottom-color:var(--ink)}
+
+.stage{border-bottom:1px solid var(--rule)}
+.stage-h{display:flex;align-items:baseline;gap:10px;padding:12px 26px 8px}
+.stage-h .no{font-family:var(--mono);font-size:11px;color:var(--bad);letter-spacing:.1em}
+.stage-h .t{font-family:var(--serif);font-size:16px;font-weight:700;letter-spacing:.04em}
+.stage-h .sc{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--soft)}
+.q{padding:8px 26px 14px}
+.q .qt{font-size:13.5px;font-weight:600;line-height:1.45;margin-bottom:3px}
+.q .qh{font-size:11px;color:var(--soft);line-height:1.55;margin-bottom:8px}
+.opts{display:flex;gap:5px}
+.opt{flex:1;font-size:11.5px;padding:7px 4px;text-align:center;border:1px solid var(--rule);
+  background:var(--sheet);cursor:pointer;color:var(--soft);user-select:none;line-height:1.35}
+@media (prefers-reduced-motion:no-preference){.opt{transition:all .13s}}
+.opt:hover{border-color:var(--soft)}
+.opt:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.opt[aria-pressed="true"]{color:#fff;font-weight:600}
+.opt.g[aria-pressed="true"]{background:var(--ok);border-color:var(--ok)}
+.opt.y[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.opt.r[aria-pressed="true"]{background:var(--bad);border-color:var(--bad)}
+
+.result{border-top:2px solid var(--ink);padding:22px 26px 26px;position:relative;overflow:hidden}
+.leg{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--bad);
+  padding-bottom:7px;margin-bottom:10px;display:block;border-bottom:1px solid var(--rule);font-weight:400}
+
+.ledger{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px}
+.ledger th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--soft);
+  font-weight:400;text-align:right;padding:6px 4px;border-bottom:1px solid var(--rule)}
+.ledger th:first-child{text-align:left}
+.ledger td{padding:7px 4px;border-bottom:1px dotted var(--rule);text-align:right;font-family:var(--mono)}
+.ledger td:first-child{text-align:left;font-family:var(--sans)}
+.ledger td.lost{font-weight:700}
+.ledger tr.worst td{color:var(--bad)}
+.ledger tr.worst td:first-child::after{content:" ← 主要卡点";font-family:var(--mono);font-size:10px}
+.bar{display:inline-block;height:8px;background:var(--bad);vertical-align:middle;margin-right:6px;opacity:.75}
+
+.verdict{border:1px solid var(--ink);background:var(--sheet2);margin-bottom:16px}
+.verdict h3{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--soft);
+  padding:9px 15px;border-bottom:1px solid var(--rule);font-weight:400}
+.vbody{padding:14px 15px 16px}
+.vtitle{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.05em;margin-bottom:8px}
+.vtext{font-size:13.5px;line-height:1.8}
+.vtext b{color:var(--bad)}
+
+.rx{margin-bottom:16px}
+.rx-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px dotted var(--rule);font-size:13px;line-height:1.65}
+.rx-item:last-child{border-bottom:none}
+.rx-item .tag{font-family:var(--mono);font-size:10px;color:var(--bad);white-space:nowrap;padding-top:3px}
+.rx-item .tx b{color:var(--ink)}
+.rx-empty{font-size:12.5px;color:var(--soft);padding:6px 0}
+
+.chop{position:absolute;right:18px;top:20px;width:96px;height:96px;border:2.5px solid var(--bad);
+  border-radius:50%;display:none;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--bad);transform:rotate(-12deg);opacity:.88;pointer-events:none;
+  font-family:var(--serif);letter-spacing:.1em;background:rgba(251,251,248,.6)}
+.chop.on{display:flex}
+.chop span:first-child{font-size:9.5px;letter-spacing:.22em}
+.chop span:nth-child(2){font-size:17px;font-weight:700;margin:2px 0;text-align:center;line-height:1.15}
+.chop span:last-child{font-size:9px;letter-spacing:.08em;font-family:var(--mono)}
+@media (prefers-reduced-motion:no-preference){
+  .chop.on{animation:stamp .45s cubic-bezier(.2,1.5,.4,1) both}
+  @keyframes stamp{from{transform:rotate(-12deg) scale(1.7);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:.88}}
+}
+
+.notice{margin-top:16px;font-size:11.5px;color:var(--soft);line-height:1.8;
+  border-left:2px solid var(--rule);padding-left:12px}
+.notice b{color:var(--ink)}
+@media(max-width:640px){
+  h1{font-size:22px}.serial{position:static;display:inline-block;margin-bottom:10px}
+  header{padding:20px 16px 15px}.meta{padding:12px 16px 14px}.meta input{width:118px}
+  .stage-h{padding:12px 16px 8px}.q{padding:8px 16px 14px}.result{padding:18px 16px 22px}
+  .opts{flex-direction:column}.opt{text-align:left;padding:8px 10px}
+  .chop{position:static;margin:0 auto 14px;transform:rotate(-6deg)}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header>
+  <div class="serial">底牌 · 出单包 01</div>
+  <div class="eyebrow">DEAL AUTOPSY / SETTLEMENT SHEET</div>
+  <h1>出单卡点诊断器</h1>
+  <p class="sub">客户就是不签的时候，问题几乎从不在"逼单那一下"，而在前面某一段就断了。拿一个卡住的单或刚丢的单，对着这十二格逐格判定——这张单负责告诉你：它卡在哪一段，下一单先改哪一个动作。</p>
+</header>
+
+<div class="meta">
+  <div><label for="deal">这一单</label><input id="deal" placeholder="客户名 / 单号"></div>
+  <div><label for="amt">大概金额</label><input id="amt" placeholder="¥"></div>
+  <div><label for="dt">诊断日期</label><input id="dt" placeholder="2026-07-18"></div>
+</div>
+
+<div id="stages"></div>
+
+<div class="result">
+  <div class="chop" id="chop"><span>卡点核定</span><span id="chopT">—</span><span id="chopS">12 格待判</span></div>
+
+  <span class="leg">丁 · 病灶排序 · 丢分越多，越先修</span>
+  <table class="ledger">
+    <thead><tr><th>阶段</th><th>丢分</th><th>满分</th></tr></thead>
+    <tbody id="rank"><tr><td colspan="3" style="text-align:left;color:var(--soft)">十二格判完，这里排出病灶。</td></tr></tbody>
+  </table>
+
+  <div class="verdict">
+    <h3>诊 断 结 论</h3>
+    <div class="vbody">
+      <div class="vtitle" id="vt">待判</div>
+      <div class="vtext" id="vx">每一格都判完，结论才作数——答不上来的格子，恰恰说明你对这单知道得太少。</div>
+    </div>
+  </div>
+
+  <span class="leg">戊 · 处方 · 只开给判为异常的格子</span>
+  <div class="rx" id="rx"><div class="rx-empty">还没有异常格。</div></div>
+
+  <div class="notice">
+    <b>这张单算不出三样东西：</b>他到底有没有预算和拍板权；你的东西是不是真的不如对手；以及时机。这十二格改的都是你这一侧的动作——方法能救的单才轮得到方法。<br><br>
+    <b>最后松一口。</b>一单没签不是审判。同样被拒 100 次，有人放弃有人继续——差别在"怎么解释这个拒绝"（底028）。这张单是病历，不是成绩单：找到主要卡点，下一单只改那一个动作，就够了。
+  </div>
+</div>
+
+</div>
+
+<script>
+/* 三档判定：g=2 分，y=1 分，r=0 分。处方只开给 r。
+   带（底XXX）的句子是《销冠底牌》实证库该条的一句话结论；处方动作本身是 🔧 作者推演。 */
+const STAGES=[
+ {no:'壹',t:'进门之前',qs:[
+  {q:'见他之前，你的状态',h:'你的情绪会传染给客户——见客户前，先管好自己的状态（底085）',
+   g:'状态收拾好了才进门',y:'没想过这回事',r:'带着上一单的火气见的',
+   rx:'见客户前留 5 分钟，把上一单的情绪清掉再进门——你的情绪会传染给客户（底085）。'},
+  {q:'开场你先让他看到什么',h:'客户先判断你"热不热情"，再判断你"能不能干"——顺序别搞反（底097）',
+   g:'先是个热的人，再谈事',y:'开门见山直接谈业务',r:'上来就证明自己专业',
+   rx:'下一次开场，先让他觉得你是个热的人，再证明你能干——客户先判断"热不热情"，再判断"能不能干"（底097）。哪怕一个微不足道的共同点，都能让人更愿意买你的账（底098）。'}
+ ]},
+ {no:'贰',t:'问需求',qs:[
+  {q:'那几次见面，谁的话多',h:'多问问题、尤其多追问，客户会更喜欢你——而你严重低估了这一点（底035）',
+   g:'他说七成，我追问',y:'我问了几个标准问题',r:'基本是我在讲',
+   rx:'下一次见面给自己立规矩：你的话不超过三成，多问、尤其多追问（底035）——你越会听，对方越松口（底114）。'},
+  {q:'你知道他为什么要买吗',h:'谈成交靠"钻进对方脑子"，不是靠"共情他"（底034）',
+   g:'能复述他内部怎么算这笔账',y:'大概知道他的难处',r:'不清楚，反正产品都讲了',
+   rx:'先别再讲产品——越懂产品的销售，越容易卖不动（底076）。去把他的账搞清楚：这笔钱他内部怎么报、替谁解决什么。钻进他脑子，不是共情他（底034）。'}
+ ]},
+ {no:'叁',t:'展示与报价',qs:[
+  {q:'你给他看的是什么',h:'一个有名有姓的人，比一堆漂亮数据更能打动客户（底082）',
+   g:'讲了有名有姓的客户故事',y:'案例和参数混着讲',r:'全是参数、对比表、百分比',
+   rx:'把参数表收一半，换成一个有名有姓的老客户（底082）——客户不是被你说服的，是被你的故事"带进去"的（底081）。'},
+  {q:'价是怎么报的',h:'报价别报整数：报¥4980，对方还的幅度反而更小（底021）',
+   g:'非整数报价，还讲了不买的代价',y:'报了个整数',r:'还没等他砍就先打了折',
+   rx:'下一单报个非整数（底021）；再把"不买会失去什么"说出口——同一件事，说"会失去"比说"能得到"，客户反应强一倍（底020）。'}
+ ]},
+ {no:'肆',t:'处理异议',qs:[
+  {q:'他说"贵"或"再想想"之后，你给了什么',h:'别给"要么接受要么拉倒"——给一组等值选项让对方挑（底086）',
+   g:'给了一组等值选项让他挑',y:'让了一步价',r:'原方案原价，要么接受要么拉倒',
+   rx:'他说贵，不是让你退，是让你给他选择——给一组等值选项让对方挑（底086）。'},
+  {q:'你的要求是怎么提的',h:'先狮子大开口被拒，再提真实要求，答应率翻三倍（底017）',
+   g:'先提大的，被拒后再提真实的',y:'一上来就是真实要求',r:'一被拒就退到了底线',
+   rx:'一被拒就掏底线，等于替他砍价。先提一个大的被拒，再提真实要求，答应率翻三倍（底017）。'}
+ ]},
+ {no:'伍',t:'临门一脚',qs:[
+  {q:'推进成交时，你用的力道',h:'把"成交"放第一的硬推型销售，业绩反而更差（底032）',
+   g:'帮他把决定变容易，不硬推',y:'委婉催了几次',r:'话术连环，步步紧逼',
+   rx:'停掉连环话术——把"成交"放第一的硬推，业绩反而更差（底032），越大的单，"逼单话术"越用越差（底033）。把默认选项设好（底089），让"签"成为最省力的那条路。'},
+  {q:'他的手碰过这单吗',h:'让客户先"拿在手里"，他就更不舍得放手（底019）',
+   g:'试用过，还亲手填过东西',y:'口头答应得挺好',r:'全程是我在替他操作',
+   rx:'让他拿在手里（底019）；再让他亲手写点什么——"点头答应"和"亲手写下"，兑现率差一大截（底105）。'}
+ ]},
+ {no:'陆',t:'没签之后',qs:[
+  {q:'最后一次接触，收在哪',h:'客户怎么记住这次成交，取决于"最高峰"和"结尾"，不是平均分（底087）',
+   g:'结尾留了个好峰值',y:'正常告别',r:'不了了之或不欢而散',
+   rx:'他记住的是最高峰和结尾，不是平均分（底087）。回去把结尾修好：哪怕补一条消息、一份他用得上的东西。'},
+  {q:'这单的人情账，你是怎么记的',h:'你以为人情早还清了，他却觉得你越来越欠（底104）',
+   g:'一直在给小的，不记账',y:'送过一次大的就停了',r:'觉得早就两不相欠',
+   rx:'人情账他记得比你久（底104）。从今天起持续给小的——一瓶饮料就能买动人，而且他不用喜欢你（底103）。'}
+ ]}
+];
+
+const $=id=>document.getElementById(id);
+const state=STAGES.map(s=>s.qs.map(()=>null));
+
+$('stages').innerHTML=STAGES.map((s,si)=>`
+ <div class="stage">
+   <div class="stage-h"><span class="no">${s.no}</span><span class="t">${s.t}</span><span class="sc" id="ss${si}">— / 4</span></div>
+   ${s.qs.map((q,qi)=>`
+   <div class="q">
+     <div class="qt">${q.q}</div>
+     <div class="qh">${q.h}</div>
+     <div class="opts" role="group" aria-label="${q.q}">
+       ${['g','y','r'].map(k=>`<div class="opt ${k}" role="button" tabindex="0" aria-pressed="false"
+          data-s="${si}" data-q="${qi}" data-k="${k}">${q[k]}</div>`).join('')}
+     </div>
+   </div>`).join('')}
+ </div>`).join('');
+
+const VERDICTS=[
+ {t:'卡在进门之前',x:'这单多半死在你开口谈产品之前——你的状态和出场顺序，他 10 秒就读完了。好消息：这是十二格里最便宜的一格，明天就能改。'},
+ {t:'回炉重问',x:'他不签，是因为你还不知道他为什么要买。这单先别推进，回去重新问——多问、多追问（底035），你严重低估了追问换来的好感。'},
+ {t:'讲错了东西',x:'你讲得越全，他越不动——越懂产品的销售，越容易卖不动（底076）。下一次带上：一个有名有姓的客户，一个非整数的价。'},
+ {t:'异议接得太软',x:'他每说一次"贵"，你就退一步——这不是谈判，是替他砍价。把选项摆成一组（底086），把大要求放在前面（底017）。'},
+ {t:'推得太狠，落得太虚',x:'越大的单，逼单话术越用越差（底033）。别再推——让他拿在手里（底019）、让他亲手写下（底105），然后闭嘴。'},
+ {t:'放死的，不是谈死的',x:'这单不是输在桌上，是没签之后被你放死的。结尾和人情账他都记着（底087 / 底104）——先去把结尾修好，这单还有下一回合。'}
+];
+
+function pick(si,qi,k){
+  state[si][qi]=k;
+  document.querySelectorAll(`.opt[data-s="${si}"][data-q="${qi}"]`).forEach(o=>
+    o.setAttribute('aria-pressed', o.dataset.k===k));
+  render();
+}
+document.addEventListener('click',e=>{
+  const o=e.target.closest('.opt'); if(o) pick(+o.dataset.s,+o.dataset.q,o.dataset.k);
+});
+document.addEventListener('keydown',e=>{
+  const o=e.target.closest('.opt');
+  if(o&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pick(+o.dataset.s,+o.dataset.q,o.dataset.k);}
+});
+
+const PTS={g:2,y:1,r:0};
+function render(){
+  const per=STAGES.map((s,si)=>{
+    const ans=state[si];
+    const got=ans.reduce((t,k)=>t+(k?PTS[k]:0),0);
+    const done=ans.every(Boolean);
+    $('ss'+si).textContent=(done?got:'—')+' / 4';
+    return {si,t:s.t,no:s.no,got,lost:4-got,done};
+  });
+  const answered=state.flat().filter(Boolean).length;
+  const allDone=answered===12;
+
+  // 病灶排序
+  if(answered===0){
+    $('rank').innerHTML='<tr><td colspan="3" style="text-align:left;color:var(--soft)">十二格判完，这里排出病灶。</td></tr>';
+  }else{
+    const rows=[...per].sort((a,b)=>b.lost-a.lost||a.si-b.si);
+    const worstLost=rows[0].lost;
+    $('rank').innerHTML=rows.map(r=>`
+      <tr${allDone&&r.lost===worstLost&&worstLost>0?' class="worst"':''}>
+        <td>${r.no} · ${r.t}${r.done?'':'（未判完）'}</td>
+        <td class="lost"><span class="bar" style="width:${r.lost*14}px"></span>${r.done?r.lost:'—'}</td>
+        <td>4</td>
+      </tr>`).join('');
+  }
+
+  // 处方
+  const rx=[];
+  STAGES.forEach((s,si)=>s.qs.forEach((q,qi)=>{
+    if(state[si][qi]==='r') rx.push({tag:s.no+' · '+s.t,tx:q.rx});
+  }));
+  $('rx').innerHTML=rx.length
+    ? rx.map(r=>`<div class="rx-item"><span class="tag">🔧 ${r.tag}</span><span class="tx">${r.tx}</span></div>`).join('')
+    : '<div class="rx-empty">还没有异常格。处方只开给判为红档的格子——判得诚实，处方才有用。</div>';
+
+  // 结论 + 章
+  const vt=$('vt'),vx=$('vx'),chop=$('chop');
+  const deal=$('deal').value.trim()||'这单';
+  if(!allDone){
+    vt.textContent='待判';vt.style.color='var(--soft)';
+    vx.textContent=`还有 ${12-answered} 格没判。答不上来的格子别跳过——答不上来，本身就是诊断结果：你对这单知道得太少。`;
+    chop.classList.remove('on');
+    return;
+  }
+  const totalLost=per.reduce((t,r)=>t+r.lost,0);
+  if(totalLost<=1){
+    vt.textContent='动作挑不出大毛病';vt.style.color='var(--ok)';
+    vx.innerHTML=`${deal} 在你这一侧，十二格几乎全绿。它还没签，问题可能不在你的动作——看下面"算不出的三样东西"。对客户最好、最勤维护关系的销售，业绩恰恰垫底（底007）：别再用加倍殷勤去补一个不缺殷勤的单。`;
+    $('chopT').textContent='无主要卡点';$('chopS').textContent='丢 '+totalLost+' / 24';
+    chop.classList.add('on');
+    return;
+  }
+  const worst=[...per].sort((a,b)=>b.lost-a.lost||a.si-b.si)[0];
+  const v=VERDICTS[worst.si];
+  vt.textContent=v.t;vt.style.color='var(--bad)';
+  vx.innerHTML=`${deal} 共丢 <b>${totalLost}</b> 分，最大的窟窿在<b>「${worst.no} · ${worst.t}」</b>（丢 ${worst.lost} / 4）。${v.x}`;
+  $('chopT').textContent=worst.t;$('chopS').textContent='丢 '+totalLost+' / 24';
+  chop.classList.add('on');
+}
+document.addEventListener('input',e=>{ if(e.target.id==='deal') render(); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>选公司体检评分器 · 销冠底牌</title>
+<style>
+:root{
+  --bg:#E4E8E4;
+  --sheet:#FCFCFA;
+  --ink:#1F2C2A;
+  --soft:#75837F;
+  --rule:#C7D0CC;
+  --bad:#B23A32;
+  --ok:#2F6E52;
+  --warn:#94701A;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--sans);color:var(--ink);padding:18px 10px 60px;-webkit-font-smoothing:antialiased}
+.sheet{max-width:800px;margin:0 auto;background:var(--sheet);border:1px solid var(--rule);
+  box-shadow:0 4px 18px rgba(31,44,42,.12)}
+
+header{padding:22px 24px 0}
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:3px double var(--ink);padding-bottom:12px}
+h1{font-family:var(--serif);font-size:25px;letter-spacing:.14em;font-weight:700}
+.tagline{font-size:11.5px;color:var(--soft);margin-top:5px;letter-spacing:.02em}
+.repno{font-family:var(--mono);font-size:10px;color:var(--soft);text-align:right;line-height:1.7}
+
+.meta{display:flex;flex-wrap:wrap;gap:0 28px;padding:12px 24px 16px;border-bottom:1px solid var(--rule)}
+.meta div{font-size:12px;color:var(--soft);display:flex;align-items:baseline;gap:7px}
+.meta input{border:none;border-bottom:1px solid var(--rule);background:transparent;font-family:var(--sans);
+  font-size:12.5px;color:var(--ink);padding:2px 4px;width:150px}
+.meta input:focus{outline:none;border-bottom-color:var(--ink)}
+
+.thead{display:grid;grid-template-columns:1fr 210px 52px 62px;gap:8px;padding:9px 24px;
+  border-bottom:1px solid var(--ink);font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.14em;color:var(--soft);text-transform:uppercase}
+.thead span:nth-child(3),.thead span:nth-child(4){text-align:right}
+
+.item{display:grid;grid-template-columns:1fr 210px 52px 62px;gap:8px;align-items:center;
+  padding:13px 24px;border-bottom:1px dotted var(--rule)}
+.name{font-size:14px;font-weight:600;line-height:1.35}
+.name em{display:block;font-style:normal;font-size:11px;color:var(--soft);font-weight:400;margin-top:3px;line-height:1.5}
+.opts{display:flex;gap:5px}
+.opt{flex:1;font-size:11.5px;padding:6px 2px;text-align:center;border:1px solid var(--rule);
+  background:var(--sheet);cursor:pointer;color:var(--soft);transition:all .13s;user-select:none}
+.opt:hover{border-color:var(--soft)}
+.opt:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.opt[aria-pressed="true"]{color:#fff;font-weight:600}
+.opt.g[aria-pressed="true"]{background:var(--ok);border-color:var(--ok)}
+.opt.y[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.opt.r[aria-pressed="true"]{background:var(--bad);border-color:var(--bad)}
+.wt,.sc{font-family:var(--mono);font-size:13px;text-align:right}
+.wt{color:var(--soft);font-size:11.5px}
+.sc{font-weight:700}
+.sc.low{color:var(--bad)}
+.sc.mid{color:var(--warn)}
+.sc.hi{color:var(--ok)}
+.arrow{font-size:11px}
+
+.flags{padding:18px 24px;border-bottom:1px solid var(--ink);background:#F6F4EF}
+.flags h2{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--bad);margin-bottom:11px}
+.flag{display:flex;gap:9px;align-items:flex-start;padding:6px 0;font-size:13px;line-height:1.5;cursor:pointer}
+.flag input{margin-top:3px;accent-color:var(--bad);width:15px;height:15px;flex-shrink:0}
+.flag span em{font-style:normal;color:var(--soft);font-size:11px;display:block;margin-top:2px}
+
+.result{padding:22px 24px 26px}
+.scorebar{position:relative;height:34px;border:1px solid var(--ink);margin:16px 0 8px;background:
+  linear-gradient(90deg,rgba(178,58,50,.13) 0 25%,rgba(148,112,26,.13) 25% 50%,rgba(47,110,82,.10) 50% 75%,rgba(47,110,82,.2) 75% 100%)}
+.scorebar i{position:absolute;top:-7px;bottom:-7px;width:3px;background:var(--ink);transition:left .3s cubic-bezier(.3,1.2,.4,1)}
+.scorebar i::after{content:attr(data-v);position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:12px;font-weight:700;background:var(--sheet);padding:0 4px;white-space:nowrap}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--soft);margin-bottom:20px}
+
+.verdict{border:1px solid var(--ink);padding:0}
+.verdict h3{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--soft);
+  padding:9px 15px;border-bottom:1px solid var(--rule);font-weight:400}
+.vbody{padding:15px 15px 18px}
+.vtitle{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.05em;margin-bottom:9px}
+.vtext{font-size:13.5px;line-height:1.8}
+.vtext b{color:var(--bad)}
+.sign{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+  padding:14px 15px 12px;border-top:1px dotted var(--rule);font-family:var(--mono);font-size:10px;color:var(--soft)}
+.sign span{border-bottom:1px solid var(--rule);flex:1;padding-bottom:2px}
+
+.notice{margin-top:16px;font-size:11.5px;color:var(--soft);line-height:1.8;
+  border-left:2px solid var(--rule);padding-left:12px}
+.notice b{color:var(--ink)}
+@media(max-width:640px){
+  .thead{display:none}
+  .item{grid-template-columns:1fr;gap:9px;padding:15px 16px}
+  .item .wt{display:none}
+  .sc{text-align:left;font-size:12px}
+  header,.meta,.flags,.result{padding-left:16px;padding-right:16px}
+  h1{font-size:20px}.meta input{width:118px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header>
+  <div class="masthead">
+    <div>
+      <h1>选公司体检报告</h1>
+      <div class="tagline">把"看不见的东西"换成能问出来的指标 · 销冠底牌 · 体检包 01</div>
+    </div>
+    <div class="repno">NO. SC-07<br>七项指标 · 满分 100</div>
+  </div>
+</header>
+
+<div class="meta">
+  <div><label for="co">受检公司</label><input id="co" placeholder="填一个名字" value=""></div>
+  <div><label for="pos">岗位</label><input id="pos" placeholder="销售 / 大客户" value=""></div>
+  <div><label for="dt">体检日期</label><input id="dt" placeholder="2026-07-18" value=""></div>
+</div>
+
+<div class="thead"><span>检测项目</span><span>结果判定</span><span>权重</span><span>得分</span></div>
+<div id="items"></div>
+
+<div class="flags">
+  <h2>一票否决项 · 勾中任意一条，分数不再作数</h2>
+  <div id="flagbox"></div>
+</div>
+
+<div class="result">
+  <div class="scorebar"><i id="mark" data-v="0" style="left:0%"></i></div>
+  <div class="ticks"><span>0 别去</span><span>25</span><span>50</span><span>75</span><span>100 可以去</span></div>
+
+  <div class="verdict">
+    <h3>诊 断 结 论</h3>
+    <div class="vbody">
+      <div class="vtitle" id="vt">待检</div>
+      <div class="vtext" id="vx">七项都打完分，这里出结论。</div>
+    </div>
+    <div class="sign"><span>受检人签字</span><span>日期</span></div>
+  </div>
+
+  <div class="notice">
+    <b>这张表算不出三样东西：</b>你会不会真的喜欢这件事（而内在动机对业绩的关联 r=.298，比钱的 r=.176 更强）；你入行的时机运气；以及你自己——你爬坡需要的时间，会比你现在想的久。<br><br>
+    <b>打完分，定一个门槛，过线就去。</b>非要挑"最好"那份工作的人，起薪确实高出 20%，但他们是最不满意、最焦虑、最后悔的一批。分数的作用是把你的判断结构化，不是替你判断。
+  </div>
+</div>
+
+</div>
+
+<script>
+const ITEMS=[
+ {n:'钱是怎么算的',d:'底薪是否无条件 · 配额去年调过没 · 实际达标率',w:20,
+  g:'无条件底薪',y:'有条件/含糊',r:'零底薪或配额年调'},
+ {n:'考核你几项',d:'指标数量与权重 · 除单量外还看什么',w:15,
+  g:'3项以上有权重',y:'1–2项能说清',r:'只考核单量'},
+ {n:'客户从哪来',d:'线索来源 · 区域怎么分 · 离职客户归谁',w:20,
+  g:'有池子有规则',y:'自己找但有保护',r:'纯冷启动可被抢'},
+ {n:'谁带你',d:'主管怎么上来的 · 还背不背指标 · 带出过谁',w:15,
+  g:'有带教有案例',y:'背指标但有复盘',r:'重指标+人身评价'},
+ {n:'平台的底价',d:'行业位置 · 团队是扩是缩 · 前任去哪了',w:15,
+  g:'在扩+去向体面',y:'一般但稳定',r:'缩水/说不清'},
+ {n:'走的时候',d:'待签协议 · 竞业补偿 · 提成尾款',w:10,
+  g:'主动给看',y:'说得清但当天签',r:'"到时候再说"'},
+ {n:'会不会烧穿',d:'排班可预测性 · 去年走几人 · 要演到什么程度',w:5,
+  g:'可预测不用演',y:'偶尔临时',r:'全凭通知+要演'}
+];
+const FLAGS=[
+ ['零底薪，或底薪要达标才发','公司一分风险都不担 — 底060 信号理论'],
+ ['达标率问不出来，或只讲某个销冠的故事','他知道，只是不说 — 底053 柠檬市场'],
+ ['入职前不给看要签的协议','时点即筹码 — 底122'],
+ ['面试全程漫无边际闲聊、凭感觉拍板','挑人都这么随意，管理多半也随意 — 底063'],
+ ['要求你先交钱（培训费/押金/设备费）','这不是体检项，这是报警项']
+];
+
+const state=ITEMS.map(()=>null);
+const box=document.getElementById('items');
+box.innerHTML=ITEMS.map((it,i)=>`
+ <div class="item">
+   <div class="name">${i+1}. ${it.n}<em>${it.d}</em></div>
+   <div class="opts" role="group" aria-label="${it.n}">
+     ${['g','y','r'].map(k=>`<div class="opt ${k}" role="button" tabindex="0" aria-pressed="false"
+        data-i="${i}" data-k="${k}">${it[k]}</div>`).join('')}
+   </div>
+   <div class="wt">${it.w}</div>
+   <div class="sc" id="sc${i}">—</div>
+ </div>`).join('');
+
+document.getElementById('flagbox').innerHTML=FLAGS.map((f,i)=>`
+ <label class="flag"><input type="checkbox" data-f="${i}"><span>${f[0]}<em>${f[1]}</em></span></label>`).join('');
+
+const PTS={g:3,y:1,r:0};
+function pick(i,k){
+  state[i]=k;
+  document.querySelectorAll(`.opt[data-i="${i}"]`).forEach(o=>
+    o.setAttribute('aria-pressed', o.dataset.k===k));
+  const cell=document.getElementById('sc'+i), v=PTS[k]/3*ITEMS[i].w;
+  cell.textContent=(k==='r'?'↓ ':k==='g'?'↑ ':'')+v.toFixed(0);
+  cell.className='sc '+(k==='r'?'low':k==='y'?'mid':'hi');
+  render();
+}
+document.addEventListener('click',e=>{
+  const o=e.target.closest('.opt'); if(o) pick(+o.dataset.i,o.dataset.k);
+});
+document.addEventListener('keydown',e=>{
+  const o=e.target.closest('.opt');
+  if(o&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pick(+o.dataset.i,o.dataset.k);}
+});
+document.addEventListener('change',render);
+
+function render(){
+  const done=state.filter(Boolean).length;
+  const total=state.reduce((s,k,i)=>s+(k?PTS[k]/3*ITEMS[i].w:0),0);
+  const flags=[...document.querySelectorAll('[data-f]')].filter(c=>c.checked).map(c=>FLAGS[+c.dataset.f][0]);
+
+  document.getElementById('mark').style.left=total+'%';
+  document.getElementById('mark').dataset.v=Math.round(total);
+
+  const vt=document.getElementById('vt'), vx=document.getElementById('vx');
+  const co=document.getElementById('co').value.trim()||'这家';
+
+  if(flags.length){
+    vt.textContent='一票否决';
+    vt.style.color='var(--bad)';
+    vx.innerHTML=`${co} 触发了 <b>${flags.length} 条一票否决项</b>：<br>· ${flags.join('<br>· ')}<br><br>
+      得分 ${Math.round(total)} 分不再作数。这几条不是"扣分项"，是"这份工作和你想的不是一回事"的证据。`;
+    return;
+  }
+  if(done<ITEMS.length){
+    vt.textContent='待检';
+    vt.style.color='var(--soft)';
+    vx.textContent=`还有 ${ITEMS.length-done} 项没判定。答不上来的那几项，不是先跳过——是你还不该答复他。`;
+    return;
+  }
+  const s=Math.round(total);
+  const worst=state.map((k,i)=>({k,i})).filter(x=>x.k==='r').map(x=>ITEMS[x.i].n);
+  let t,x;
+  if(s>=75){ t='可以去'; vt.style.color='var(--ok)';
+    x=`${co} 得 <b>${s}</b> 分。剩下的问题拿《Offer 谈判包》去谈，别再犹豫——挑"最好"那份的人薪水高 20%，却是最后悔的一批。`;
+  }else if(s>=50){ t='有硬伤，不致命'; vt.style.color='var(--warn)';
+    x=`${co} 得 <b>${s}</b> 分。先看硬伤落在哪：<b>1 钱怎么算</b>和<b>3 客户从哪来</b>是钱的问题，<u>可以谈</u>；<b>2 考核几项</b>和<b>4 谁带你</b>是"你会变成什么样的人"的问题，<u>谈不动</u>。`
+      +(worst.length?`<br><br>你判为异常的是：${worst.join('、')}。`:'');
+  }else if(s>=25){ t='高风险'; vt.style.color='var(--bad)';
+    x=`${co} 只有 <b>${s}</b> 分。只有一种情况值得去：你已经空窗很久（回电概率随空窗下降，大半伤害发生在头八个月），而这是眼下唯一的路。`
+      +(worst.length?`<br><br>异常项：${worst.join('、')}。`:'');
+  }else{ t='别去'; vt.style.color='var(--bad)';
+    x=`${co} 只有 <b>${s}</b> 分。这不是一份工作，是一场你付学费的实验。`;
+  }
+  vt.textContent=t; vx.innerHTML=x;
+}
+render();
+</script>
+</body>
+</html>

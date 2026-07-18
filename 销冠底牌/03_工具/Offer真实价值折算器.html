@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offer 真实价值折算器 · 销冠底牌</title>
+<style>
+:root{
+  --paper:#FBFAF6;
+  --paper2:#EDF1F2;
+  --carbon:#D9E2E4;
+  --ink:#1B2321;
+  --ink-soft:#5A6663;
+  --rule:#B9C6C8;
+  --chop:#C1272D;
+  --blue:#3F6B7A;
+  --warn:#9A6B12;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Source Han Sans SC",sans-serif;
+  --serif:"Songti SC","SimSun","Source Han Serif SC",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--carbon);
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(63,107,122,.06) 27px,rgba(63,107,122,.06) 28px);
+  font-family:var(--sans);color:var(--ink);
+  padding:20px 12px 60px;-webkit-font-smoothing:antialiased;
+}
+.sheet{max-width:760px;margin:0 auto;background:var(--paper);
+  border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 6px 22px rgba(27,35,33,.13);position:relative}
+.sheet::after{content:"";position:absolute;inset:6px;border:1px solid rgba(185,198,200,.5);pointer-events:none}
+
+header{padding:26px 26px 18px;border-bottom:2px solid var(--ink);position:relative}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--ink-soft);text-transform:uppercase}
+h1{font-family:var(--serif);font-size:29px;font-weight:700;letter-spacing:.06em;margin:8px 0 6px;line-height:1.2}
+.sub{font-size:12.5px;color:var(--ink-soft);line-height:1.7;max-width:52ch}
+.serial{position:absolute;top:26px;right:26px;font-family:var(--mono);font-size:10.5px;color:var(--chop);
+  border:1px solid var(--chop);padding:3px 7px;letter-spacing:.05em}
+
+.tabs{display:flex;border-bottom:1px solid var(--rule)}
+.tab{flex:1;padding:13px 8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-align:center;
+  background:var(--paper2);border-right:1px solid var(--rule);cursor:pointer;color:var(--ink-soft);
+  border-bottom:2px solid transparent;transition:background .15s}
+.tab:last-child{border-right:none}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);border-bottom-color:var(--chop);font-weight:600}
+.tab:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+
+.pane{padding:20px 26px 8px}
+.pane[hidden]{display:none}
+fieldset{border:none;margin-bottom:22px}
+legend{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--chop);
+  padding-bottom:7px;margin-bottom:4px;display:block;width:100%;border-bottom:1px solid var(--rule)}
+
+.row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px dotted var(--rule)}
+.row:last-child{border-bottom:none}
+.row label{font-size:13.5px;flex:1;line-height:1.45}
+.row .hint{display:block;font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.5}
+input[type=number],select{font-family:var(--mono);font-size:14px;width:118px;text-align:right;
+  border:none;border-bottom:1.5px solid var(--ink);background:transparent;color:var(--ink);
+  padding:3px 4px;border-radius:0}
+select{text-align:left;width:158px;font-family:var(--sans);font-size:12.5px}
+input:focus,select:focus{outline:none;border-bottom-color:var(--chop);background:rgba(193,39,45,.05)}
+.unit{font-family:var(--mono);font-size:11px;color:var(--ink-soft);width:26px}
+
+.range-row{padding:11px 0;border-bottom:1px dotted var(--rule)}
+.range-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px}
+.range-val{font-family:var(--mono);font-weight:700;color:var(--chop)}
+input[type=range]{width:100%;margin-top:9px;accent-color:var(--chop)}
+
+.note{font-size:11.5px;color:var(--ink-soft);line-height:1.65;background:var(--paper2);
+  border-left:2px solid var(--blue);padding:9px 11px;margin-top:10px}
+.note b{color:var(--ink)}
+
+.result{border-top:2px solid var(--ink);padding:22px 26px 26px;position:relative;overflow:hidden}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:16px}
+.cmp>div{background:var(--paper);padding:14px 13px}
+.cmp h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--ink-soft);font-weight:400;margin-bottom:9px}
+.big{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.big small{font-size:12px;font-weight:400;color:var(--ink-soft);letter-spacing:0}
+.strike{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);text-decoration:line-through;margin-bottom:3px}
+.delta{font-family:var(--mono);font-size:11.5px;margin-top:7px;padding-top:7px;border-top:1px dotted var(--rule);color:var(--ink-soft);line-height:1.6}
+
+.ledger{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px}
+.ledger th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink-soft);
+  font-weight:400;text-align:right;padding:6px 4px;border-bottom:1px solid var(--rule)}
+.ledger th:first-child{text-align:left}
+.ledger td{padding:7px 4px;border-bottom:1px dotted var(--rule);text-align:right;font-family:var(--mono)}
+.ledger td:first-child{text-align:left;font-family:var(--sans);color:var(--ink-soft)}
+.ledger tr.sum td{border-bottom:2px solid var(--ink);border-top:1px solid var(--ink);font-weight:700;color:var(--ink)}
+.neg{color:var(--chop)}
+
+.verdict{font-family:var(--serif);font-size:17px;line-height:1.65;padding:15px 16px;
+  border:1px solid var(--ink);background:var(--paper2);margin-bottom:14px}
+.verdict b{color:var(--chop)}
+.flags{list-style:none;font-size:12.5px;line-height:1.7}
+.flags li{padding-left:20px;position:relative;margin-bottom:6px;color:var(--ink-soft)}
+.flags li::before{content:"⚑";position:absolute;left:0;color:var(--warn)}
+.flags li b{color:var(--ink)}
+
+.chop{position:absolute;right:16px;bottom:14px;width:104px;height:104px;border:2.5px solid var(--chop);
+  border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--chop);transform:rotate(-13deg);opacity:.9;pointer-events:none;
+  font-family:var(--serif);letter-spacing:.1em}
+.chop span:first-child{font-size:10px;letter-spacing:.24em}
+.chop span:nth-child(2){font-size:21px;font-weight:700;margin:2px 0}
+.chop span:last-child{font-size:9px;letter-spacing:.1em;font-family:var(--mono)}
+@media (prefers-reduced-motion:no-preference){
+  .chop{animation:stamp .45s cubic-bezier(.2,1.5,.4,1) both}
+  @keyframes stamp{from{transform:rotate(-13deg) scale(1.7);opacity:0}to{transform:rotate(-13deg) scale(1);opacity:.9}}
+}
+footer{padding:16px 26px 22px;border-top:1px dotted var(--rule);font-size:11px;
+  color:var(--ink-soft);line-height:1.75}
+footer b{color:var(--ink)}
+@media(max-width:600px){
+  .cmp{grid-template-columns:1fr}
+  h1{font-size:23px}.serial{position:static;display:inline-block;margin-bottom:10px}
+  header{padding:20px 18px 15px}.pane{padding:18px 18px 6px}.result{padding:18px 18px 22px}
+  .chop{position:static;margin:14px auto 0;transform:rotate(-6deg)}
+  @media (prefers-reduced-motion:no-preference){@keyframes stamp{from{transform:rotate(-6deg) scale(1.7);opacity:0}to{transform:rotate(-6deg) scale(1);opacity:.9}}}
+  input[type=number]{width:96px}select{width:140px}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+<header>
+  <div class="serial">底牌 · 谈判包 01</div>
+  <div class="eyebrow">SALES LEVERAGE / WORKSHEET</div>
+  <h1>Offer 真实价值折算器</h1>
+  <p class="sub">offer 上写的年包，和你实际拿到手、扣掉你替公司承担的东西之后剩下的，是两个数。这张表把它们分开算。</p>
+</header>
+
+<div class="tabs" role="tablist">
+  <div class="tab" role="tab" id="tabA" aria-controls="paneA" aria-selected="true" tabindex="0">A 这家</div>
+  <div class="tab" role="tab" id="tabB" aria-controls="paneB" aria-selected="false" tabindex="0">B 对比／现在这家</div>
+  <div class="tab" role="tab" id="tabS" aria-controls="paneS" aria-selected="false" tabindex="0">折价系数</div>
+</div>
+
+<div class="pane" id="paneA" role="tabpanel" aria-labelledby="tabA"></div>
+<div class="pane" id="paneB" role="tabpanel" aria-labelledby="tabB" hidden></div>
+
+<div class="pane" id="paneS" role="tabpanel" aria-labelledby="tabS" hidden>
+  <fieldset>
+    <legend>折价系数 · 全部可改</legend>
+    <div class="range-row">
+      <div class="range-head"><span>排班全凭临时通知，折价</span><span class="range-val" id="v_sched">20%</span></div>
+      <input type="range" id="s_sched" min="0" max="35" value="20" step="1">
+    </div>
+    <div class="range-row">
+      <div class="range-head"><span>可以远程／居家，加价</span><span class="range-val" id="v_wfh">8%</span></div>
+      <input type="range" id="s_wfh" min="0" max="25" value="8" step="1">
+    </div>
+    <div class="range-row">
+      <div class="range-head"><span>社保公积金按最低基数缴，折价</span><span class="range-val" id="v_soc">6%</span></div>
+      <input type="range" id="s_soc" min="0" max="15" value="6" step="1">
+    </div>
+    <div class="note">
+      前两个默认值来自 <b>Mas &amp; Pallais (2017), American Economic Review</b> 的真实招聘随机实验：工人平均愿意放弃 <b>20%</b> 的工资来避开"老板临时定排班"，愿意放弃 <b>8%</b> 换取居家办公。
+      ⚠️ 但那是<b>美国呼叫中心岗位、疫情前</b>的数据，而且是<b>平均值</b>——论文自己指出个体差异极大。
+      <b>所以这三个数字请你自己改成你的真实心理价</b>：你有多讨厌被临时通知加班，只有你知道。第三项是中国口径的粗略假设，非研究结论。
+    </div>
+  </fieldset>
+</div>
+
+<div class="result" id="out"></div>
+
+<footer>
+  <b>怎么读这张表。</b>"名义年包"是他们说的，"体感年包"是扣掉你替公司承担的成本之后的。两个 offer 比的时候，看体感年包和 N 年累计，不要看月薪。<br><br>
+  <b>提成兑现率是这张表最重要的一格。</b>offer 上的提成数字是"做到目标才有"的，不是你会拿到的。往下调它，比什么都诚实。<br><br>
+  <b>这张表不替你做决定，也算不出"该不该去"。</b>它只负责把被藏起来的成本摆到台面上。所有系数都可改，改完了这就是你自己的账，不是我的。
+</footer>
+</div>
+
+<script>
+const FIELDS = [
+  {k:'base',   l:'月底薪',                 h:'合同上写死的那个数，不含提成',      u:'元', v:[8000,12000]},
+  {k:'months', l:'一年发几个月',           h:'含年终／十三薪，没有就填 12',       u:'月', v:[13,12]},
+  {k:'comm',   l:'offer 上写的年提成',     h:'按他们给你算的目标业绩，不是你估的', u:'元', v:[120000,80000]},
+  {k:'sign',   l:'签字费／一次性补贴',     h:'只发一次的钱，没有填 0',            u:'元', v:[0,0]},
+  {k:'commute',l:'单程通勤',               h:'门到工位，堵车的时候',              u:'分', v:[45,30]},
+  {k:'raise',  l:'预计年涨幅',             h:'保守填，别按他们画的饼填',          u:'%',  v:[8,5]},
+  {k:'years',  l:'打算待几年',             h:'用来算复利，填 3 或 5',             u:'年', v:[3,3]}
+];
+const SELECTS = [
+  {k:'sched', l:'排班／加班的可预测性', o:[['0','固定，可预测'],['0.5','偶尔临时通知'],['1','全凭临时通知']], v:['0.5','0']},
+  {k:'wfh',   l:'能不能远程／居家',     o:[['0','完全不能'],['0.5','偶尔可以'],['1','常态可以']],           v:['0','0']},
+  {k:'soc',   l:'社保公积金基数',       o:[['0','按全额工资'],['1','按最低基数']],                          v:['1','0']}
+];
+
+function cashRows(idx){
+  return [0,1,2,3].map(i=>{const f=FIELDS[i];return `
+    <div class="row">
+      <label for="${f.k}${idx}">${f.l}<span class="hint">${f.h}</span></label>
+      <input type="number" id="${f.k}${idx}" value="${f.v[idx]}" min="0" step="any">
+      <span class="unit">${f.u}</span>
+    </div>`}).join('');
+}
+function buildPane(idx){
+  const sels = SELECTS.map(s=>`
+    <div class="row">
+      <label for="${s.k}${idx}">${s.l}</label>
+      <select id="${s.k}${idx}">${s.o.map(o=>`<option value="${o[0]}"${o[0]===s.v[idx]?' selected':''}>${o[1]}</option>`).join('')}</select>
+    </div>`).join('');
+  return `
+  <fieldset><legend>现金部分</legend>${cashRows(idx)}</fieldset>
+  <fieldset><legend>提成兑现率</legend>
+    <div class="range-row">
+      <div class="range-head"><span>这个提成，你估计能真拿到几成</span><span class="range-val" id="vc${idx}">70%</span></div>
+      <input type="range" id="conf${idx}" min="10" max="100" value="70" step="5">
+    </div>
+    <div class="note">offer 上的提成是<b>做到目标才有的数</b>，不是你会拿到的数。该问的是：<b>这个岗位上一年实际达标的人有几成？</b>他答不出来或含糊，就往下拉这一格；答得出来，就按他给的数填。</div>
+  </fieldset>
+  <fieldset><legend>非现金条件</legend>${sels}</fieldset>
+  <fieldset><legend>时间与增长</legend>
+    <div class="row"><label for="commute${idx}">单程通勤<span class="hint">门到工位，按堵车时算</span></label><input type="number" id="commute${idx}" value="${FIELDS[4].v[idx]}" min="0" step="any"><span class="unit">分</span></div>
+    <div class="row"><label for="raise${idx}">预计年涨幅<span class="hint">保守填，别按他们画的饼填</span></label><input type="number" id="raise${idx}" value="${FIELDS[5].v[idx]}" min="0" step="any"><span class="unit">%</span></div>
+    <div class="row"><label for="years${idx}">打算待几年<span class="hint">用来算累计，填 3 或 5</span></label><input type="number" id="years${idx}" value="${FIELDS[6].v[idx]}" min="1" step="1"><span class="unit">年</span></div>
+  </fieldset>`;
+}
+document.getElementById('paneA').innerHTML = buildPane(0);
+document.getElementById('paneB').innerHTML = buildPane(1);
+
+const $ = id => document.getElementById(id);
+const num = id => { const e=$(id); const v = e ? parseFloat(e.value) : 0; return isFinite(v)?v:0; };
+const fmt = n => (n<0?'-':'') + '¥' + Math.round(Math.abs(n)).toLocaleString('zh-CN');
+
+function calc(i){
+  const base=num('base'+i), months=num('months'+i), comm=num('comm'+i), sign=num('sign'+i);
+  const conf=num('conf'+i)/100, commute=num('commute'+i);
+  const sched=parseFloat($('sched'+i).value), wfh=parseFloat($('wfh'+i).value), soc=parseFloat($('soc'+i).value);
+  const kS=num('s_sched')/100, kW=num('s_wfh')/100, kO=num('s_soc')/100;
+
+  const salary = base*months;
+  const commReal = comm*conf;
+  const nominal = base*months + comm + sign;
+  const cash = salary + commReal + sign;
+
+  const dSched = -cash*kS*sched;
+  const dWfh   =  cash*kW*wfh;
+  const dSoc   = -cash*kO*soc;
+
+  const hourly = cash/(250*8);
+  const hours  = commute*2/60*250;
+  const dTime  = -hours*hourly;
+
+  const felt = cash + dSched + dWfh + dSoc + dTime;
+
+  const r=num('raise'+i)/100, y=Math.max(1,num('years'+i));
+  let cum=0, f=cash>0?felt/cash:1;
+  for(let t=0;t<y;t++) cum += cash*Math.pow(1+r,t);
+  return {nominal,cash,commReal,comm,conf,dSched,dWfh,dSoc,dTime,felt,cum,cumFelt:cum*f,hours,y,base,months,sign,salary};
+}
+
+function render(){
+  ['s_sched','s_wfh','s_soc'].forEach(id=>{ const t=$('v_'+id.slice(2)); if(t) t.textContent=num(id)+'%'; });
+  [0,1].forEach(i=>{ const t=$('vc'+i); if(t) t.textContent=num('conf'+i)+'%'; });
+
+  const A=calc(0), B=calc(1);
+  const gap=A.felt-B.felt, gapN=A.nominal-B.nominal, cumGap=A.cumFelt-B.cumFelt;
+
+  const line=(l,a,b,neg)=>`<tr${neg?' class="neg"':''}><td>${l}</td><td${neg?' class="neg"':''}>${fmt(a)}</td><td${neg?' class="neg"':''}>${fmt(b)}</td></tr>`;
+
+  let flags=[];
+  if(A.conf<=0.5) flags.push('<b>A 的提成你只信一半以下。</b>这不是保守，这是这份 offer 最大的未知数——入职前把"上一年实际达标率"问出来，问不出来就当它不存在。');
+  if(A.comm>A.salary) flags.push('<b>A 的提成比固定工资还多。</b>公司把风险几乎全推给了你——底薪是它为你担的险，提成是你替它扛的险。');
+  if(A.base*A.months < B.base*B.months && A.nominal>B.nominal) flags.push('<b>A 名义上更高，但固定部分更低。</b>这个差价是用"不确定"换来的，不是白给的。');
+  if(parseFloat($('sched0').value)===1) flags.push('<b>A 的排班全凭临时通知。</b>这是所有隐性条件里最贵的一项，而它永远不会写在 offer 上。');
+  if(A.hours>250) flags.push('<b>A 每年通勤 '+Math.round(A.hours)+' 小时</b>，相当于多上 '+Math.round(A.hours/8)+' 天班——没人给你发这份钱。');
+  if(gapN>0 && gap<0) flags.push('<b>A 名义上赢，体感上输。</b>这正是这张表要抓的那种 offer。');
+  if(!flags.length) flags.push('没有触发明显的结构性警告——但表算不出的东西还有很多：主管会不会带人、这个数字后面公司还能撑几年。');
+
+  const better = gap>=0?'A':'B';
+  const pct = Math.abs(B.felt)>0 ? Math.abs(gap/B.felt*100) : 0;
+
+  $('out').innerHTML = `
+    <div class="cmp">
+      <div>
+        <h3>A 这家 · 体感年包</h3>
+        <div class="strike">名义 ${fmt(A.nominal)}</div>
+        <div class="big">${fmt(A.felt)}</div>
+        <div class="delta">${A.y} 年累计（体感）<br>${fmt(A.cumFelt)}</div>
+      </div>
+      <div>
+        <h3>B 对比 · 体感年包</h3>
+        <div class="strike">名义 ${fmt(B.nominal)}</div>
+        <div class="big">${fmt(B.felt)}</div>
+        <div class="delta">${B.y} 年累计（体感）<br>${fmt(B.cumFelt)}</div>
+      </div>
+    </div>
+
+    <table class="ledger">
+      <thead><tr><th>对账项</th><th>A</th><th>B</th></tr></thead>
+      <tbody>
+        ${line('固定工资（含年终）',A.salary,B.salary)}
+        ${line('提成 · 按兑现率折后',A.commReal,B.commReal)}
+        ${line('一次性补贴',A.sign,B.sign)}
+        ${line('排班不可预测',A.dSched,B.dSched,true)}
+        ${line('远程可行性',A.dWfh,B.dWfh)}
+        ${line('社保公积金基数',A.dSoc,B.dSoc,true)}
+        ${line('通勤时间折现',A.dTime,B.dTime,true)}
+        <tr class="sum"><td>体感年包</td><td>${fmt(A.felt)}</td><td>${fmt(B.felt)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="verdict">
+      按你自己填的这些数：<b>${better}</b> 的体感年包高出 <b>${fmt(Math.abs(gap))}</b>（${pct.toFixed(0)}%）；
+      ${A.y} 年累计差 <b>${fmt(Math.abs(cumGap))}</b>。
+      ${gapN>0&&gap<0?'<br>注意：A 的<b>名义</b>年包其实更高——差别全在没写进 offer 的那几行。':''}
+    </div>
+
+    <ul class="flags">${flags.map(f=>'<li>'+f+'</li>').join('')}</ul>
+
+    <div class="chop"><span>体感核定</span><span>${better} 胜</span><span>${pct.toFixed(0)}% GAP</span></div>
+  `;
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  const go=()=>{
+    document.querySelectorAll('.tab').forEach(x=>{
+      const on = x===t;
+      x.setAttribute('aria-selected',on);
+      $(x.getAttribute('aria-controls')).hidden = !on;
+    });
+  };
+  t.addEventListener('click',go);
+  t.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();go();} });
+});
+document.addEventListener('input',render);
+document.addEventListener('change',render);
+render();
+</script>
+</body>
+</html>
