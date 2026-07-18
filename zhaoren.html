@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>销冠招人器 · 该招几人 / 何时招 / 怎么面不招错</title>
+<meta name="description" content="5 分钟出数的销售招聘决策机 · 单文件离线 · 数据不出你电脑" />
+<style>
+/* ============================================================================
+   设计系统 · 双极简
+   系统极简：单文件 / 零依赖 / 零网络 / localStorage / 双击即用
+   用户极简：一屏一结论 / 渐进披露 / null→"—" 从不假装知道 / 每个数经得起较真
+   外形借鉴：Linear 的克制与一屏一事、Stripe 的金融级数字排版、Apple/Geist 的类型阶梯
+   ==========================================================================*/
+:root{
+  --bg:#f7f6f3; --surface:#ffffff; --surface-2:#fbfaf8; --sunken:#f2f0ec;
+  --ink:#17181c; --ink-2:#4a4d55; --ink-3:#8a8d96; --line:#e7e4de; --line-2:#efece7;
+  --accent:#4436c9; --accent-soft:#eeecfb; --accent-ink:#4436c9;
+  --red:#c8342c; --red-soft:#fbeceb; --amber:#b7791f; --amber-soft:#fdf3e2;
+  --green:#0f8a4d; --green-soft:#e8f5ee; --gold:#a5760a; --gold-soft:#fbf3df;
+  --r-lg:16px; --r-md:11px; --r-sm:7px;
+  --shadow:0 1px 2px rgba(20,20,30,.04), 0 8px 28px -18px rgba(20,20,30,.22);
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e0f13; --surface:#17181d; --surface-2:#1b1c22; --sunken:#101116;
+  --ink:#eceef2; --ink-2:#a7abb5; --ink-3:#6d717c; --line:#282a31; --line-2:#22242a;
+  --accent:#9a8dff; --accent-soft:#211f38; --accent-ink:#b3a8ff;
+  --red:#f0736a; --red-soft:#2a1917; --amber:#e0a54a; --amber-soft:#271e12;
+  --green:#4bc487; --green-soft:#12241a; --gold:#d6a94a; --gold-soft:#241d10;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -18px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0e0f13; --surface:#17181d; --surface-2:#1b1c22; --sunken:#101116;
+  --ink:#eceef2; --ink-2:#a7abb5; --ink-3:#6d717c; --line:#282a31; --line-2:#22242a;
+  --accent:#9a8dff; --accent-soft:#211f38; --accent-ink:#b3a8ff;
+  --red:#f0736a; --red-soft:#2a1917; --amber:#e0a54a; --amber-soft:#271e12;
+  --green:#4bc487; --green-soft:#12241a; --gold:#d6a94a; --gold-soft:#241d10;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px -18px rgba(0,0,0,.7);
+}
+:root[data-theme="light"]{
+  --bg:#f7f6f3; --surface:#ffffff; --surface-2:#fbfaf8; --sunken:#f2f0ec;
+  --ink:#17181c; --ink-2:#4a4d55; --ink-3:#8a8d96; --line:#e7e4de; --line-2:#efece7;
+  --accent:#4436c9; --accent-soft:#eeecfb; --accent-ink:#4436c9;
+  --red:#c8342c; --red-soft:#fbeceb; --amber:#b7791f; --amber-soft:#fdf3e2;
+  --green:#0f8a4d; --green-soft:#e8f5ee; --gold:#a5760a; --gold-soft:#fbf3df;
+  --shadow:0 1px 2px rgba(20,20,30,.04), 0 8px 28px -18px rgba(20,20,30,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.5;
+  font-size:15px;-webkit-font-smoothing:antialiased;letter-spacing:-.003em}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit;font-size:14px;color:var(--ink)}
+a{color:var(--accent-ink);text-decoration:none}
+
+/* ---------- 外壳 ---------- */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:20px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(140deg,var(--accent),#7b6ef0);
+  display:grid;place-items:center;color:#fff;font-size:17px;box-shadow:0 3px 10px -3px var(--accent)}
+.brand b{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.brand small{display:block;color:var(--ink-3);font-size:11px;font-weight:450;letter-spacing:.02em}
+.nav{display:flex;flex-direction:column;gap:1px;margin-top:6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
+  color:var(--ink-2);font-size:13.5px;font-weight:500;transition:.12s;position:relative}
+.nav a .ix{width:19px;text-align:center;color:var(--ink-3);font-size:12px;font-variant-numeric:tabular-nums}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+.nav a.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.nav a.on .ix{color:var(--accent-ink)}
+.side .foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line-2);display:flex;flex-direction:column;gap:9px}
+.sig{font-size:11.5px;color:var(--ink-3);line-height:1.45}
+.sig b{color:var(--ink-2);font-weight:600}
+.toolrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.chipbtn{font-size:11px;padding:4px 9px;border-radius:20px;border:1px solid var(--line);color:var(--ink-2);background:var(--surface-2)}
+.chipbtn:hover{border-color:var(--accent);color:var(--accent-ink)}
+.chipbtn.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---------- 主区 ---------- */
+.main{padding:0 0 80px}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line-2);padding:11px 34px;
+  display:flex;align-items:center;gap:12px;min-height:52px}
+.topbar h1{font-size:15px;font-weight:640}
+.topbar .crumb{color:var(--ink-3);font-size:12.5px}
+.grow{flex:1}
+.wrap{max-width:940px;margin:0 auto;padding:28px 34px}
+.banner{margin:0 34px;margin-top:14px;padding:11px 16px;border-radius:var(--r-md);font-size:13px;
+  display:flex;gap:10px;align-items:center;border:1px solid}
+.banner.warn{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 30%,transparent);color:var(--amber)}
+.banner.info{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent-ink)}
+.banner b{font-weight:650}
+.banner .x{margin-left:auto;opacity:.6;font-size:16px}
+
+/* ---------- 卡片/排版 ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow);padding:22px 24px;margin-bottom:18px}
+.card.flush{padding:0;overflow:hidden}
+.sect-h{font-size:12px;font-weight:680;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.eyebrow{font-size:12px;font-weight:640;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink)}
+h2.big{font-size:27px;font-weight:680;letter-spacing:-.02em;margin:6px 0}
+.lede{color:var(--ink-2);font-size:15px;max-width:60ch}
+.muted{color:var(--ink-3)}
+.hair{height:1px;background:var(--line-2);margin:16px 0;border:0}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid transparent;line-height:1.3}
+.pill.red{background:var(--red-soft);color:var(--red)} .pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.green{background:var(--green-soft);color:var(--green)} .pill.gold{background:var(--gold-soft);color:var(--gold)}
+.pill.grey{background:var(--sunken);color:var(--ink-3)} .pill.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.red{background:var(--red)} .dot.amber{background:var(--amber)} .dot.green{background:var(--green)} .dot.grey{background:var(--ink-3)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--r-sm);
+  font-size:13.5px;font-weight:600;background:var(--surface);border:1px solid var(--line);color:var(--ink);transition:.12s}
+.btn:hover{border-color:var(--ink-3)}
+.btn.pri{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 14px -6px var(--accent)}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--surface-2)}
+
+/* inputs */
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.field .hint{font-size:11.5px;color:var(--ink-3);font-weight:450;margin-top:4px}
+.field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface-2);transition:.12s;font-variant-numeric:tabular-nums}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:var(--surface);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.field .suffix{position:relative}
+.field .suffix .u{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:12px;pointer-events:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+/* stat / hero */
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px}
+.stat .k{font-size:11.5px;color:var(--ink-3);font-weight:600;letter-spacing:.03em}
+.stat .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .s{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:4px 0 8px}
+.vs-cell{text-align:center;padding:18px 10px;border-radius:var(--r-md)}
+.vs-cell.bad{background:var(--sunken)} .vs-cell.good{background:var(--accent-soft)}
+.vs-cell .lab{font-size:12px;font-weight:600;color:var(--ink-3)}
+.vs-cell .big{font-size:52px;font-weight:750;letter-spacing:-.03em;line-height:1;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+.vs-cell.good .big{color:var(--accent-ink)}
+.vs-cell .sub{font-size:12px;color:var(--ink-3)}
+.vs-mid{color:var(--ink-3);font-size:13px;font-weight:600}
+
+/* gate list */
+.gate{border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:9px;overflow:hidden;background:var(--surface)}
+.gate summary{list-style:none;display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}
+.gate summary::-webkit-details-marker{display:none}
+.gate summary:hover{background:var(--surface-2)}
+.gate .gname{font-weight:600;font-size:14px} .gate .gjudge{color:var(--ink-3);font-size:12.5px}
+.gate .chev{margin-left:auto;color:var(--ink-3);transition:.2s}
+.gate[open] .chev{transform:rotate(90deg)}
+.gate .body{padding:2px 16px 16px 40px;border-top:1px solid var(--line-2);font-size:13.5px;color:var(--ink-2)}
+.gate .body .seg{margin-top:12px}
+.gate .body .seg b{color:var(--ink);font-weight:600;display:block;font-size:12px;letter-spacing:.02em;margin-bottom:3px}
+.src{display:inline-flex;gap:5px;align-items:center;font-size:11.5px;color:var(--ink-3);
+  background:var(--sunken);padding:2px 8px;border-radius:6px;margin:2px 4px 2px 0}
+.action-card{margin-top:14px;padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-sm);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.action-card .txt{font-size:13px;color:var(--accent-ink);font-weight:550;flex:1;min-width:180px}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-2)}
+th{font-size:11.5px;font-weight:650;color:var(--ink-3);letter-spacing:.03em;background:var(--surface-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+
+/* asOf source line (A-21/A-22) */
+.asof{font-size:11px;color:var(--ink-3);margin-top:3px}
+
+/* pools */
+.pools{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.pool{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px;min-height:120px}
+.pool h4{font-size:12px;color:var(--ink-3);font-weight:650;display:flex;justify-content:space-between}
+.cand{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 9px;font-size:12.5px;margin-top:7px}
+
+/* weight editor */
+.wrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-2)}
+.wrow .wl{width:96px;font-size:13px;font-weight:550}
+.wrow input[type=range]{flex:1;accent-color:var(--accent)}
+.wrow .wv{width:52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+.wsum{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-weight:600}
+
+/* badges (self check) */
+.badges{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.badge{display:flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface);font-size:12.5px}
+.badge.ok{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 26%,transparent)}
+.badge.no{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 30%,transparent)}
+.badge .m{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.locked{position:relative}
+.locked::after{content:"🔒 升级 full 版解锁 · 到期只降级不锁数据(授-2)";position:absolute;inset:0;
+  background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(3px);
+  display:grid;place-items:center;font-size:13px;color:var(--ink-2);font-weight:600;border-radius:var(--r-lg);z-index:5}
+
+.boundary{text-align:center;color:var(--ink-3);font-size:13px;padding:26px 0 8px;font-style:italic}
+.kbd{font-family:var(--mono);font-size:11px;background:var(--sunken);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:550;box-shadow:var(--shadow);z-index:100;opacity:0;transition:.25s;pointer-events:none}
+.toast.show{opacity:1;bottom:30px}
+
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.grid2,.grid3,.pools{grid-template-columns:1fr}.versus{grid-template-columns:1fr}.badges{grid-template-columns:1fr}}
+@media print{.side,.topbar,.banner,.no-print{display:none!important}.app{display:block}.wrap{max-width:none}.card{box-shadow:none;break-inside:avoid}
+  body{background:#fff}.print-foot{display:block!important}}
+.print-foot{display:none;text-align:center;font-size:11px;color:#888;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side no-print">
+    <div class="brand">
+      <div class="logo">🧮</div>
+      <div><b>销冠招人器</b><small>SKAB · zhaoren · v3.2</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">
+      <div class="toolrow">
+        <button class="chipbtn" id="modeBtn" title="BUILD_MODE 单机授权粒度">full 版</button>
+        <button class="chipbtn" id="clockBtn" title="UI 层唯一取钟点，向下注入(公约 C-14)">演示钟</button>
+        <button class="chipbtn" id="themeBtn">主题</button>
+      </div>
+      <div class="sig">授权：<b id="tenant">王总（示例）</b><br>数据不出你电脑 · 无网络 · 无上传</div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar no-print">
+      <h1 id="ttl">销冠招人器</h1><span class="crumb" id="crumb"></span>
+      <span class="grow"></span>
+      <span class="pill accent num" id="todayPill"></span>
+    </div>
+    <div id="banners"></div>
+    <div id="view"></div>
+    <div class="wrap boundary">『这个系统不会让一个卖不动的产品卖动。』</div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================================
+     计算引擎 (engine) —— 与 Node 对拍套件逐字同源，26/26 绿
+     ==========================================================================-->
+<script>
+/* ENGINE:BEGIN */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SKAB = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  function safeDiv(a, b) { return (b === 0 || b == null || a == null) ? null : a / b; }
+  const isNum = (x) => typeof x === 'number' && isFinite(x);
+  const YUAN = 100, WAN = 1000000;
+  const toWan = (fen) => fen == null ? null : fen / WAN;
+  const fmtWan = (fen, d = 1) => fen == null ? '—' : (fen / WAN).toFixed(d) + '万';
+  const fmtYuan = (fen) => fen == null ? '—' : '¥' + Math.round(fen / YUAN).toLocaleString('zh-CN');
+  const fmtPct = (rate, d = 1) => rate == null ? '—' : (rate * 100).toFixed(d) + '%';
+  const DEFAULT_COEF = {
+    rampCurve12: {
+      short:     [0, 12, 25, 42, 60, 73, 85, 93, 100, 100, 100, 100],
+      regular:   [0,  5, 12, 22, 35, 48, 60, 72,  82,  90,  96, 100],
+      midLong:   [0,  0,  5, 12, 20, 30, 42, 53,  63,  72,  80,  87],
+      long:      [0,  0,  0,  5, 10, 18, 27, 36,  45,  54,  62,  70],
+      ultraLong: [0,  0,  0,  0,  5, 10, 16, 23,  30,  37,  44,  50]
+    },
+    midYearAttritionFactor: 0.5, pipelineDecayResidual: 0.65, overestimateRedline: 0.20,
+    fullRampBand: [0.55, 0.75], threeYearScaleFactor: 1.18,
+    hiringCostDefaultAmt: 15000_00, recruitFeeDefaultAmt: 5000_00,
+    practiceMinCount14d: 50, practiceCurveShiftMonths: 2, cognitiveGapRedline: 0.30, ackAutoConfirmDays: 7,
+    coachingDose: { floorHrsMonth: 3, ceilHrsMonth: 5, weeklyMin: 0.5 },
+    validityMinSample: 12, calibrateMinSample: 30,
+    weightCaps: { experience: 0, charisma: 0.10 },
+    collapseRule: { scoreGt: 70, monthIn: [10, 18], dropLt: -0.40, minSample: 8 },
+    rpiRedline: 0.60, rpiGreen: 0.35, overrideQuotaDefault: 0.20, epsMinSampleEach: 3,
+    referralBonusRate: 0.01, qcsWeights: [0.4, 0.3, 0.3],
+    funnelStallDays: { resume: [3, 6, 9], invite: [5, 10, 15], interview: [7, 14, 21], offer: [3, 6, 9] },
+    tempLightThresholds: { offerAccept: [0.60, 0.40], noshow: [0.15, 0.30], cycleWorse: [0.20, 0.50], poachShare: 0.30 },
+    attainDesignBase: 0.70, minSampleDefault: 5,
+    spanDefault: { manageTimeShare: 0.30, weeklyHrs: 40 },
+    fixedMeetingHrs: 3, perHeadMgmtHrs: 1.1, perHeadAdminHrs: 0.6,
+    hiringWeightsFactory: { achievement: 35, cognitive: 25, integrity: 20, situational: 15, charisma: 0, experience: 0, adaptive: 5 },
+    hiringCycleDaysDefault: 45, attritionRateDefault: 0.35, socialCostRate: 0.30,
+    minWageTable: { tier1: 2420_00, tier2: 2000_00, tier34: 1700_00 },
+    envelopeStaleDays: 90, backupNudgeDays: 14, ahcTrustLine: 60, systemRecommendThreshold: 60
+  };
+  function makeCoefStore(overrides) {
+    const ov = overrides || {};
+    function getCoef(key) { return Object.prototype.hasOwnProperty.call(ov, key) ? ov[key] : DEFAULT_COEF[key]; }
+    return { getCoef, overrides: ov };
+  }
+  const getCoef = makeCoefStore({}).getCoef;
+  function newHireYearRate(cycle, m, gc) {
+    gc = gc || getCoef; const curve = gc('rampCurve12')[cycle]; if (!curve) return null;
+    const n = 13 - m; if (n <= 0) return 0; let s = 0;
+    for (let i = 0; i < Math.min(n, curve.length); i++) s += curve[i];
+    return s / 12 / 100;
+  }
+  function capacityChain(inp, ctx) {
+    const gc = (ctx && ctx.gc) || getCoef; const today = ctx.today;
+    const Z1 = inp.targetYearGrossAmt, Z2 = inp.perCapitaActualAmt, Z3 = inp.salesCount;
+    const Z4 = inp.cycleTier, Z5 = inp.attritionRate, Z6 = inp.hiringCycleDays;
+    const Z7 = inp.fullLoadCostAmt, Z8 = inp.managerCount;
+    const targetYear = ctx.targetYear, midFac = gc('midYearAttritionFactor');
+    const naiveHires = Math.ceil(safeDiv(Z1, Z2)) - Z3;
+    const k = (m) => newHireYearRate(Z4, m, gc);
+    const kEff = (m) => { const kv = k(m); return kv == null ? null : kv * (1 - Z5 * midFac); };
+    const fullEquiv = safeDiv(Z1, Z2);
+    const k1 = k(1), kEff1 = kEff(1);
+    const expLoss = Z3 * Z5;
+    const residualLostAmt = expLoss * Z2 * gc('pipelineDecayResidual');
+    const gapEquiv = fullEquiv - Z3 + expLoss;
+    const trueHires = Math.ceil(safeDiv(gapEquiv, kEff1));
+    const fullRampCoef = safeDiv(Z3 + trueHires * kEff1, Z3 + trueHires);
+    const band = gc('fullRampBand');
+    const fullRampFlag = (fullRampCoef == null) ? 'grey' : (fullRampCoef > band[1] || fullRampCoef < band[0]) ? 'yellow' : 'green';
+    let latestJoinMonth = 1;
+    for (let m = 1; m <= 12; m++) { const ke = kEff(m); if (ke != null && ke * trueHires >= gapEquiv) latestJoinMonth = m; }
+    const joinFirst = ymd(targetYear, latestJoinMonth, 1);
+    const latestStart = addDays(joinFirst, -Z6);
+    const lateDays = daysBetween(latestStart, today);
+    const isLate = lateDays > 0;
+    const overRate = safeDiv(trueHires - naiveHires, trueHires);
+    const marginProfit = Z2 * kEff1, marginCost = Z7 + gc('hiringCostDefaultAmt');
+    const underStaffed = marginProfit > marginCost, netGain = marginProfit - marginCost;
+    const sp = gc('spanDefault'), targetHeads = Z3 + trueHires;
+    const avail = gc('spanDefault').weeklyHrs * sp.manageTimeShare - gc('fixedMeetingHrs');
+    const span = Math.floor(safeDiv(avail, gc('perHeadMgmtHrs')));
+    const managerNeeded = Math.ceil(safeDiv(targetHeads, span));
+    const mgrGap = Math.max(0, managerNeeded - Z8);
+    const pureCoachMin = Math.round(safeDiv(Math.max(0, avail - targetHeads * gc('perHeadAdminHrs')), targetHeads) * 60);
+    const perCapMonthAmt = safeDiv(Z2, 12);
+    const perCapMonthWan1 = Math.round(perCapMonthAmt / WAN * 10) / 10;
+    const roiWan = Math.round(trueHires * 3 * perCapMonthWan1 * 10) / 10;
+    const roiAmt = roiWan * WAN;
+    return { naiveHires, trueHires, fullEquiv, k1, kEff1, kEff2: kEff(2), expLoss, residualLostAmt,
+      gapEquiv, fullRampCoef, fullRampFlag, latestJoinMonth, latestStart, lateDays, isLate, overRate,
+      marginProfit, marginCost, underStaffed, netGain, targetHeads, avail, span, managerNeeded, mgrGap,
+      pureCoachMin, roiAmt, roiWan, perCapMonthAmt, threeYearHeads: Math.round((Z3 + trueHires) * gc('threeYearScaleFactor')) };
+  }
+  function gateVerdicts(r, crit) {
+    crit = crit || {}; const gc = getCoef; const gates = [];
+    const push = (id, name, light, active, judge) => gates.push({ id, name, light, active, judge });
+    push('G1', '产能高估', 'red', r.overRate != null && r.overRate > gc('overestimateRedline'), `高估率 ${fmtPct(r.overRate)} ＞ 20%`);
+    push('G2', '爬坡窗口', 'red', r.isLate, `最晚开招 ${r.latestStart}，已晚 ${r.lateDays} 天`);
+    push('G3', '欠配', 'red', r.underStaffed, `边际利润 ${fmtWan(r.marginProfit)} ＞ 边际成本 ${fmtWan(r.marginCost)}`);
+    const expTrap = (crit.minExperienceYears > 0) || (crit.ageRange != null) || ((crit.weights && crit.weights.experience) > 0);
+    push('G4', '经验陷阱', 'red', !!expTrap, '设了经验/年龄门槛 (r=−.06)');
+    const charismaHi = crit.weights && crit.weights.charisma > 30;
+    push('G5', '黑暗三角', 'red', !!charismaHi, '魅力权重 ＞ 30% (筛选机)');
+    const achLow = crit.weights && crit.weights.achievement < 25;
+    push('G6', '非结构化', 'yellow', !!achLow, '成就动机权重 ＜ 25% (r=.41)');
+    return gates;
+  }
+  function validateWeights(w) { const sum = Object.values(w).reduce((a, b) => a + (Number(b) || 0), 0); return { sum, ok: sum === 100 }; }
+  function darkTriadScore(o) {
+    const v = 30 * (o.externalAttrib / 100) + 30 * (o.detailMissing / 100) + 25 * ((o.charisma - o.detail) / 100) + 15 * (o.selfMention / 100);
+    return Math.max(0, Math.min(100, v));
+  }
+  function pearson(xs, ys) {
+    const n = xs.length; if (n < 2) return null; let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+    for (let i = 0; i < n; i++) { sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; syy += ys[i] * ys[i]; sxy += xs[i] * ys[i]; }
+    const cov = n * sxy - sx * sy, dx = Math.sqrt(n * sxx - sx * sx), dy = Math.sqrt(n * syy - sy * sy), den = dx * dy;
+    return den === 0 ? null : cov / den;
+  }
+  function mean(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }
+  function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  function round100(x) { return Math.round(x / 100) * 100; }
+  function validityR(people, dim, gc) {
+    gc = gc || getCoef; const rows = people.filter(p => p.margin12 != null && p.scores[dim] != null);
+    if (rows.length < gc('validityMinSample')) return { r: null, n: rows.length };
+    return { r: pearson(rows.map(p => p.scores[dim]), rows.map(p => p.margin12)), n: rows.length };
+  }
+  function collapseStats(people, gc) {
+    gc = gc || getCoef; const rule = gc('collapseRule'); const highs = people.filter(p => p.peakScore > rule.scoreGt);
+    if (highs.length === 0) return { rate: null, medianMonth: null, n: 0, lowSample: true };
+    const collapsed = highs.filter(p => p.collapseMonth != null && p.collapseMonth >= rule.monthIn[0] && p.collapseMonth <= rule.monthIn[1] && p.momDrop != null && p.momDrop < rule.dropLt);
+    return { rate: safeDiv(collapsed.length, highs.length), medianMonth: median(collapsed.map(p => p.collapseMonth)), n: highs.length, collapsedN: collapsed.length, lowSample: highs.length < rule.minSample };
+  }
+  function rpiValue(floatShare, survivalLine, B) { const ratio = safeDiv(survivalLine, B); return ratio == null ? null : floatShare * Math.min(ratio, 1); }
+  function rpiPredict(rpi, gc) { gc = gc || getCoef; if (rpi == null) return null; if (rpi >= gc('rpiRedline')) return 'gambler'; if (rpi < gc('rpiGreen')) return 'achievement'; return 'neutral'; }
+  function overrideScorecard(againstNet, complyNet, overrideCount, decisionCount, gc) {
+    gc = gc || getCoef; const minEach = gc('epsMinSampleEach');
+    const eps = (againstNet.length >= minEach && complyNet.length >= minEach) ? mean(againstNet) - mean(complyNet) : null;
+    const overrideRate = safeDiv(overrideCount, decisionCount);
+    return { eps, overrideRate, warn: overrideRate != null && overrideRate > gc('overrideQuotaDefault') };
+  }
+  function systemRecommend(totalScore, gc) { gc = gc || getCoef; return totalScore >= gc('systemRecommendThreshold') ? 'hire' : 'reject'; }
+  function priceTag(inp, gc) {
+    gc = gc || getCoef; const Z2 = inp.perCapitaActualAmt, Z4 = inp.cycleTier, Z6 = inp.hiringCycleDays;
+    const curve = gc('rampCurve12')[Z4], perMonth = Z2 / 12, vacancy = perMonth * (Z6 / 30);
+    let rampLoss = 0; for (let m = 1; m <= 12; m++) rampLoss += (1 - curve[m - 1] / 100); rampLoss = perMonth * rampLoss;
+    const hiring = gc('hiringCostDefaultAmt');
+    return { tagAmt: vacancy + rampLoss + hiring, vacancyAmt: vacancy, rampLossAmt: rampLoss, hiringAmt: hiring };
+  }
+  function referralBonus(tagAmt, gc) { gc = gc || getCoef; return Math.max(1000, round100((tagAmt / YUAN) * gc('referralBonusRate'))); }
+  function qcs(channel, allChannels, gc) {
+    gc = gc || getCoef; const w = gc('qcsWeights'); const maxNet = Math.max(...allChannels.map(c => c.netMean));
+    const norm = safeDiv(channel.netMean, maxNet); if (norm == null) return null;
+    return 100 * (w[0] * channel.retain12 + w[1] * channel.survive90 + w[2] * norm);
+  }
+  function maskName(name) { if (!name) return '*'; if (name.length <= 1) return name + '*'; return name[0] + '*'.repeat(name.length - 1); }
+  function maskPhone(p) { return p ? p.slice(0, 3) + '****' + p.slice(-2) : '—'; }
+  function dedupPhone(phone, ctx) {
+    const inCand = (ctx.candidates || []).find(c => c.phone === phone);
+    if (inCand) return { verdict: 'block', reason: 'candidate', tip: `候选人库已存在：${maskName(inCand.name)} / ${maskPhone(phone)}` };
+    const active = (ctx.employees || []).find(e => e.phone === phone && e.isActive);
+    if (active) return { verdict: 'block', reason: 'active', tip: `与在职员工重复` };
+    const left = (ctx.employees || []).find(e => e.phone === phone && !e.isActive);
+    if (left) return { verdict: 'pass', reason: 'left', tip: `曾于 ${(left.leaveDate || '').slice(0, 7)} 在职，原因 ${left.leaveReason || '—'}`, warn: true };
+    return { verdict: 'pass', reason: 'new' };
+  }
+  function ymd(y, m, d) { return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+  function parse(s) { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+  function addDays(s, n) { const t = parse(s) + n * 86400000, dt = new Date(t); return ymd(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()); }
+  function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
+  function cognitiveGap(reported, confirmed) { const ratio = safeDiv(confirmed, reported); return ratio == null ? null : 1 - ratio; }
+  function autoConfirm(daysSinceReport, gc) { gc = gc || getCoef; return daysSinceReport > gc('ackAutoConfirmDays'); }
+  function practiceGate(count14d, gc) { gc = gc || getCoef; const floor = gc('practiceMinCount14d'); const red = count14d < floor; return { red, floor, count: count14d, shiftMonths: red ? gc('practiceCurveShiftMonths') : 0 }; }
+  function verifyRPI(rpi, dark, ach, gc) {
+    const pred = rpiPredict(rpi, gc);
+    if (pred === 'gambler' && dark.median > dark.teamMean && ach.median < ach.teamMean) return 'verified';
+    if (pred === 'achievement') return 'achievement'; return 'unverified';
+  }
+  function hireCandidate(cand, scorePack, form) {
+    const employee = { spId: 'emp_' + form.stamp, name: form.name, phone: form.phone, hireDate: form.hireDate,
+      hiringCostAmt: form.hiringCostAmt, baseSalaryAmt: form.startBaseSalaryAmt, hireBatchId: form.batchId,
+      managerId: form.mentorManagerName, sourceChannel: cand.sourceChannel, level: 0, positionType: 'sales',
+      cityTier: form.cityTier || 'tier1', leaveDate: null, leaveReason: null, managerName: form.mentorManagerName, isActive: true };
+    const scorePackAfter = { packId: scorePack.packId, candId: scorePack.candId, scores: scorePack.scores,
+      darkTriadScore: scorePack.darkTriadScore, scoredDate: scorePack.scoredDate, employeeId: employee.spId };
+    return { employee, scorePackAfter, candLink: employee.spId };
+  }
+  function buildEnvelope(entities, derived, ctx) {
+    return { schema: 'skab_v1', board: 'zhaoren', exportedAt: ctx.today, dataVersion: 1,
+      coefficientsHash: ctx.coefficientsHash || null, derived: derived || {}, entities: entities || {} };
+  }
+  function importEnvelope(env) {
+    if (!env || env.schema !== 'skab_v1' || !env.board) return { ok: false, reason: 'schema' };
+    return { ok: true, board: env.board, ref: { exportedAt: env.exportedAt, dataVersion: env.dataVersion,
+      coefficientsHash: env.coefficientsHash || null, derived: env.derived || {}, importedAt: null } };
+  }
+  function staleDays(exportedAt, today) { return daysBetween(exportedAt, today); }
+  return { safeDiv, isNum, YUAN, WAN, toWan, fmtWan, fmtYuan, fmtPct, DEFAULT_COEF, makeCoefStore, getCoef,
+    newHireYearRate, capacityChain, gateVerdicts, validateWeights, darkTriadScore, pearson, mean, median, round100,
+    validityR, collapseStats, rpiValue, rpiPredict, overrideScorecard, systemRecommend, priceTag, referralBonus, qcs,
+    maskName, maskPhone, dedupPhone, cognitiveGap, autoConfirm, practiceGate, verifyRPI, hireCandidate,
+    buildEnvelope, importEnvelope, staleDays, ymd, parse, addDays, daysBetween };
+});
+/* ENGINE:END */
+</script>
+
+<!-- ============================================================================
+     应用层 (UI) —— 时钟只在此处取一次并向下注入；计算一律走 SKAB 纯函数
+     ==========================================================================-->
+<script>
+const E = window.SKAB, W = E.WAN;
+const $ = (s, r=document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- 时钟：UI 层唯一取真实钟，下传 today（公约 C-14） ---------- */
+const TEST_TODAY = '2026-07-13';   // 对拍/示例冻结注入
+function realToday(){ const d=new Date(); return E.ymd(d.getFullYear(), d.getMonth()+1, d.getDate()); }
+
+/* ---------- 存储：StorageAdapter，前缀 skab_zhaoren_（公约 §8 / C-15） ---------- */
+const PREFIX='skab_zhaoren_';
+const Store={
+  get(k,d){ try{const v=localStorage.getItem(PREFIX+k);return v==null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{localStorage.setItem(PREFIX+k,JSON.stringify(v));return true;}catch(e){return false;} },
+  quotaProbe(){ // 启动配额自检（占用估算 + 写入探针）
+    let bytes=0; for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i); if(key.startsWith('skab_')) bytes+=(localStorage.getItem(key)||'').length;}
+    let writeOk=true; try{localStorage.setItem('skab_probe','1');localStorage.removeItem('skab_probe');}catch(e){writeOk=false;}
+    return {kb:Math.round(bytes/1024), writeOk};
+  }
+};
+
+/* ---------- 全局状态 ---------- */
+const DEF_INPUTS={ targetYearGrossWan:1800, perCapitaWan:100, salesCount:10, cycleTier:'short',
+  attritionRate:0.30, hiringCycleDays:45, fullLoadWan:28, managerCount:2 };
+const S = {
+  route: location.hash.slice(1) || 'home',
+  mode: Store.get('mode','full'),
+  demoClock: Store.get('demoClock',true),
+  theme: Store.get('theme','auto'),
+  inputs: Store.get('inputs', {...DEF_INPUTS}),
+  weights: Store.get('weights', {...E.DEFAULT_COEF.hiringWeightsFactory}),
+  dt: Store.get('dt',{externalAttrib:40,detailMissing:35,charisma:60,detail:55,selfMention:45}),
+  candidates: Store.get('candidates', seedCandidates()),
+  employees: Store.get('employees', seedEmployees()),
+  extRef: Store.get('extRef', {}),          // ExternalRef 只读缓存
+  bannerDismissed:false
+};
+function today(){ return S.demoClock ? TEST_TODAY : realToday(); }
+function coef(){ return E.getCoef; }
+function currentInputs(){
+  const i=S.inputs;
+  return { targetYearGrossAmt:i.targetYearGrossWan*W, perCapitaActualAmt:i.perCapitaWan*W, salesCount:i.salesCount,
+    cycleTier:i.cycleTier, attritionRate:i.attritionRate, hiringCycleDays:i.hiringCycleDays,
+    fullLoadCostAmt:i.fullLoadWan*W, managerCount:i.managerCount, planMonth:1 };
+}
+function ctx(){ return { today: today(), targetYear: 2026 }; }
+function save(k){ Store.set(k, S[k]); }
+
+/* ---------- 种子（示例数据，角标标注） ---------- */
+function seedCandidates(){ return [
+  {candId:'c1',name:'陈磊',phone:'13800000101',pool:'interview',sourceChannel:'referral',expectedWan:22,poolEnteredDate:'2026-07-05'},
+  {candId:'c2',name:'周颖',phone:'13800000102',pool:'offer',sourceChannel:'boss_zhipin',expectedWan:20,poolEnteredDate:'2026-06-28'},
+  {candId:'c3',name:'黄伟',phone:'13800000103',pool:'resume',sourceChannel:'liepin',expectedWan:24,poolEnteredDate:'2026-07-11'},
+  {candId:'c4',name:'林静',phone:'13800000104',pool:'reserve',sourceChannel:'reserve_pool',expectedWan:19,poolEnteredDate:'2026-04-02'},
+]; }
+function seedEmployees(){ return [
+  {spId:'e1',name:'赵强',phone:'13800000201',isActive:true,hireDate:'2026-03-01',sourceChannel:'referral',baseSalaryWan:0.5},
+  {spId:'e2',name:'孙丽',phone:'13800000202',isActive:false,hireDate:'2025-11-01',leaveDate:'2026-01-15',leaveReason:'probation_fail',sourceChannel:'boss_zhipin'},
+]; }
+
+/* ---------- 内置模拟数据集（效度实验室 · 与对拍同源） ---------- */
+const SIM = {
+  f11_y:[82,41,63,90,28,55,74,47,60,35,69,51],
+  f11_ach:[50,44,48,68,40,59,50,64,61,50,50,65],
+  f11_cha:[48,62,50,60,49,43,44,42,68,67,55,48],
+  f11_exp:[40,51,66,45,48,47,59,73,66,43,57,74],
+  f12:[{peakScore:82,collapseMonth:11,momDrop:-0.55},{peakScore:78,collapseMonth:12,momDrop:-0.48},
+       {peakScore:90,collapseMonth:13,momDrop:-0.62},{peakScore:74,collapseMonth:14,momDrop:-0.44},
+       {peakScore:76,collapseMonth:null,momDrop:-0.10},{peakScore:81,collapseMonth:null,momDrop:0.05}],
+  f14_against:[18*W,21*W,24*W], f14_comply:[34*W,36*W,38*W,40*W], f14_over:9, f14_dec:40,
+  f14_s2:0.44, f14_s1:0.78,
+  channels:[{name:'内推 referral',key:'referral',retain12:0.81,survive90:0.85,netMean:43*W},
+            {name:'Boss直聘',key:'boss_zhipin',retain12:0.52,survive90:0.61,netMean:31*W}]
+};
+function f11people(){ return SIM.f11_y.map((y,i)=>({margin12:y,scores:{achievement:SIM.f11_ach[i],charisma:SIM.f11_cha[i],experience:SIM.f11_exp[i]}})); }
+
+/* ============================================================================
+   路由 / 骨架
+   ==========================================================================*/
+const ROUTES = [
+  {id:'home',  ix:'',  name:'首页',     render:vHome},
+  {id:'input', ix:'2', name:'七步输入', render:vInput},
+  {id:'result',ix:'3', name:'结果',     render:vResult},
+  {id:'hire',  ix:'4', name:'招聘包',   render:vHire},
+  {id:'funnel',ix:'5', name:'漏斗水温', render:vFunnel},
+  {id:'batch', ix:'6', name:'批次入职', render:vBatch},
+  {id:'lab',   ix:'7', name:'效度实验室',render:vLab},
+  {id:'data',  ix:'8', name:'数据',     render:vData},
+  {id:'coef',  ix:'9', name:'系数自检', render:vCoef},
+];
+function nav(){
+  $('#nav').innerHTML = ROUTES.map(r=>`<a href="#${r.id}" class="${r.id===S.route?'on':''}"><span class="ix">${r.ix||'·'}</span>${r.name}</a>`).join('');
+}
+function render(){
+  const r = ROUTES.find(x=>x.id===S.route) || ROUTES[0];
+  $('#ttl').textContent = r.name==='首页' ? '销冠招人器' : r.name;
+  $('#crumb').textContent = r.ix ? '屏 '+r.ix : '';
+  $('#todayPill').textContent = (S.demoClock?'演示钟 ':'') + today();
+  $('#view').innerHTML = r.render();
+  nav();
+  banners();
+  bind();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',()=>{ S.route = location.hash.slice(1)||'home'; render(); });
+
+/* ---------- 顶部横幅：备份提醒(A-24) + free 降级说明 + 信封过期 ---------- */
+function banners(){
+  const b=[];
+  const last=Store.get('lastExport',null);
+  const dd = last ? E.daysBetween(last, today()) : 999;
+  if(dd > coef()('backupNudgeDays') && !S.bannerDismissed){
+    const head = last ? `你已 <b>${dd}</b> 天没备份数据了` : `你还没导出过备份`;
+    b.push(`<div class="banner warn"><span>💾</span><span>${head}——导出一份信封 JSON，只要 10 秒。<a href="#data">去导出 →</a>　“数据不出你电脑”的另一面是“数据只在你电脑”，丢数据由系统主动防（A-24）。</span><span class="x" data-act="dismissBanner">×</span></div>`);
+  }
+  if(S.mode==='free'){
+    b.push(`<div class="banner info"><span>🔓</span><span>当前 <b>free 版</b>：双算法对比与“晚 X 天”钩子可见，十二闸/招聘包/效度实验室锁定。<b>到期只降级不锁数据</b>，信封导出永不锁定（授-2）。</span></div>`);
+  }
+  $('#banners').innerHTML = b.join('');
+}
+
+/* ============================================================================
+   屏 1 · 首页
+   ==========================================================================*/
+function vHome(){
+  const q=Store.quotaProbe();
+  return `<div class="wrap">
+    <span class="eyebrow">销冠算盘 · 2 号板块</span>
+    <h2 class="big">该招几个人、什么时候招、怎么面才不招错。</h2>
+    <p class="lede">把招聘决策变成一台 5 分钟出数的机器——并且它是全球第一个会在 12 个月后回头验证“自己当初面试评分准不准”的招聘系统。</p>
+    <div style="display:flex;gap:10px;margin:22px 0 8px">
+      <a class="btn pri" href="#input">开始 · 七步输入 →</a>
+      <button class="btn" data-act="loadSample">载入示例数据</button>
+      <a class="btn ghost" href="#coef">看自检徽章 24/24</a>
+    </div>
+    <div class="grid3" style="margin-top:26px">
+      ${homeCard('①','双算法反差','系统自己跑一遍老板脑子里的“人头×配额”，再跑七步链——当场看见你的产能高估率。')}
+      ${homeCard('⑫','十二道闸','产能高估 / 爬坡窗口 / 欠配 / 经验陷阱 / 黑暗三角……逐闸展开=现象→机制→📎出处→建议。')}
+      ${homeCard('◎','效度回头看','12 个月后用真实业绩验证你当初的面试题库——成就动机、魅力、经验，哪个真的准。')}
+    </div>
+    <div class="card" style="margin-top:22px">
+      <div class="sect-h">这套系统的两条底线</div>
+      <p style="font-size:14px;color:var(--ink-2)">🔒 <b>数据不出你电脑</b>：单 HTML 文件、无后端、无网络请求、无第三方 CDN、无埋点上传。当前本机占用约 <b class="num">${q.kb}</b> KB，写入探针：${q.writeOk?'正常 ✓':'⚠ 异常，请立即导出备份'}。</p>
+      <p style="font-size:14px;color:var(--ink-2);margin-top:8px">📎 <b>每个数字经得起较真</b>：每条建议带出处行，系数为全球四十年销售管理实证的基准值，中国本土校准中，老板可在系数页覆盖任一格。</p>
+      <hr class="hair"><p class="muted" style="font-size:13px">边界声明：<i>这个系统不会让一个卖不动的产品卖动。</i></p>
+    </div>
+  </div>`;
+}
+function homeCard(k,t,d){ return `<div class="stat"><div class="k">${k}　${t}</div><div class="s" style="font-size:13px;color:var(--ink-2);margin-top:8px;line-height:1.5">${d}</div></div>`; }
+
+/* ============================================================================
+   屏 2 · 七步输入
+   ==========================================================================*/
+function vInput(){
+  const i=S.inputs;
+  const F=(id,label,val,unit,hint,type='number',step='any')=>`
+    <div class="field"><label>${label}</label>
+      <div class="suffix"><input type="${type}" step="${step}" data-inp="${id}" value="${val}">${unit?`<span class="u">${unit}</span>`:''}</div>
+      ${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+  const cycleOpt=[['short','短周期 · 满产 9 月'],['regular','常规 · 12 月'],['midLong','中长 · 15 月'],['long','长 · 18 月'],['ultraLong','超长 · 24 月']]
+    .map(([v,t])=>`<option value="${v}" ${i.cycleTier===v?'selected':''}>${t}</option>`).join('');
+  return `<div class="wrap">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        <div class="sect-h" style="margin:0">CapacityInputs · 8 项（永不预填，参考灰字）</div>
+        <span class="grow"></span>
+        <button class="btn sm" data-act="loadSample">示例数据（对拍全套）</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-bottom:16px">🔴 系统不问你“打算招几个”——双算法自己跑。这里只填现状与目标。</p>
+      <div class="grid2">
+        ${F('targetYearGrossWan','① 明年目标年毛利',i.targetYearGrossWan,'万元')}
+        ${F('perCapitaWan','② 人均年实际毛利（去年真值，不是配额）',i.perCapitaWan,'万元','接算账器后自动')}
+        ${F('salesCount','③ 现有销售人数',i.salesCount,'人')}
+        <div class="field"><label>④ 成交周期档</label><select data-inp="cycleTier">${cycleOpt}</select><div class="hint">接通后取成交周期中位数</div></div>
+        ${F('attritionRate','⑤ 年流失率',i.attritionRate,'0–1','全球基准约 35%（填 0.35）')}
+        ${F('hiringCycleDays','⑥ 招聘周期',i.hiringCycleDays,'天','行业参考 45 天')}
+        ${F('fullLoadWan','⑦ 单人全负担年成本',i.fullLoadWan,'万元','接定价器后=laborCost×12+hiring_cost')}
+        ${F('managerCount','⑧ 现有销售主管人数',i.managerCount,'人','供第七步主管编制')}
+      </div>
+      <hr class="hair">
+      <div style="display:flex;gap:10px"><a class="btn pri" href="#result" data-act="commitInputs">算 → 看结果</a><button class="btn ghost" data-act="resetInputs">恢复默认</button></div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 3 · 结果（核心屏）
+   ==========================================================================*/
+function vResult(){
+  const r = E.capacityChain(currentInputs(), ctx());
+  const gates = E.gateVerdicts(r, {weights:S.weights});
+  const i=S.inputs;
+  const timelineRed = r.isLate;
+  return `<div class="wrap">
+    ${S.demoClock?'':''}
+    <!-- 双算法对比 -->
+    <div class="card">
+      <div class="sect-h">双算法对比 · 你的产能高估率</div>
+      <div class="versus">
+        <div class="vs-cell bad"><div class="lab">❌ 天真：人头 × 配额</div><div class="big num">${r.naiveHires}</div><div class="sub">系统自己跑老板脑子里的账</div></div>
+        <div class="vs-mid">→</div>
+        <div class="vs-cell good"><div class="lab">✅ 七步链</div><div class="big num">${r.trueHires}</div><div class="sub">含爬坡 / 流失 / kEff 折算</div></div>
+      </div>
+      <div style="text-align:center;margin-top:6px">
+        <span class="pill ${r.overRate>0.20?'red':'green'}">产能高估率 ${E.fmtPct(r.overRate)}</span>
+        <span class="src">📎 全球基准：人头×配额高估产能 30%–55%（Bridge Group）</span>
+      </div>
+      <p style="font-size:13.5px;color:var(--ink-2);margin-top:14px;text-align:center">
+        你以为再招 <b>${r.naiveHires}</b> 个，七步链算出要招 <b>${r.trueHires}</b> 个——高估率 <b>${E.fmtPct(r.overRate)}</b>。</p>
+    </div>
+
+    <!-- 时间轴 -->
+    <div class="card" ${timelineRed?'style="border-color:color-mix(in srgb,var(--red) 34%,var(--line))"':''}>
+      <div class="sect-h">时间轴 · 你还来得及吗</div>
+      <div class="grid3">
+        <div class="stat"><div class="k">最晚入职月</div><div class="v num">${r.latestJoinMonth} 月</div><div class="s">目标年 2026</div></div>
+        <div class="stat"><div class="k">招聘周期</div><div class="v num">${i.hiringCycleDays} 天</div><div class="s">从开招到到岗</div></div>
+        <div class="stat" ${timelineRed?'style="background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 30%,transparent)"':''}>
+          <div class="k">最晚开招日</div><div class="v num" ${timelineRed?'style="color:var(--red)"':''}>${r.latestStart}</div>
+          <div class="s ${timelineRed?'':''}" ${timelineRed?'style="color:var(--red);font-weight:600"':''}>${timelineRed?'🔴 已晚 '+r.lateDays+' 天':'✓ 还有 '+(-r.lateDays)+' 天'}</div></div>
+      </div>
+      ${timelineRed?`<p style="font-size:13.5px;color:var(--red);margin-top:12px;font-weight:550">按现有编制与爬坡曲线，今年 2026 的目标，数学上已不可能——晚一天开招，就少一天爬坡。</p>`:''}
+    </div>
+
+    <!-- 主管编制 -->
+    <div class="card">
+      <div class="sect-h">你要招的不是 ${r.trueHires} 个销售，是 ${r.trueHires} 个销售 + ${r.mgrGap} 个主管</div>
+      <div class="grid3">
+        <div class="stat"><div class="k">目标编制</div><div class="v num">${r.targetHeads} 人</div><div class="s">现有 ${i.salesCount} + 新招 ${r.trueHires}</div></div>
+        <div class="stat"><div class="k">需主管 / 缺</div><div class="v num">${r.managerNeeded} / ${r.mgrGap}</div><div class="s">跨度 span=${r.span}（每主管带）</div></div>
+        <div class="stat" ${r.pureCoachMin<30?'style="background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 26%,transparent)"':''}>
+          <div class="k">每人每周纯辅导</div><div class="v num" ${r.pureCoachMin<30?'style="color:var(--amber)"':''}>${r.pureCoachMin} 分钟</div><div class="s">有效地板 = 30 分钟</div></div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:10px">📎 Zoltners：三年最优规模比一年最优大 18% ≈ <b class="num">${r.threeYearHeads}</b> 人 · 边际利润 <b>${E.fmtWan(r.marginProfit)}</b> vs 边际成本 <b>${E.fmtWan(r.marginCost)}</b> → 每多招一人净增 <b>${E.fmtWan(r.netGain)}</b></p>
+    </div>
+
+    <!-- 十二道闸 -->
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">十二道闸 · 逐闸展开 = 现象 → 机制 → 📎出处 → 建议</div>
+      ${gates.map(gateRow).join('')}
+      <p class="muted" style="font-size:12px;margin-top:10px">④–⑫ 需招聘包 / 漏斗 / 练习数据点亮，见对应屏。此处显示已可判定的 6 闸。</p>
+    </div>
+  </div>`;
+}
+function gateRow(g){
+  const light = g.active ? (g.light) : 'grey';
+  const info = GATE_INFO[g.id]||{};
+  return `<details class="gate">
+    <summary><span class="dot ${light}"></span><span class="gname">${gateNo(g.id)} ${g.name}</span>
+      <span class="gjudge">${g.active?g.judge:'未触发'}</span><span class="chev">›</span></summary>
+    <div class="body">
+      <div class="seg"><b>现象</b>${info.phen||g.judge}</div>
+      <div class="seg"><b>机制</b>${info.mech||'—'}</div>
+      <div class="seg"><b>出处</b>${(info.src||[]).map(s=>`<span class="src">📎 ${s}</span>`).join('')||'<span class="src">📎 见规格件三</span>'}</div>
+      ${g.active?`<div class="action-card"><span class="txt">${info.action||'复核该项配置'}</span>
+        <button class="btn sm pri" data-act="adopt">采纳</button><button class="btn sm" data-act="ignore">忽略</button><button class="btn sm ghost" data-act="later">稍后</button></div>`:''}
+    </div></details>`;
+}
+function gateNo(id){ return {G1:'①',G2:'②',G3:'③',G4:'④',G5:'⑤',G6:'⑥'}[id]||''; }
+const GATE_INFO={
+  G1:{phen:'系统跑“人头×配额”得到的招人数，比七步链少一大截。',mech:'人头×配额假装每个新人立刻满产、且没人流失——两个假设都错，于是系统性低估缺口。',src:['Bridge Group：人头×配额高估产能 30–55%'],action:'以七步链人数为准做预算与编制。'},
+  G2:{phen:'最晚开招日已经过去。',mech:'新人要走完爬坡曲线才满产；开招越晚，今年可捕获的爬坡月越少（头部和口径）。',src:['rampCurve12 · newHireYearRate 头部和(C-04)'],action:'立即开招，或下调今年目标至数学可行区间。'},
+  G3:{phen:'再多招一个人，边际利润仍高于边际成本。',mech:'只算边际、不问计划：只要边际利润>边际成本，不招=把产能让给对手。',src:['Zoltners/ZS：加人加到边际利润=边际成本为止'],action:'继续加人直到边际打平；缺的产能是让出去的市场。'},
+  G4:{phen:'招聘标准里设了经验年限 / 年龄门槛 / 经验权重>0。',mech:'经验与客观销售业绩相关 r=−.06——你在用一个负相关指标筛人。',src:['Vinchur 1998：经验 r=−.06'],action:'把经验权重降为 0；用工作样本与成就动机替代。'},
+  G5:{phen:'魅力/气场权重 > 30%。',mech:'魅力是黑暗三角的伪装色；高魅力筛选机专门筛进短期冲高、第 13–15 月崩塌的人。',src:['Satornino 2023 JM：魅力伪装/从神坛跌落'],action:'魅力权重压到 ≤10%（系统硬顶）。'},
+  G6:{phen:'成就动机权重 < 25%。',mech:'成就动机 r=.41 是全表最强预测因子，权重过低=丢掉最有效的信号。',src:['Vinchur 1998：成就动机 r=.41'],action:'成就动机权重提到 ≥25%（出厂 35%）。'}
+};
+
+/* ============================================================================
+   屏 4 · 招聘包
+   ==========================================================================*/
+function vHire(){
+  const w=S.weights, v=E.validateWeights(w);
+  const dims=[['achievement','成就动机','r=.41 全表最强'],['cognitive','认知能力','GMA .51 支撑'],
+    ['integrity','正直诚信','整合测验增益'],['situational','情境判断',''],['adaptive','适应性','跨场景最稳(可上调)'],
+    ['charisma','魅力气场','🔴>30%触闸⑤ · 硬顶10%'],['experience','经验年限','🔴>0触闸④ · 硬顶0']];
+  const dt=E.darkTriadScore(S.dt);
+  const dtF=(k,label)=>`<div class="wrow"><span class="wl">${label}</span><input type="range" min="0" max="100" data-dt="${k}" value="${S.dt[k]}"><span class="wv num">${S.dt[k]}</span></div>`;
+  return `<div class="wrap"><div class="card ${S.mode==='free'?'locked':''}">
+    <div class="sect-h">组件① 题库权重（Σ=100 硬校验 · 即时灯 闸④⑤⑥）</div>
+    ${dims.map(([k,t,h])=>`<div class="wrow">
+      <span class="wl">${t}</span>
+      <input type="range" min="0" max="100" data-w="${k}" value="${w[k]||0}" ${k==='experience'?'max="0"':''} ${k==='charisma'?'max="10"':''}>
+      <span class="wv num">${w[k]||0}%</span>
+      <span class="muted" style="font-size:11px;width:150px">${h}</span></div>`).join('')}
+    <div class="wsum"><span>合计</span><span class="pill ${v.ok?'green':'red'} num">${v.sum}% ${v.ok?'✓':'必须=100'}</span></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      ${w.charisma>30?'<span class="pill red">🔴 闸⑤ 黑暗三角：魅力筛选机</span>':''}
+      ${w.experience>0?'<span class="pill red">🔴 闸④ 经验陷阱</span>':''}
+      ${w.achievement<25?'<span class="pill amber">🟡 闸⑥ 非结构化：成就动机<25%</span>':''}
+      ${v.ok&&w.charisma<=30&&w.experience===0&&w.achievement>=25?'<span class="pill green">🟢 三闸皆过</span>':''}
+      <button class="btn sm ghost" data-act="resetWeights">恢复出厂 35/25/20/15/5</button>
+    </div>
+  </div>
+
+  <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="sect-h">组件③ 黑暗三角评分（行为编码，非人格测评）</div>
+    <p class="muted" style="font-size:12.5px;margin-bottom:10px">=30×归因外部程度 + 30×细节缺失度 + 25×(魅力−细节) + 15×自我提及频率　🔴 招聘阶段限定 / 入职即销毁 / 不出人格报告 / 候选人知情异议权</p>
+    ${dtF('externalAttrib','归因外部')}${dtF('detailMissing','细节缺失')}${dtF('charisma','魅力分')}${dtF('detail','细节分')}${dtF('selfMention','自我提及')}
+    <div class="wsum"><span>黑暗三角分</span><span class="pill ${dt>60?'red':dt>40?'amber':'green'} num">${dt.toFixed(1)}</span></div>
+    <p class="muted" style="font-size:11.5px;margin-top:6px">正向模式：低魅力 + 高细节 + 归因内部 + 能精确复述失败与改进。</p>
+  </div>
+
+  <div class="card ${S.mode==='free'?'locked':''}">
+    <div class="sect-h">组件⑤ 适应性样本（可打印 · 只打一项：打法换没换）</div>
+    <div class="grid2">
+      <div class="stat"><div class="k">卡甲 · 价格敏感型个体老板</div><div class="s" style="font-size:13px;color:var(--ink-2);margin-top:6px">只关心多少钱、能不能再便宜。</div></div>
+      <div class="stat"><div class="k">卡乙 · 流程导向型集团采购</div><div class="s" style="font-size:13px;color:var(--ink-2);margin-top:6px">只关心立项流程、合规与验收标准。</div></div>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:10px">候选人当场向两人卖同一产品各 5 分钟。完全切换=100 / 部分=50 / 一套话术打两人=0 → 计入 adaptive 维度。📎 Verbeke 2011：适应性是跨场景最稳绩效因子。</p>
+    <button class="btn sm no-print" onclick="window.print()">🖨 打印双画像卡</button>
+  </div>
+  <div class="print-foot">销冠招人器 · 授权：${esc(Store.get('tenant','王总（示例）'))} · 本材料不含税务/法律实质建议</div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 5 · 漏斗与水温
+   ==========================================================================*/
+function vFunnel(){
+  const pools=[['resume','简历'],['interview','面试'],['offer','Offer'],['hired','入职'],['reserve','蓄水池']];
+  const byPool=(p)=>S.candidates.filter(c=>c.pool===p);
+  // 查重三条演示
+  const dctx={candidates:S.candidates,employees:S.employees};
+  const demo=[['13800000101','表内重复'],['13800000201','在职重复'],['13800000202','离职重复']].map(([ph,lab])=>{
+    const d=E.dedupPhone(ph,dctx);
+    const cls=d.verdict==='block'?'red':(d.warn?'amber':'green');
+    return `<tr><td>${lab}</td><td class="num">${E.maskPhone(ph)}</td><td><span class="pill ${cls}">${d.verdict==='block'?'🔴 拦截':'🟢 放行'}</span></td><td class="muted" style="font-size:12px">${d.tip||'新号'}</td></tr>`;
+  }).join('');
+  // 四灯（示例阈值）
+  const lights=[['Offer 接受率','65%','green'],['爽约率','12%','green'],['周期恶化','+8%','green'],['挖角占比','0%','green']];
+  // QCS
+  const ch=SIM.channels, qcs=ch.map(c=>({...c,q:E.qcs(c,ch)}));
+  const bonusTag=E.priceTag(currentInputs());
+  const bonus=E.referralBonus(bonusTag.tagAmt);
+  return `<div class="wrap">
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F4 招聘漏斗五池（只前进一格或流失）</div>
+      <div class="pools">${pools.map(([p,t])=>`<div class="pool"><h4>${t}<span class="num">${byPool(p).length}</span></h4>
+        ${byPool(p).map(c=>`<div class="cand">${esc(c.name)}<br><span class="muted" style="font-size:11px">${E.maskPhone(c.phone)} · ${c.sourceChannel}</span></div>`).join('')||'<div class="muted" style="font-size:11px;margin-top:8px">—</div>'}</div>`).join('')}</div>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">查重三条（姓名脱敏 / 在职拦截 / 离职放行黄条）</div>
+      <table><thead><tr><th>场景</th><th class="num">手机(脱敏)</th><th>判定</th><th>说明</th></tr></thead><tbody>${demo}</tbody></table>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F7 薪酬水温 · 四灯（滚动窗 · 阈值可调 · 样本<3 灰）</div>
+      <div class="grid2" style="grid-template-columns:repeat(4,1fr)">
+        ${lights.map(([t,v,c])=>`<div class="stat"><div class="k">${t}</div><div class="v num" style="font-size:20px;color:var(--${c})">${v}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F15 渠道质量归因 QCS · 内推奖定价</div>
+      <table><thead><tr><th>渠道</th><th class="num">存活90</th><th class="num">留存12</th><th class="num">人均净贡献</th><th class="num">QCS</th></tr></thead><tbody>
+        ${qcs.map(c=>`<tr><td>${c.name}</td><td class="num">${E.fmtPct(c.survive90,0)}</td><td class="num">${E.fmtPct(c.retain12,0)}</td><td class="num">${E.fmtWan(c.netMean)}</td><td class="num"><b>${Math.round(c.q)}</b></td></tr>`).join('')}
+      </tbody></table>
+      <div class="action-card"><span class="txt">按你的流失价签 <b>${E.fmtWan(bonusTag.tagAmt,2)}</b>×1%，内推奖建议给到 <b>¥${bonus.toLocaleString()}</b> 依然血赚。📎 Burks 2015 QJE：内推离职率低 10–30%。</span></div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 6 · 批次与入职
+   ==========================================================================*/
+function vBatch(){
+  const pg=E.practiceGate(8);
+  const gap=E.cognitiveGap(42,19);
+  const r=E.capacityChain(currentInputs(),ctx());
+  return `<div class="wrap">
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F6 批次 vintage（存活 / 爬坡 / 回本 · 不满 t 显“—”）</div>
+      <table><thead><tr><th>批次</th><th class="num">S(30)</th><th class="num">S(90)</th><th class="num">爬坡完成</th><th class="num">回本日</th></tr></thead><tbody>
+        <tr><td>2026-Q1</td><td class="num">100%</td><td class="num">83%</td><td class="muted">—</td><td class="muted">—</td></tr>
+        <tr><td>2026-Q2</td><td class="num">100%</td><td class="muted">—</td><td class="muted">—</td><td class="muted">—</td></tr>
+      </tbody></table>
+      <p class="muted" style="font-size:11.5px;margin-top:8px">🔴 爬坡完成日 = 连续 3 月月度毛利 ≥ 人均配额×80%，严禁用“第一单”判定。某周期档 ≥5 批次完整爬坡 → 自动替换出厂曲线。</p>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">闸⑪ 练习量（前 14 天 &lt; 50 → S 曲线右移 · 🔴 永不阻止打电话）</div>
+      <div class="grid3">
+        <div class="stat"><div class="k">示例新人练习</div><div class="v num" style="color:var(--red)">${pg.count} / ${pg.floor}</div><div class="s">🔴 不达标</div></div>
+        <div class="stat"><div class="k">S 曲线右移</div><div class="v num">${pg.shiftMonths} 个月</div><div class="s">爬坡预测顺延</div></div>
+        <div class="stat"><div class="k">ROI（入职压缩）</div><div class="v num">${r.roiWan}万</div><div class="s">${r.trueHires}×3×${(r.perCapMonthAmt/W).toFixed(1)}万</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2);margin-top:10px">📎 前两周 50–100 次模拟通话可把爬坡缩短 37%；系统只提示，不锁电话——让他现在上线，是在浪费你的线索。</p>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">闸⑫ 认知鸿沟（分子只取 confirmed · no_response &gt;7 天自动 confirmed）</div>
+      <div class="grid3">
+        <div class="stat"><div class="k">主管上报</div><div class="v num">42 次</div></div>
+        <div class="stat"><div class="k">销售确认</div><div class="v num">19 次</div></div>
+        <div class="stat" style="background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 26%,transparent)"><div class="k">鸿沟指数</div><div class="v num" style="color:var(--red)">${E.fmtPct(gap)}</div><div class="s">🔴 >30%</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2);margin-top:10px">📎 全球：90% 领导认为自己辅导了，只有 62% 销售确认收到（鸿沟≈31%）。✅ 建议：把辅导写成指向任务的具体处方（Kluger & DeNisi 1996）。</p>
+    </div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 7 · 效度实验室
+   ==========================================================================*/
+function vLab(){
+  const P=f11people();
+  const rAch=E.validityR(P,'achievement'), rCha=E.validityR(P,'charisma'), rExp=E.validityR(P,'experience');
+  const cs=E.collapseStats(SIM.f12);
+  const rpi=E.rpiValue(0.70,5000_00,5000_00);
+  const dark={median:68,teamMean:42}, ach={median:31,teamMean:55};
+  const verdict=E.verifyRPI(rpi,dark,ach);
+  const sc=E.overrideScorecard(SIM.f14_against,SIM.f14_comply,SIM.f14_over,SIM.f14_dec);
+  const rline=(lab,rr,note)=>`<tr><td>${lab}</td><td class="num"><b style="color:var(--${rr.r==null?'ink-3':rr.r>0.2?'green':rr.r<-0.05?'red':'amber'})">${rr.r==null?'—':(rr.r>0?'+':'')+rr.r.toFixed(2)}</b></td><td class="muted" style="font-size:12px">${note}</td></tr>`;
+  return `<div class="wrap">
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F11 预测效度追踪器（内置模拟集 12 人 · 12 个月后回验）</div>
+      <table><thead><tr><th>面试维度</th><th class="num">r（vs 12月归一化毛利）</th><th>结论</th></tr></thead><tbody>
+        ${rline('成就动机',rAch,'✅ 你复现了全球 .41——题库有效')}
+        ${rline('魅力/气场',rCha,'🔴 与业绩负相关——你在用负相关指标筛人')}
+        ${rline('经验年限',rExp,'🔴 r≈−.06 同向——经验陷阱')}
+      </tbody></table>
+      <p class="muted" style="font-size:11.5px;margin-top:8px">🔴 三条封顶不可绕过：样本<30 禁校准 · 经验永 0% · 魅力永 ≤10%。样本<12 → 整屏“—（需算账器归一化数据）”。📎 Satornino 2023 JM。</p>
+    </div>
+    <div class="card ${S.mode==='free'?'locked':''}">
+      <div class="sect-h">F12 黑暗三角崩塌追踪（分>70 ∧ 月∈[10,18] ∧ 近3月环比<−40%）</div>
+      <div class="grid3">
+        <div class="stat"><div class="k">高分者</div><div class="v num">${cs.n} 人</div><div class="s">${cs.lowSample?'低样本(<8)':'样本充足'}</div></div>
+        <div class="stat"><div class="k">崩塌率</div><div class="v num" style="color:var(--red)">${E.fmtPct(cs.rate,0)}</div><div class="s">${cs.collapsedN}/${cs.n} 断崖</div></div>
+        <div class="stat"><div class="k">崩塌月份中位</div><div class="v num">第 ${cs.medianMonth} 月</div><div class="s">从神坛跌落</div></div>
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:10px">⚠️ 本预测永不进考核、永不影响提成、永不对该员工可见；系统只输出【提前做传承预案（留人器 M16.8）】，永不输出【建议开除】。</p>
+    </div>
+    <div class="grid2">
+      <div class="card ${S.mode==='free'?'locked':''}">
+        <div class="sect-h">F13 排序效应验证闭环</div>
+        <div class="stat"><div class="k">RPI（读定价器方案）</div><div class="v num">${rpi.toFixed(2)}</div><div class="s">≥0.60 预测筛进赌徒/黑暗三角</div></div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:10px">黑暗中位 ${dark.median}（均值 ${dark.teamMean}）· 成就中位 ${ach.median}（均值 ${ach.teamMean}）→ <span class="pill ${verdict==='verified'?'red':'grey'}">${verdict==='verified'?'✅ 预测被验证':'未验证'}</span></p>
+        <p class="muted" style="font-size:11.5px;margin-top:6px">你不是招不到好人——你在用一个只有赌徒会应聘的薪酬结构。</p>
+      </div>
+      <div class="card ${S.mode==='free'?'locked':''}">
+        <div class="sect-h">F14 例外权追踪器（推翻测评）</div>
+        <div class="stat"><div class="k">EPS = 推翻组 − 遵从组</div><div class="v num" style="color:var(--red)">${E.fmtWan(sc.eps)}</div></div>
+        <p style="font-size:13px;color:var(--ink-2);margin-top:10px">推翻率 <b>${E.fmtPct(sc.overrideRate)}</b>（配额 20%）${sc.warn?'<span class="pill red">🟡 预警</span>':''}　推翻组存活 ${E.fmtPct(SIM.f14_s2,0)} vs 遵从组 ${E.fmtPct(SIM.f14_s1,0)}</p>
+        <p class="muted" style="font-size:11.5px;margin-top:6px">📎 Hoffman-Kahn-Li 2018 QJE：越频繁推翻测评的主管，招到的人越差。</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 8 · 数据（场景 / 信封 / 员工）
+   ==========================================================================*/
+function vData(){
+  const ref=S.extRef;
+  const refRows=Object.keys(ref).length? Object.entries(ref).map(([b,v])=>{
+    const sd=E.staleDays(v.exportedAt,today());
+    const stale=sd>coef()('envelopeStaleDays');
+    return `<tr><td>${b}</td><td class="num">${v.exportedAt}</td><td class="num">${sd} 天${stale?' 🟡':''}</td><td class="muted" style="font-size:12px">${Object.keys(v.derived||{}).join(', ')||'—'}</td></tr>`;
+  }).join(''):`<tr><td colspan="4" class="muted">— 尚未导入他方信封</td></tr>`;
+  return `<div class="wrap">
+    <div class="card">
+      <div class="sect-h">信封导入导出（board = zhaoren · schema skab_v1）</div>
+      <p class="muted" style="font-size:13px;margin-bottom:12px">数据 = 第【7】章信封 JSON；🔴 导出功能永不锁定（授-2），free 版一样能备份迁移。</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn pri" data-act="exportEnv">⬇ 导出数据包（信封 JSON）</button>
+        <label class="btn">⬆ 导入他方信封<input type="file" accept=".json,application/json" data-act="importEnv" style="display:none"></label>
+        <button class="btn ghost" data-act="saveScenario">保存当前场景</button>
+      </div>
+      <hr class="hair">
+      <div class="sect-h">ExternalRef 只读缓存（每 board 一条 · 整条覆盖 · 永不回写）</div>
+      <table><thead><tr><th>board</th><th class="num">exportedAt</th><th class="num">新鲜度</th><th>derived 键</th></tr></thead><tbody>${refRows}</tbody></table>
+    </div>
+    <div class="card">
+      <div class="sect-h">已建 Employee（离职登记入口）</div>
+      <table><thead><tr><th>姓名</th><th class="num">手机</th><th>渠道</th><th>状态</th></tr></thead><tbody>
+        ${S.employees.map(e=>`<tr><td>${esc(e.name)}</td><td class="num">${E.maskPhone(e.phone)}</td><td>${e.sourceChannel}</td><td>${e.isActive?'<span class="pill green">在职</span>':'<span class="pill grey">离职 '+(e.leaveReason||'')+'</span>'}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  </div>`;
+}
+
+/* ============================================================================
+   屏 9 · 系数与自检
+   ==========================================================================*/
+function vCoef(){
+  const rows=selfCheck();
+  const pass=rows.filter(r=>r.ok).length, total=rows.length;
+  const editable=[['midYearAttritionFactor','C-17 年中折半系数'],['overestimateRedline','高估率红线'],
+    ['referralBonusRate','内推奖率'],['practiceMinCount14d','前14天练习红线'],['overrideQuotaDefault','推翻配额']];
+  return `<div class="wrap">
+    <div class="card">
+      <div class="banner info" style="margin:0 0 14px">🌍 <b>全球基准 · 中国校准中</b>：系数为全球四十年销售管理实证的基准值，用户可覆盖任一格。全球证据给方向，中国系数定生死。</div>
+      <div class="sect-h">对拍自检徽章 · ${pass}/${total} <span class="pill ${pass===total?'green':'red'}">${pass===total?'全绿 收货 ✓':'有红 退回'}</span></div>
+      <div class="badges">${rows.map(r=>`<div class="badge ${r.ok?'ok':'no'}"><span class="dot ${r.ok?'green':'red'}"></span>${r.id} ${esc(r.name)}<span class="m">${r.ok?'✓':esc(String(r.got))}</span></div>`).join('')}</div>
+      <p class="muted" style="font-size:11.5px;margin-top:10px">测试冻结注入 TEST_TODAY=2026-07-13、targetYear=2026（公约 C-14/R-11）。徽章运行的是与 Node 对拍套件逐字同源的引擎。</p>
+    </div>
+    <div class="card">
+      <div class="sect-h">COEFFICIENTS 覆盖（金框 · 数值权归老板）</div>
+      ${editable.map(([k,lab])=>`<div class="field"><label>${lab} · <code class="kbd">${k}</code></label>
+        <input type="number" step="any" data-coef="${k}" value="${E.getCoef(k)}" placeholder="${E.DEFAULT_COEF[k]}"></div>`).join('')}
+      <p class="muted" style="font-size:11.5px">🔴 覆盖仅改数值权，不改结构；改动 <code class="kbd">midYearAttritionFactor</code> 等双侧系数须与定价器同步（R-04）。留空=用出厂值。</p>
+      <button class="btn sm ghost" data-act="resetCoef">清空覆盖</button>
+    </div>
+    <div class="card">
+      <div class="sect-h">授权与降级（单机版 · 全程零网络 · 授-5 ECDSA 非对称验签）</div>
+      <p style="font-size:13px;color:var(--ink-2)">署名可见：授权客户名固定显示于每屏页眉与每份打印报告页脚（授-1，社会防护>技术防护）。到期只降级、不锁数据、不删数据、不做机器绑定。HTML 内只含公钥，拿到文件也无法伪造签名。</p>
+      <div class="field" style="margin-top:10px"><label>授权客户名（署名）</label><input data-act="tenant" value="${esc(Store.get('tenant','王总（示例）'))}"></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 自检：把 24 条对拍搬进浏览器，跑同一引擎 ---------- */
+function selfCheck(){
+  const out=[]; const near=(a,b,e)=>a!=null&&Math.abs(a-b)<=(e==null?1e-6:e);
+  const add=(id,name,ok,got)=>out.push({id,name,ok:!!ok,got:ok?'':got});
+  const CTX={today:TEST_TODAY,targetYear:2026};
+  const inp={targetYearGrossAmt:1800*W,perCapitaActualAmt:100*W,salesCount:10,cycleTier:'short',attritionRate:0.30,hiringCycleDays:45,fullLoadCostAmt:28*W,managerCount:2,planMonth:1};
+  const r=E.capacityChain(inp,CTX);
+  add('T1','k=65.8%&kEff=55.96%',near(r.k1,0.658333,1e-4)&&near(r.kEff1,0.559583,1e-4),[r.k1,r.kEff1]);
+  add('T2','trueHires=20',r.trueHires===20,r.trueHires);
+  add('T3','naive=8',r.naiveHires===8,r.naiveHires);
+  add('T4','高估率60.0%',E.fmtPct(r.overRate)==='60.0%',E.fmtPct(r.overRate));
+  add('T5','开招2025-11-17晚238',r.latestStart==='2025-11-17'&&r.lateDays===238,[r.latestStart,r.lateDays]);
+  add('T6','边际利润56.0万',E.fmtWan(r.marginProfit)==='56.0万',E.fmtWan(r.marginProfit));
+  add('T7','边际成本29.5万',E.fmtWan(r.marginCost)==='29.5万',E.fmtWan(r.marginCost));
+  add('T8','净增26.5万',E.fmtWan(r.netGain)==='26.5万',E.fmtWan(r.netGain));
+  add('T9','span8/需4/缺2/辅导0/满产70.6%✓',r.span===8&&r.managerNeeded===4&&r.mgrGap===2&&r.pureCoachMin===0&&r.targetHeads===30&&E.fmtPct(r.fullRampCoef)==='70.6%'&&r.fullRampFlag==='green',[r.span,r.managerNeeded,r.mgrGap,r.pureCoachMin,E.fmtPct(r.fullRampCoef)]);
+  add('T10','鸿沟54.8%红',E.fmtPct(E.cognitiveGap(42,19))==='54.8%'&&E.cognitiveGap(42,19)>0.30,E.fmtPct(E.cognitiveGap(42,19)));
+  add('T11','no_response第8天confirmed',E.autoConfirm(8)===true&&E.autoConfirm(7)===false,[E.autoConfirm(8),E.autoConfirm(7)]);
+  const P=f11people();
+  add('T12','成就 r=+0.38',E.validityR(P,'achievement').r.toFixed(2)==='0.38',E.validityR(P,'achievement').r);
+  add('T13','魅力 r=−0.09',E.validityR(P,'charisma').r.toFixed(2)==='-0.09',E.validityR(P,'charisma').r);
+  add('T14','经验 r=−0.11',E.validityR(P,'experience').r.toFixed(2)==='-0.11',E.validityR(P,'experience').r);
+  add('T15','样本11→null',E.validityR(P.slice(0,11),'achievement').r===null,E.validityR(P.slice(0,11),'achievement').n);
+  const pg=E.practiceGate(8); add('T16','练习8/50右移2月',pg.red&&pg.shiftMonths===2,pg);
+  add('T17','ROI=498万',r.roiWan===498&&E.fmtWan(r.roiAmt)==='498.0万',[r.roiWan]);
+  const cs=E.collapseStats(SIM.f12); add('T18','崩塌67%月中位12.5',near(cs.rate,4/6)&&cs.medianMonth===12.5,[cs.rate,cs.medianMonth]);
+  const rpi=E.rpiValue(0.70,5000_00,5000_00); const v19=E.verifyRPI(rpi,{median:68,teamMean:42},{median:31,teamMean:55});
+  add('T19','RPI0.70→预测被验证',near(rpi,0.70)&&v19==='verified',[rpi,v19]);
+  const sc=E.overrideScorecard(SIM.f14_against,SIM.f14_comply,9,40);
+  add('T20','EPS−16万推翻22.5%预警',E.fmtWan(sc.eps)==='-16.0万'&&E.fmtPct(sc.overrideRate)==='22.5%'&&sc.warn,[E.fmtWan(sc.eps),E.fmtPct(sc.overrideRate)]);
+  const tag=E.priceTag(inp),bonus=E.referralBonus(tag.tagAmt),ch=SIM.channels;
+  add('T21','价签48.17万/奖4800/QCS88vs61',E.toWan(tag.tagAmt).toFixed(2)==='48.17'&&bonus===4800&&Math.round(E.qcs(ch[0],ch))===88&&Math.round(E.qcs(ch[1],ch))===61,[E.toWan(tag.tagAmt).toFixed(2),bonus,Math.round(E.qcs(ch[0],ch)),Math.round(E.qcs(ch[1],ch))]);
+  const dctx={candidates:[{phone:'138',name:'张三'}],employees:[{phone:'139',isActive:true},{phone:'137',isActive:false,leaveDate:'2024-05-01',leaveReason:'resign_other'}]};
+  const d1=E.dedupPhone('138',dctx),d2=E.dedupPhone('139',dctx),d3=E.dedupPhone('137',dctx);
+  add('T22','查重三条',d1.verdict==='block'&&d1.tip.includes('张')&&d2.verdict==='block'&&d3.verdict==='pass'&&d3.warn,[d1.verdict,d2.verdict,d3.verdict]);
+  const hired=E.hireCandidate({candId:'c',sourceChannel:'referral'},{packId:'p',candId:'c',scores:{achievement:70},darkTriadScore:55,darkTriadDetail:{a:1},joltType:'jolt',scoredDate:'2026-06-01'},{stamp:'1',name:'李四',phone:'139',hireDate:'2026-07-01',hiringCostAmt:15000_00,startBaseSalaryAmt:5000_00,batchId:'b',mentorManagerName:'王'});
+  add('T23','hired回链&黑暗明细销毁',hired.employee.spId===hired.candLink&&hired.scorePackAfter.darkTriadScore===55&&hired.scorePackAfter.darkTriadDetail===undefined&&hired.scorePackAfter.joltType===undefined,hired.scorePackAfter.joltType);
+  const env=E.buildEnvelope({Candidate:[]},{},{today:TEST_TODAY});
+  const imp=E.importEnvelope({schema:'skab_v1',board:'dingjia',exportedAt:'2026-07-01',dataVersion:1,derived:{rpiFloatShare:0.70,survivalLine:5000_00,matrixB:5000_00},entities:{}});
+  const lit=imp.ok&&E.rpiValue(imp.ref.derived.rpiFloatShare,imp.ref.derived.survivalLine,imp.ref.derived.matrixB);
+  add('T24','导出zhaoren&导入定价器点亮RPI',env.board==='zhaoren'&&imp.board==='dingjia'&&near(lit,0.70),[env.board,imp.board,lit]);
+  return out;
+}
+
+/* ============================================================================
+   事件绑定
+   ==========================================================================*/
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900); }
+function bind(){
+  // 输入
+  $('#view').querySelectorAll('[data-inp]').forEach(el=>{
+    el.addEventListener('change',()=>{ const k=el.dataset.inp; S.inputs[k]= el.type==='number'?parseFloat(el.value)||0:el.value; save('inputs'); });
+  });
+  // 权重滑杆
+  $('#view').querySelectorAll('[data-w]').forEach(el=>{
+    el.addEventListener('input',()=>{ S.weights[el.dataset.w]=parseInt(el.value)||0; save('weights'); render(); });
+  });
+  // 黑暗三角滑杆
+  $('#view').querySelectorAll('[data-dt]').forEach(el=>{
+    el.addEventListener('input',()=>{ S.dt[el.dataset.dt]=parseInt(el.value)||0; save('dt'); render(); });
+  });
+  // 系数覆盖
+  $('#view').querySelectorAll('[data-coef]').forEach(el=>{
+    el.addEventListener('change',()=>{ const ov=Store.get('coefOverride',{}); const v=el.value.trim();
+      if(v==='') delete ov[el.dataset.coef]; else ov[el.dataset.coef]=parseFloat(v);
+      Store.set('coefOverride',ov); toast('系数已覆盖（仅数值权）'); });
+  });
+  // 授权署名
+  const ten=$('#view').querySelector('[data-act="tenant"]');
+  if(ten) ten.addEventListener('change',()=>{ Store.set('tenant',ten.value); $('#tenant').textContent=ten.value; toast('署名已更新'); });
+  // 通用动作
+  $('#view').querySelectorAll('[data-act]').forEach(el=>{
+    const act=el.dataset.act;
+    if(['tenant'].includes(act)) return;
+    if(act==='importEnv'){ el.addEventListener('change',importEnv); return; }
+    el.addEventListener('click',(e)=>handleAct(act,e));
+  });
+  $('#banners').querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',()=>handleAct(el.dataset.act)));
+  // 侧栏
+  $('#modeBtn').onclick=()=>{ S.mode=S.mode==='full'?'free':'full'; save('mode'); syncTools(); render(); };
+  $('#clockBtn').onclick=()=>{ S.demoClock=!S.demoClock; save('demoClock'); syncTools(); render(); };
+  $('#themeBtn').onclick=cycleTheme;
+}
+function handleAct(act,e){
+  switch(act){
+    case 'loadSample': S.inputs={...DEF_INPUTS}; save('inputs'); toast('已载入对拍示例（1800万/100万/10人/短期）'); location.hash='#result'; break;
+    case 'commitInputs': save('inputs'); break;
+    case 'resetInputs': S.inputs={...DEF_INPUTS}; save('inputs'); render(); toast('已恢复默认'); break;
+    case 'resetWeights': S.weights={...E.DEFAULT_COEF.hiringWeightsFactory}; save('weights'); render(); break;
+    case 'resetCoef': Store.set('coefOverride',{}); toast('已清空覆盖'); break;
+    case 'dismissBanner': S.bannerDismissed=true; banners(); break;
+    case 'adopt': toast('已采纳 · 建议记入 ActionCard（系统永不自动执行）'); break;
+    case 'ignore': toast('已忽略'); break;
+    case 'later': toast('已稍后'); break;
+    case 'exportEnv': exportEnv(); break;
+    case 'saveScenario': Store.set('scenario',{inputs:S.inputs,weights:S.weights,savedAt:today()}); toast('场景已保存'); break;
+  }
+}
+function exportEnv(){
+  const entities={ Candidate:S.candidates, Employee:S.employees, HiringCriteria:[{weights:S.weights}] };
+  const r=E.capacityChain(currentInputs(),ctx());
+  const derived={ trueHires:r.trueHires, overRate:r.overRate };
+  const env=E.buildEnvelope(entities,derived,{today:today()});
+  const blob=new Blob([JSON.stringify(env,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='skab_zhaoren_'+today()+'.json'; a.click();
+  Store.set('lastExport',today()); toast('已导出信封 JSON · 备份成功'); banners();
+}
+function importEnv(e){
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const env=JSON.parse(rd.result); const imp=E.importEnvelope(env);
+    if(!imp.ok){ toast('非 skab_v1 信封，已忽略'); return; }
+    S.extRef[imp.board]={exportedAt:imp.ref.exportedAt,dataVersion:imp.ref.dataVersion,derived:imp.ref.derived,importedAt:today()};
+    save('extRef'); toast('已导入 '+imp.board+' 信封（只读缓存 · 整条覆盖）'); render();
+  }catch(err){ toast('JSON 解析失败'); } };
+  rd.readAsText(f);
+}
+function cycleTheme(){ const o=['auto','light','dark']; S.theme=o[(o.indexOf(S.theme)+1)%3]; save('theme'); applyTheme(); toast('主题：'+S.theme); }
+function applyTheme(){ if(S.theme==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',S.theme); }
+function syncTools(){ $('#modeBtn').textContent=S.mode==='full'?'full 版':'free 版'; $('#modeBtn').classList.toggle('act',S.mode==='full');
+  $('#clockBtn').textContent=S.demoClock?'演示钟':'真实钟'; $('#clockBtn').classList.toggle('act',S.demoClock); }
+
+/* ============================================================================
+   启动
+   ==========================================================================*/
+(function boot(){
+  applyTheme();
+  $('#tenant').textContent=Store.get('tenant','王总（示例）');
+  syncTools();
+  const q=Store.quotaProbe();
+  if(!q.writeOk) setTimeout(()=>toast('⚠ localStorage 写入异常，请立即导出备份'),600);
+  render();
+})();
+</script>
+</body>
+</html>
