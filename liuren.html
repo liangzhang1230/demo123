@@ -1,0 +1,1759 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="referrer" content="no-referrer" />
+<title>销冠留人器 · 信用层</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+<style>
+/* =========================================================================
+   销冠留人器 · 设计系统（借鉴 Linear / Stripe / Geist / Radix / Ant 密度）
+   扁平 + 1px 边框承重 + 极轻阴影 + 表格数字对齐 + 双主题
+   ========================================================================= */
+
+/* ---------- 令牌：字体 ---------- */
+:root{
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","WenQuanYi Micro Hei",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:"SF Mono",ui-monospace,"Cascadia Code","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono","PingFang SC","Microsoft YaHei",monospace;
+
+  --fs-2xs:.6875rem; --fs-xs:.75rem; --fs-sm:.8125rem; --fs-base:.875rem;
+  --fs-md:1rem; --fs-lg:1.25rem; --fs-xl:1.5rem; --fs-2xl:2rem;
+  --fs-3xl:2.5rem; --fs-4xl:3.25rem;
+  --lh-tight:1.2; --lh-snug:1.35; --lh-normal:1.6;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600; --fw-bold:700;
+  --tracking-tight:-0.01em; --tracking-label:0.04em;
+
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --sp-8:32px; --sp-10:40px; --sp-12:48px; --sp-16:64px;
+  --container:1280px; --gutter:20px; --card-pad:20px;
+
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-full:9999px;
+  --dur-fast:120ms; --dur:180ms; --dur-slow:280ms;
+  --ease-out:cubic-bezier(.2,.8,.2,1);
+}
+
+/* ---------- 令牌：亮色 ---------- */
+:root{
+  --gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-300:#cbd5e1;
+  --gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;--gray-700:#334155;
+  --gray-800:#1e293b;--gray-900:#0f172a;--gray-950:#020617;
+  --bg:#f6f8fa; --surface:#ffffff; --surface-2:#f1f5f9; --surface-hover:#f8fafc;
+  --text-strong:#0f172a; --text:#334155; --text-muted:#64748b; --text-faint:#94a3b8;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --accent:#4f46e5; --accent-hover:#4338ca; --accent-soft:#eef2ff; --accent-text:#4338ca;
+  --success:#15803d; --warning:#b45309; --danger:#dc2626; --info:#0369a1; --gold:#a16207;
+  --success-soft:#f0fdf4; --warning-soft:#fffbeb; --danger-soft:#fef2f2; --info-soft:#f0f9ff; --gold-soft:#fefce8;
+  --success-bd:#bbf7d0; --warning-bd:#fde68a; --danger-bd:#fecaca; --info-bd:#bae6fd; --gold-bd:#fde68a;
+  --shadow-xs:0 1px 2px rgba(15,23,42,.06);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 4px 12px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
+  --shadow-lg:0 12px 32px rgba(15,23,42,.12),0 4px 8px rgba(15,23,42,.06);
+  --ring:0 0 0 3px rgba(79,70,229,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root{ --_auto-dark:1; } }
+:root[data-theme="dark"], :root:not([data-theme="light"]) { }
+
+/* 暗色（跟随系统） */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0f1a; --surface:#111827; --surface-2:#1a2333; --surface-hover:#1e293b;
+    --text-strong:#f8fafc; --text:#e2e8f0; --text-muted:#94a3b8; --text-faint:#64748b;
+    --border:#1f2a3a; --border-strong:#334155;
+    --accent:#818cf8; --accent-hover:#a5b4fc; --accent-soft:#1e1b4b; --accent-text:#a5b4fc;
+    --success:#4ade80; --warning:#fbbf24; --danger:#f87171; --info:#38bdf8; --gold:#facc15;
+    --success-soft:#052e1a; --warning-soft:#2a1e05; --danger-soft:#2a1010; --info-soft:#04202e; --gold-soft:#292207;
+    --success-bd:#14532d; --warning-bd:#78350f; --danger-bd:#7f1d1d; --info-bd:#075985; --gold-bd:#78350f;
+    --shadow-xs:0 1px 2px rgba(0,0,0,.4);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 4px 12px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.4);
+    --shadow-lg:0 12px 32px rgba(0,0,0,.6),0 4px 8px rgba(0,0,0,.5);
+    --ring:0 0 0 3px rgba(129,140,248,.45);
+    color-scheme:dark;
+  }
+}
+/* 暗色（手动切换，优先级最高） */
+:root[data-theme="dark"]{
+  --bg:#0a0f1a; --surface:#111827; --surface-2:#1a2333; --surface-hover:#1e293b;
+  --text-strong:#f8fafc; --text:#e2e8f0; --text-muted:#94a3b8; --text-faint:#64748b;
+  --border:#1f2a3a; --border-strong:#334155;
+  --accent:#818cf8; --accent-hover:#a5b4fc; --accent-soft:#1e1b4b; --accent-text:#a5b4fc;
+  --success:#4ade80; --warning:#fbbf24; --danger:#f87171; --info:#38bdf8; --gold:#facc15;
+  --success-soft:#052e1a; --warning-soft:#2a1e05; --danger-soft:#2a1010; --info-soft:#04202e; --gold-soft:#292207;
+  --success-bd:#14532d; --warning-bd:#78350f; --danger-bd:#7f1d1d; --info-bd:#075985; --gold-bd:#78350f;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.4);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 12px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.4);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.6),0 4px 8px rgba(0,0,0,.5);
+  --ring:0 0 0 3px rgba(129,140,248,.45);
+  color-scheme:dark;
+}
+
+/* ---------- 基础 ---------- */
+*{box-sizing:border-box}
+*:focus{outline:none}
+*:focus-visible{outline:none;box-shadow:var(--ring);border-radius:var(--r-sm)}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:var(--lh-normal);
+  font-weight:var(--fw-normal); color:var(--text); background:var(--bg);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4{margin:0;line-height:var(--lh-tight);letter-spacing:var(--tracking-tight);font-weight:var(--fw-semibold);color:var(--text-strong)}
+p{margin:0}
+a{color:var(--accent-text);text-decoration:none}
+button{font-family:inherit}
+.num,td.num,.metric,.kpi-value,.mono{font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+.mono{font-family:var(--font-mono)}
+.muted{color:var(--text-muted)} .faint{color:var(--text-faint)} .strong{color:var(--text-strong)}
+.tiny{font-size:var(--fs-xs)} .center{text-align:center} .right{text-align:right}
+.dash{color:var(--text-faint)} /* “—” 空态 */
+
+/* ---------- 布局：顶栏 + 侧栏 + 内容 ---------- */
+.app-shell{display:grid;grid-template-columns:232px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"topbar topbar" "sidebar main";min-height:100vh}
+.topbar{grid-area:topbar;display:flex;align-items:center;gap:var(--sp-4);padding:0 var(--sp-6);height:56px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+.brand{display:flex;align-items:center;gap:var(--sp-2);font-weight:var(--fw-bold);color:var(--text-strong);font-size:var(--fs-md)}
+.brand .logo{font-size:1.25rem}
+.brand .sub{font-size:var(--fs-xs);color:var(--text-muted);font-weight:var(--fw-medium);padding:2px 6px;background:var(--surface-2);border-radius:var(--r-sm)}
+.topbar-spacer{flex:1}
+.topbar .lic{font-size:var(--fs-xs);color:var(--text-muted)}
+.topbar .lic b{color:var(--text)}
+.sidebar{grid-area:sidebar;background:var(--surface);border-right:1px solid var(--border);padding:var(--sp-4) var(--sp-3);position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.nav-group{margin-bottom:var(--sp-4)}
+.nav-group-label{font-size:var(--fs-2xs);text-transform:uppercase;letter-spacing:var(--tracking-label);color:var(--text-faint);padding:0 var(--sp-3);margin-bottom:var(--sp-2)}
+.nav-item{display:flex;align-items:center;gap:var(--sp-2);width:100%;text-align:left;border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:var(--fs-sm);font-weight:var(--fw-medium);padding:8px var(--sp-3);border-radius:var(--r-sm);margin-bottom:2px;transition:background var(--dur-fast),color var(--dur-fast)}
+.nav-item .ico{width:18px;text-align:center;opacity:.9}
+.nav-item:hover{background:var(--surface-hover);color:var(--text)}
+.nav-item.active{background:var(--accent-soft);color:var(--accent-text)}
+.nav-item .lock{margin-left:auto;font-size:var(--fs-xs);opacity:.7}
+.main{grid-area:main;padding:var(--sp-6);max-width:1240px}
+@media(max-width:900px){
+  .app-shell{grid-template-columns:1fr;grid-template-areas:"topbar" "main"}
+  .sidebar{display:none}
+}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);padding:var(--card-pad)}
+.card--interactive{cursor:pointer;transition:border-color var(--dur),box-shadow var(--dur),transform var(--dur)}
+.card--interactive:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.card-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.card-sub{font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px}
+.section-title{font-size:var(--fs-xl);margin-bottom:var(--sp-2)}
+.section-desc{color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-5);max-width:70ch}
+.stack>*+*{margin-top:var(--sp-4)}
+.grid{display:grid;gap:var(--gutter)}
+.kpi-grid{display:grid;gap:var(--gutter);grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* ---------- KPI ---------- */
+.kpi-label{font-size:var(--fs-xs);font-weight:var(--fw-medium);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted)}
+.kpi-value{font-size:var(--fs-3xl);font-weight:var(--fw-bold);line-height:var(--lh-tight);letter-spacing:-0.02em;color:var(--text-strong)}
+.kpi-value.sm{font-size:var(--fs-2xl)}
+.kpi-unit{font-size:var(--fs-md);font-weight:var(--fw-medium);color:var(--text-muted);margin-left:.15em}
+.kpi-foot{margin-top:var(--sp-2);font-size:var(--fs-xs);color:var(--text-muted)}
+.hero-num{font-size:var(--fs-4xl);font-weight:var(--fw-bold);letter-spacing:-.03em;line-height:1}
+
+/* ---------- 徽章 ---------- */
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:var(--r-full);font-size:var(--fs-xs);font-weight:var(--fw-medium);line-height:1;border:1px solid transparent;white-space:nowrap}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.badge--success{color:var(--success);background:var(--success-soft);border-color:var(--success-bd)}
+.badge--warning{color:var(--warning);background:var(--warning-soft);border-color:var(--warning-bd)}
+.badge--danger{color:var(--danger);background:var(--danger-soft);border-color:var(--danger-bd)}
+.badge--info{color:var(--info);background:var(--info-soft);border-color:var(--info-bd)}
+.badge--gold{color:var(--gold);background:var(--gold-soft);border-color:var(--gold-bd)}
+.badge--neutral{color:var(--text-muted);background:var(--surface-2);border-color:var(--border)}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-size:var(--fs-sm);font-weight:var(--fw-medium);cursor:pointer;transition:background var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
+.btn:hover{background:var(--surface-hover);border-color:var(--text-faint)}
+.btn--primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn--primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn--danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn--ghost{border-color:transparent;background:transparent;color:var(--accent-text)}
+.btn--ghost:hover{background:var(--accent-soft)}
+.btn--sm{min-height:28px;padding:0 10px;font-size:var(--fs-xs)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+
+/* ---------- 表格 ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-lg)}
+.table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-sm)}
+.table th{position:sticky;top:0;z-index:1;background:var(--surface-2);text-align:left;font-weight:var(--fw-semibold);font-size:var(--fs-xs);letter-spacing:var(--tracking-label);text-transform:uppercase;color:var(--text-muted);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+.table tbody tr:last-child td{border-bottom:none}
+.table tbody tr:hover{background:var(--surface-hover)}
+.table td.num,.table th.num{text-align:right;font-variant-numeric:tabular-nums}
+.table td.mono{font-family:var(--font-mono)}
+
+/* ---------- 计量条 / 环 ---------- */
+.meter{height:8px;background:var(--surface-2);border-radius:var(--r-full);overflow:hidden}
+.meter-fill{height:100%;border-radius:inherit;background:var(--accent);transition:width var(--dur-slow) var(--ease-out)}
+.meter-fill.s-success{background:var(--success)} .meter-fill.s-info{background:var(--info)}
+.meter-fill.s-warning{background:var(--warning)} .meter-fill.s-danger{background:var(--danger)}
+.meter-fill.s-gold{background:var(--gold)}
+.ring{position:relative;width:132px;height:132px;border-radius:50%;display:grid;place-items:center}
+.ring::before{content:"";position:absolute;width:98px;height:98px;border-radius:50%;background:var(--surface)}
+.ring-num{position:relative;font-size:var(--fs-2xl);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;line-height:1}
+.ring-cap{position:relative;font-size:var(--fs-2xs);color:var(--text-muted);margin-top:2px}
+
+/* ---------- 横幅 / 提示 ---------- */
+.banner{display:flex;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:1px solid;font-size:var(--fs-sm);align-items:flex-start}
+.banner .b-ico{flex:none;font-size:1rem;line-height:1.3}
+.banner strong{color:var(--text-strong)}
+.banner p{margin:2px 0 0;color:var(--text-muted)}
+.banner--warning{background:var(--warning-soft);border-color:var(--warning-bd);color:var(--warning)}
+.banner--danger{background:var(--danger-soft);border-color:var(--danger-bd);color:var(--danger)}
+.banner--success{background:var(--success-soft);border-color:var(--success-bd);color:var(--success)}
+.banner--info{background:var(--info-soft);border-color:var(--info-bd);color:var(--info)}
+.banner--gold{background:var(--gold-soft);border-color:var(--gold-bd);color:var(--gold)}
+
+/* ---------- 行动卡（永不自动执行；老板点击） ---------- */
+.action-card{border-left:3px solid var(--accent);background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:14px 16px}
+.action-card.sev-danger{border-left-color:var(--danger)}
+.action-card.sev-warning{border-left-color:var(--warning)}
+.action-card.sev-success{border-left-color:var(--success)}
+.action-card .ac-title{font-weight:var(--fw-semibold);color:var(--text-strong);margin-bottom:2px}
+.action-card .ac-body{font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:10px}
+.cite{font-size:var(--fs-xs);color:var(--text-muted);margin-top:8px;display:block;line-height:1.5}
+.cite::before{content:"📎 ";}
+
+/* ---------- 空态 / “—” ---------- */
+.empty{text-align:center;padding:var(--sp-12) var(--sp-6);color:var(--text-muted)}
+.empty-icon{font-size:32px;opacity:.5;margin-bottom:var(--sp-3)}
+.empty-title{font-size:var(--fs-md);font-weight:var(--fw-semibold);color:var(--text);margin-bottom:4px}
+.locked{position:relative}
+.locked .lock-veil{position:absolute;inset:0;background:color-mix(in srgb,var(--surface) 72%,transparent);backdrop-filter:blur(3px);border-radius:inherit;display:grid;place-items:center;text-align:center;padding:var(--sp-4);z-index:2}
+
+/* ---------- “计算得出，改不了” 信任标记 ---------- */
+.computed-tag{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-2xs);color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-full);padding:2px 8px}
+.asof{font-size:var(--fs-2xs);color:var(--text-faint)}
+.asof.stale{color:var(--warning)}
+.info-i{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-size:9px;font-weight:700;cursor:help}
+
+/* ---------- 拆解条（hero 下方“为什么”） ---------- */
+.breakdown{display:flex;flex-direction:column;gap:8px}
+.bd-row{display:grid;grid-template-columns:130px 1fr 56px;align-items:center;gap:10px;font-size:var(--fs-sm)}
+.bd-row .bd-name{color:var(--text)} .bd-row .bd-pts{text-align:right;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+
+/* ---------- 表单 ---------- */
+label.field{display:block;margin-bottom:var(--sp-3)}
+.field-label{display:block;font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--text);margin-bottom:4px}
+.field-hint{font-size:var(--fs-2xs);color:var(--text-faint);margin-top:3px}
+input,select,textarea{width:100%;font-family:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:8px 10px;transition:border-color var(--dur-fast),box-shadow var(--dur-fast)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:var(--ring)}
+input::placeholder{color:var(--text-faint)}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:var(--sp-5);flex-wrap:wrap}
+.tab{appearance:none;background:none;border:none;cursor:pointer;padding:10px 14px;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--text)} .tab.active{color:var(--accent-text);border-bottom-color:var(--accent)}
+
+/* ---------- 弹层 ---------- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.55);display:grid;place-items:center;z-index:100;padding:var(--sp-6)}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:var(--sp-6)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-4)}
+.modal h3{font-size:var(--fs-lg)}
+.x-btn{border:none;background:none;font-size:1.25rem;color:var(--text-muted);cursor:pointer;line-height:1}
+
+/* ---------- 自检徽章 ---------- */
+.badge-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.tcase{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sm)}
+.tcase .t-mark{flex:none;font-weight:700}
+.tcase.pass{border-color:var(--success-bd);background:var(--success-soft)} .tcase.pass .t-mark{color:var(--success)}
+.tcase.fail{border-color:var(--danger-bd);background:var(--danger-soft)} .tcase.fail .t-mark{color:var(--danger)}
+.tcase .t-id{font-family:var(--font-mono);font-weight:600;color:var(--text-strong)}
+.tcase .t-detail{color:var(--text-muted);font-size:var(--fs-xs);margin-top:2px}
+.selftest-hero{display:flex;align-items:center;gap:var(--sp-5);flex-wrap:wrap}
+
+/* ---------- 分隔 & 杂项 ---------- */
+.hr{height:1px;background:var(--border);border:none;margin:var(--sp-5) 0}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--border);font-size:var(--fs-sm)}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--text-muted)} .kv .v{color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gray-900);color:var(--gray-50);padding:10px 18px;border-radius:var(--r-full);font-size:var(--fs-sm);box-shadow:var(--shadow-lg);z-index:200;animation:toastin var(--dur) var(--ease-out)}
+@keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(8px)}}
+.top-strip{padding:10px var(--sp-6);font-size:var(--fs-sm);display:flex;align-items:center;gap:10px}
+.top-strip--gold{background:var(--gold-soft);border-bottom:1px solid var(--gold-bd);color:var(--gold)}
+
+/* ---------- 可访问性 & 动效 ---------- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---------- 打印（A4 高管一页纸） ---------- */
+.print-only{display:none}
+@media print{
+  @page{size:A4;margin:14mm}
+  :root{--bg:#fff;--surface:#fff;--surface-2:#fff;--border:#d0d0d0;--text-strong:#000;--text:#111;--text-muted:#444;--shadow-xs:none;--shadow-sm:none;--shadow-md:none;--shadow-lg:none;color-scheme:light}
+  body{background:#fff!important;color:#000!important;font-size:11pt}
+  .topbar,.sidebar,.no-print,.tabs,.btn,.top-strip{display:none!important}
+  .app-shell{display:block}
+  .main{padding:0;max-width:none}
+  .print-only{display:block}
+  .card{break-inside:avoid;box-shadow:none;border:1px solid #d0d0d0}
+  section,.report-page{break-inside:avoid}
+  .page-break{break-before:page}
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+(function(){
+/* ==================== core.js ==================== */
+// ============================================================================
+// 宪法层（公约【2】【3】【4】）—— 唯一源，全系统 import，禁止重复实现
+// 全部为纯函数；含日期计算的函数一律显式传入 today（公约 C-14 时钟注入铁律）
+// ============================================================================
+
+// ---- 【3】兜底铁律：safeDiv（除号唯一合法出口）----
+function safeDiv(a, b) {
+  return (b === 0 || b == null || a == null) ? null : a / b;
+}
+// null ≠ 0：证据缺失显 "—"，绝不退化为 0（A-19）
+const DASH = '—';
+
+// ---- 【2】全局数据类型 · 展示层格式化（运算层永不中途舍入）----
+// 金额一律以「分」(int) 存储与运算；展示才转元。
+const Money = {
+  yuan: (fen) => (fen == null ? null : fen / 100),
+  // ¥12,480（默认整数元，千分位）
+  cny: (fen) => (fen == null ? DASH : '¥' + Math.round(fen / 100).toLocaleString('en-US')),
+  // 3.5 万（保留 1 位）；元→万 = fen/1e6
+  wan: (fen, dp = 1) => (fen == null ? DASH : (fen / 1e6).toFixed(dp) + ' 万'),
+  wanNum: (fen) => (fen == null ? null : fen / 1e6),
+};
+const Rate = {
+  // 35.0%（×100 保留 1 位）
+  pct: (r, dp = 1) => (r == null ? DASH : (r * 100).toFixed(dp) + '%'),
+  signPct: (r, dp = 1) => (r == null ? DASH : (r >= 0 ? '+' : '') + (r * 100).toFixed(dp) + '%'),
+};
+const Num = {
+  x: (n, dp = 1) => (n == null ? DASH : n.toFixed(dp) + ' 倍'),
+  int: (n) => (n == null ? DASH : Math.round(n).toLocaleString('en-US')),
+};
+
+// ---- 日期（YYYY-MM-DD；比较左闭右闭）----
+const D = {
+  parse: (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); },
+  iso: (dt) => dt.toISOString().slice(0, 10),
+  diffDays: (a, b) => Math.round((D.parse(b) - D.parse(a)) / 86400000), // b - a（天）
+  addDays: (s, n) => D.iso(new Date(D.parse(s).getTime() + n * 86400000)),
+  monthKey: (s) => String(s).slice(0, 7),
+  // UI 层唯一取真实时钟处（计算层禁止 new Date()）
+  realToday: () => new Date().toISOString().slice(0, 10),
+};
+
+// ---- ID：{缩写}_{毫秒}_{4位随机}（仅 UI 录入用，不进纯计算）----
+function makeId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+// ============================================================================
+// 【4.7】全系统唯一 S 曲线（🔧C-04 头部和，四板块共用）
+// ============================================================================
+const RAMP = {
+  short:     [0, 12, 25, 42, 60, 73, 85, 93, 100, 100, 100, 100], // 满产 9 月
+  regular:   [0, 5, 12, 22, 35, 48, 60, 72, 82, 90, 96, 100],     // 满产 12 月
+  midLong:   [0, 0, 5, 12, 20, 30, 42, 53, 63, 72, 80, 87],       // 满产 15 月
+  long:      [0, 0, 0, 5, 10, 18, 27, 36, 45, 54, 62, 70],        // 满产 18 月
+  ultraLong: [0, 0, 0, 0, 5, 10, 16, 23, 30, 37, 44, 50],         // 满产 24 月
+};
+const SEGMENT_MAP = { short: 'smb', regular: 'smb', midLong: 'mid', long: 'ent', ultraLong: 'strategic' };
+
+// 🔴🔧C-04：入职月 m 的【当年】贡献率 = 在职 tenure 的【头部和】= Σ 曲线前 (13−m) 段 ÷ 12 ÷ 100
+function newHireYearRate(cycle, m) {
+  const c = RAMP[cycle];
+  if (!c || m < 1) return null;
+  const take = 13 - m;
+  let s = 0;
+  for (let i = 0; i < take && i < c.length; i++) s += c[i];
+  return s / 12 / 100;
+}
+// 咬合基准（自我验证常量）：
+//   基准① newHireYearRate('short',1) = 65.8%（790/1200）
+//   基准② newHireYearRate('short',5) = 32.5%（390/1200）← C-04 专用回归哨兵（旧式会算成 59.25%）
+
+// ============================================================================
+// 【4.1–4.5】双口径宪法：金额只出自 totalIncome / laborCost / netContribution
+// 数据以「一笔一条」的 PayoutEntry 数组传入（type + amt 分）
+// ============================================================================
+const INCOME_BONUS = new Set(['instant_bonus', 'year_end_bonus', 'dividend',
+  'mentoring_share', 'recipe_royalty', 'sprint_vested', 'discretionary']);
+
+// 4.1 员工视角"我拿到多少"（报销永不计入；VSA vested 前不计入）
+function totalIncome(baseAmt, commissionAmt, payouts) {
+  let bonus = 0;
+  for (const p of (payouts || [])) if (INCOME_BONUS.has(p.type)) bonus += p.amt;
+  return baseAmt + commissionAmt + bonus;
+}
+// 4.2 老板视角"我花了多少"（报销只进成本）
+function laborCost(baseAmt, commissionAmt, socialCostRate, payouts) {
+  let bonus = 0, reimburse = 0;
+  for (const p of (payouts || [])) {
+    if (INCOME_BONUS.has(p.type)) bonus += p.amt;
+    else if (p.type === 'reimburse') reimburse += p.amt;
+  }
+  return baseAmt + Math.round(baseAmt * socialCostRate) + commissionAmt + bonus + reimburse;
+}
+// 4.5 提成口径（护城河）：margin_based，永不可换；禁止统一毛利折算系数
+function commission(collectedAmt, categoryMarginRate, r) {
+  return Math.round(collectedAmt * categoryMarginRate * r);
+}
+
+// 4.6 回算引擎核心（定价器心脏，公约级公式）——留人器守护线/闸引用
+function recalcEngine(T, longTermRate, B, G) {
+  // 边界守卫
+  if (B >= T * (1 - longTermRate)) return { blocked: '底薪已吃穿现金目标（B ≥ T×(1−长期占比)）', r: null };
+  if (G <= 0) return { blocked: '毛利口径 G ≤ 0', r: null };
+  const gap = T * (1 - longTermRate) - B;      // 提成缺口
+  const r = safeDiv(gap, G);                     // 毛利口径
+  const longMonthly = T * longTermRate;          // → 分红池
+  return { gap, r, longMonthly, blocked: null };
+}
+// 好招指数 = min(拟定B÷预警档B, 拟定T÷预警线T)
+function goodHireIndex(planB, warnB, planT, warnT) {
+  const a = safeDiv(planB, warnB), b = safeDiv(planT, warnT);
+  if (a == null || b == null) return null;
+  return Math.min(a, b);
+}
+function goodHireBand(idx) {
+  if (idx == null) return null;
+  if (idx < 1.0) return { band: 'danger', label: '🔴 招不起' };
+  if (idx < 1.2) return { band: 'warning', label: '🟡 勉强' };
+  if (idx < 1.4) return { band: 'success', label: '🟢 好招' };
+  return { band: 'gold', label: '金 · 极好招' };
+}
+
+
+/* ==================== coefficients.js ==================== */
+// ============================================================================
+// COEFFICIENTS 系数总表（公约【5】跨板块共享 + 4号件二 §2.3 增补）
+// 三权分立：结构权=系统 / 数值权=老板（Override）/ 启用权=老板
+// 取用一律经 getCoef；null→"—"，绝不假装知道（公约【10】不变量 7）
+// ============================================================================
+const COEF_DEFAULT = {
+  // ---- §5.2 全球基准（🔄 出厂值，真实数据回灌替换）----
+  socialCostRate: 0.30,
+  attritionRateDefault: 0.35,
+  hiringCostDefaultAmt: 15000_00,          // 完全招聘成本（招人器口径，含入职行政）
+  minSampleDefault: 5,
+  envelopeStaleDays: 90,                    // 跨板块字段过期标注阈值（只标注不阻断）
+  ahcTrustLine: 60,                         // AHC 信任线（闸⑦ / 算账器闸⑪ e1，双侧同步）
+  midYearAttritionFactor: 0.5,
+  backupNudgeDays: 14,                      // 备份提醒阈值（A-24）
+  pipelineDecay: { loss: 0.35, residual: 0.65, inPriceTag: 0.35 }, // 接手劣化 35%（慢性）
+  handoverLossRate: 0.40,                   // 在途单交接折损（急性，仅具名 HandoverCard）
+  imbalanceGlobal: 0.56,                    // 全球辖区失衡基准（约六成）
+  redrawGainBand: [0.02, 0.07],
+  minWageTable: { tier1: 2420_00, tier2: 2000_00, tier34: 1700_00 },
+  longTermRate: 0.10,
+
+  // ---- 4号件二 §2.3 留人器专属增补 ----
+  sii: { w: [25, 15, 15, 15, 20, 10], spotCap: 5, approveCap: 3, viewPerCapMonth: 4, rxPerCapMonth: 20, bands: [30, 60] }, // <30🟢 30–60🟡 >60🔴
+  ei:  { w: [30, 25, 25, 20], objectionPerCapQuarter: 0.5, bands: [30, 60] },   // >60🟢 <30🔴
+  ahc: { w: [40, 25, 20, 15], interceptCap: 10, ratchetCap: 3, bands: [60, 80] }, // ≥80🟢 <60🔴
+  mc:  { w: [40, 30, 20, 10], bands: [40, 65] },                                  // >65🟢 <40🔴
+  ratchetCorrThreshold: 0.5,
+  freeRiderRules: { discountX: 2, complaintX: 1.5, concentration: 0.60, lowMarginShare: 0.40 },
+  rampGapShareRedline: 0.45,
+  pipelineDecayInPriceTag: 0.35,           // = 招人器/算账器 pipelineDecay.loss（一致）
+  silentMonthsDefault: 6,
+  dividendPayoutDelayDays: 45,
+  refRound: 10000,                          // 参照点取整到 100 元（=10000 分）
+  aftershockTalkDays: 7,
+  handoverSavableShare: 0.50,
+  secondPlaceRankBand: [2, 3],
+  secondPlaceMonths: 3,
+  m28: { mentorRate: 0.05, royaltyRate: 0.02, mentorDur: 12, royaltyDur: 24, oneOffAmt: 500_00 }, // 带教/使用费默认
+  dependency: { warn: 0.40, danger: 0.60 }, // 依赖度雷达
+  collapseMonthIn: [10, 18],               // 🔧L-C13 黑暗三角崩塌窗口（权威源=2号 collapseRule）
+};
+
+// 数值权归老板：Override 层（落 localStorage）。启动时由 storage 注入。
+let COEF_OVERRIDE = {};
+function setCoefOverride(obj) { COEF_OVERRIDE = obj || {}; }
+function getCoef(key) {
+  if (Object.prototype.hasOwnProperty.call(COEF_OVERRIDE, key)) return COEF_OVERRIDE[key];
+  return COEF_DEFAULT[key];
+}
+// 系数表指纹（信封 coefficientsHash 用；导入时校验一致性，不一致提示不阻断）
+function coefficientsHash() {
+  const merged = { ...COEF_DEFAULT, ...COEF_OVERRIDE };
+  const s = JSON.stringify(merged, Object.keys(merged).sort());
+  let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return 'cf_' + (h >>> 0).toString(16);
+}
+
+
+/* ==================== storage.js ==================== */
+// ============================================================================
+// 存储层：StorageAdapter（localStorage，前缀 skab_liuren_；预留 IndexedDB 切换位）
+// + 实体 + 信封（skab_v1：derived + entities）+ ExternalRef（整条覆盖·只读）
+// + 授权/降级（公约【11】：ECDSA 公钥验签，HTML 内只含公钥）
+// ============================================================================
+const PREFIX = 'skab_liuren_';
+const hasLS = (() => { try { return typeof localStorage !== 'undefined'; } catch (_) { return false; } })();
+const _mem = {}; // Node/自检环境无 localStorage 时的内存兜底
+
+const StorageAdapter = {
+  get(key) { try { return hasLS ? localStorage.getItem(PREFIX + key) : (_mem[key] ?? null); } catch (_) { return _mem[key] ?? null; } },
+  set(key, val) { try { hasLS ? localStorage.setItem(PREFIX + key, val) : (_mem[key] = val); } catch (_) { _mem[key] = val; } },
+  remove(key) { try { hasLS ? localStorage.removeItem(PREFIX + key) : delete _mem[key]; } catch (_) { delete _mem[key]; } },
+  // 配额自检（C-15：占用估算 + 写入探针）
+  probe() {
+    let used = 0;
+    try { for (const k in (hasLS ? localStorage : _mem)) if (k.startsWith(PREFIX) || !hasLS) used += (StorageAdapter.get(k.replace(PREFIX, '')) || '').length; } catch (_) {}
+    let writable = true;
+    try { StorageAdapter.set('__probe__', '1'); StorageAdapter.remove('__probe__'); } catch (_) { writable = false; }
+    return { approxBytes: used, writable, budgetBytes: 800 * 1024 }; // 单板块建议 ≤0.8MB
+  },
+};
+
+// ---- 授权（公约【11】·全程零网络请求 A-17）----
+const LICENSE = {
+  // 🔴 HTML 内唯一密钥材料 = 公钥（授-5）；私钥永不进文件
+  publicJwk: { kty: 'EC', crv: 'P-256', x: 'MzOG2tyKl1F1vO_p7MHNf6coVU9PLZCf_1G5QD3lHws', y: '8SJHKfZ40_POfMZduHIf9scLux7a1weIDuVHYFe69ic' },
+  demoCode: 'SKAB-LR-ABFHWITUMVXGC3TUEI5CFZV4STT2JOXHU6P6NCFXEDBLOIHHR2F6NAF3EIWCEYTPMFZGIIR2EJWGS5LSMVXCELBCMV4HA2LSPERDUIRSGAZDOLJRGIWTGMJCPWYIENG3FZ3IC7674CILKSNUR5T5J7ZTI3WQSWCVW4DAVULBY24YBRTR5NMPO375424C4LLO3RVPKTTHULY5QMRITCDN6GLPZSGXN23F',
+};
+const B32AL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function b32decode(s) {
+  let bits = 0, val = 0; const out = [];
+  for (const ch of s) { const idx = B32AL.indexOf(ch); if (idx < 0) continue; val = (val << 5) | idx; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return new Uint8Array(out);
+}
+// 纯逻辑：按日期解析 BUILD_MODE（授-2 到期只降级；防调表 seenMaxDate）——可离线单测
+function resolveModeByDate(expiry, today, seenMaxDate) {
+  if (seenMaxDate && today < seenMaxDate) return { mode: 'free', reason: 'clock_rollback' }; // 防调表
+  if (!expiry) return { mode: 'free', reason: 'no_license' };
+  if (today > expiry) return { mode: 'free', reason: 'expired' };                            // 到期只降级
+  return { mode: 'full', reason: 'ok' };
+}
+async function verifyLicenseCode(code) {
+  // 解码 → 公钥验签（crypto.subtle.verify，浏览器原生，零 CDN）
+  try {
+    const raw = code.replace(/^SKAB-LR-/, '').replace(/-/g, '');
+    const bytes = b32decode(raw);
+    const plen = (bytes[0] << 8) | bytes[1];
+    const payloadBytes = bytes.slice(2, 2 + plen);
+    const sig = bytes.slice(2 + plen);
+    const cryptoObj = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : null;
+    if (!cryptoObj) return { ok: false, reason: 'no_webcrypto' };
+    const key = await cryptoObj.subtle.importKey('jwk', LICENSE.publicJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+    const ok = await cryptoObj.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, sig, payloadBytes);
+    if (!ok) return { ok: false, reason: 'bad_sig' };
+    const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+    return { ok: true, payload };
+  } catch (e) { return { ok: false, reason: 'parse_error' }; }
+}
+
+// ============================================================================
+// 数据库根对象
+// ============================================================================
+const DB_KEY = 'db';
+let DB = null;
+
+function saveDB() { if (DB) StorageAdapter.set(DB_KEY, JSON.stringify(DB)); }
+function loadDB() {
+  const raw = StorageAdapter.get(DB_KEY);
+  if (raw) { try { DB = JSON.parse(raw); } catch (_) { DB = null; } }
+  if (!DB) { DB = factory(); saveDB(); }
+  setCoefOverride(DB.coefOverride || {});
+  return DB;
+}
+function resetDB() { DB = factory(); setCoefOverride(DB.coefOverride || {}); saveDB(); return DB; }
+
+// ---- 信封（公约【7】）----
+function buildEnvelope(today) {
+  // 🔧L-C11 双载荷：ahc(derived) + M28Agreement(entities)；导出永不锁定（授-2）
+  const ind = Engine.indices(DB, today);
+  return {
+    schema: 'skab_v1',
+    board: 'liuren',
+    exportedAt: today,
+    dataVersion: DB.meta.dataVersion,
+    coefficientsHash: coefficientsHash(),
+    derived: {
+      ahc: ind.ahc.value,          // 供算账器闸⑪证据 e1（S-12）
+      dvi: ind.dvi.value,          // 回流
+    },
+    entities: {
+      M28Agreement: DB.entities.M28Agreement,     // 供算账器闸⑪证据 e2 + §3.3 产权价值分组
+      Covenant: DB.entities.Covenant,
+      LedgerEntry: DB.entities.LedgerEntry,
+      ObjectionEntry: DB.entities.ObjectionEntry,
+      SuggestionEntry: DB.entities.SuggestionEntry,
+      HandoverCard: DB.entities.HandoverCard,
+    },
+  };
+}
+// ExternalRef 整条覆盖式导入（只读；永不进信封；A-20）
+function importEnvelope(env, today) {
+  if (!env || env.schema !== 'skab_v1' || !env.board) return { ok: false, reason: 'bad_schema' };
+  const hashMismatch = env.coefficientsHash && env.coefficientsHash !== coefficientsHash();
+  DB.externalRefs[env.board] = {
+    board: env.board,
+    exportedAt: env.exportedAt,
+    dataVersion: env.dataVersion,
+    coefficientsHash: env.coefficientsHash,
+    derived: env.derived || {},
+    entities: env.entities || {},
+    importedAt: today,
+  };
+  saveDB();
+  return { ok: true, board: env.board, hashMismatch };
+}
+function extRef(board) { return DB.externalRefs[board] || null; }
+function staleDays(board, today) { const r = extRef(board); return r && r.exportedAt ? D.diffDays(r.exportedAt, today) : null; }
+
+// ============================================================================
+// 出厂数据（种子）—— 工程化复现件七 T1–T19 对拍
+// 组件级输入直接照抄规格 3.1/3.5/3.7/3.8/3.9 的出厂算例
+// ============================================================================
+function factory() {
+  const people = [
+    { spId: 'sp_wangli', name: '王丽', phone: '13800000001', cityTier: 'tier1', level: 2, positionType: 'sales', hireDate: '2022-08-01', managerId: null, sourceChannel: 'referral', baseSalaryAmt: 6000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_wangwu', name: '王五', phone: '13800000002', cityTier: 'tier1', level: 0, positionType: 'sales', hireDate: '2026-05-20', managerId: null, sourceChannel: 'ad', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_zhaomin', name: '赵敏', phone: '13800000003', cityTier: 'tier2', level: 1, positionType: 'sales', hireDate: '2024-01-15', managerId: null, sourceChannel: 'referral', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_liqiang', name: '李强', phone: '13800000004', cityTier: 'tier1', level: 1, positionType: 'sales', hireDate: '2026-06-05', managerId: null, sourceChannel: 'ad', baseSalaryAmt: 5500_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_sunhao', name: '孙浩', phone: '13800000005', cityTier: 'tier2', level: 1, positionType: 'sales', hireDate: '2023-07-13', managerId: null, sourceChannel: 'referral', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_zhouqi', name: '周琦', phone: '13800000006', cityTier: 'tier2', level: 1, positionType: 'sales', hireDate: '2024-03-01', managerId: null, sourceChannel: 'ad', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_wuqi', name: '吴琪', phone: '13800000007', cityTier: 'tier2', level: 1, positionType: 'sales', hireDate: '2023-09-01', managerId: null, sourceChannel: 'referral', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_zheng', name: '郑爽', phone: '13800000008', cityTier: 'tier3', level: 1, positionType: 'sales', hireDate: '2024-06-01', managerId: null, sourceChannel: 'ad', baseSalaryAmt: 4000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_feng', name: '冯波', phone: '13800000009', cityTier: 'tier2', level: 1, positionType: 'sales', hireDate: '2023-02-01', managerId: null, sourceChannel: 'referral', baseSalaryAmt: 5000_00, hiringCostAmt: 15000_00, isActive: true },
+    { spId: 'sp_chen', name: '陈立', phone: '13800000010', cityTier: 'tier2', level: 2, positionType: 'manager', hireDate: '2021-05-01', managerId: null, sourceChannel: 'internal', baseSalaryAmt: 9000_00, hiringCostAmt: 15000_00, isActive: true },
+  ];
+
+  return {
+    meta: { createdAt: '2026-04-01', dataVersion: 1 },
+    settings: { theme: 'auto', bossOpLogEnabled: true },
+    license: { code: LICENSE.demoCode, tenant: '演示租户 · 王总', board: 'liuren', expiry: '2027-12-31', verified: true, seenMaxDate: null },
+    coefOverride: {},
+
+    // 治理体检输入快照（件三 3.1/3.2 组件级；出厂对拍 T8/T9/T10/T16 源）
+    governance: {
+      sii: { dailyReportOn: true, rollcallOn: true, spotChecksPerWeek: 3, approvalLevels: 2, monthlyViewsTotal: 20, activeHeadcount: 10, rxCountTotal: 80 },
+      ei: { objectionsRaisedQuarter: 0, suggestionsRaised: 0, suggestionsAdopted: 0, covenantConfirmRatio: 0, cardIgnoreRate: 0.82, activeHeadcount: 10, objection90dCount: 0 },
+      ahcInputs: { honoredRatio: 0.61, achievedCount: 41, honoredCount: 25, irrevocableRatio: 0, interceptCount: 4, ratchetCount: 2, raiseUpCount: 3 },
+      selfRating: { sii: 40, ei: 70, dvi: 80, ahc: 85 },
+    },
+
+    entities: {
+      Salesperson: people,
+      // 前程合约（合约双方确认比例：出厂 0%）
+      Covenant: [],
+      // 产权协议（出厂覆盖 0% → AHC 第二项 0；对拍 T6/T7 用其 rate/dur + 快照）
+      M28Agreement: [
+        { m28Id: 'm28_demo1', masterId: 'sp_wangli', kind: 'mentoring', rate: 0.05, durationMonths: 12, startTrigger: 'apprentice_ramp_done', apprenticeMonthlyNetAmt: 58000_00, baselineSnapshotAmt: null, irrevocable: true, createdAt: '2026-05-01' },
+        { m28Id: 'm28_demo2', masterId: 'sp_wangli', kind: 'royalty', rate: 0.02, durationMonths: 24, startTrigger: 'recipe_live', teamMonthlyIncrementAmt: 73000_00, baselineSnapshotAmt: 120000_00, irrevocable: true, createdAt: '2026-05-01' },
+      ],
+      // 履约总账（双时间戳；出厂履约率 61% = 25/41）
+      LedgerEntry: [],
+      ObjectionEntry: [],
+      SuggestionEntry: [],
+      Experiment: [],
+      HandoverCard: [],
+      BossSelfRating: [],
+      // 发放史（M37 参照点：去年同期 year_end_bonus 30000 元）
+      PayoutEntry: [
+        { peId: 'pe_1', employeeId: 'sp_wangli', type: 'year_end_bonus', amt: 30000_00, period: '2025-07', createdAt: '2025-07-15' },
+      ],
+      OverrideEvent: [],
+    },
+
+    // 价签出厂算例（T1–T4）：近6月月均毛利 10万；招聘周期 1.5月 + 批均回本 6月 = 75万
+    priceTag: { spId: 'sp_wangli', monthlyGrossMarginAmt: 100000_00, hireMonths: 1.5, paybackMonths: 6, rampGapMonthsEq: 5.078, raiseMonthlyAmt: 3000_00, shortenPct: 0.37, hiresPerYear: 2.267 },
+
+    // 分红配置（M17：三重闸 + 池比例）
+    dividend: {
+      period: 'quarter', poolRate: 0.10, netBeforeDividendAmt: 800000_00,
+      gateCompanyCollect: { enabled: true, pass: true }, gateCompanyNet: { enabled: true, pass: true }, gatePersonalCollect: { enabled: true, pass: true },
+    },
+
+    blueprint: { milestones: [{ id: 'bp1', name: '开新品类', done: false }, { id: 'bp2', name: '带出 2 名满产新人', done: false }] },
+
+    // ExternalRef 只读缓存（出厂预置 = 已导入四方信封，功能点亮）
+    externalRefs: {
+      suanzhang: {
+        board: 'suanzhang', exportedAt: '2026-07-01', dataVersion: 1, coefficientsHash: null, importedAt: '2026-07-02',
+        derived: { dvi: 54, imbalanceRate: 0.56, m11ManagerLift: null, uerTeamMean: 0.31 },
+        entities: {},
+        perPerson: {
+          // 归一化排名 / 剪刀差 / 市价差 / 线索指数 / 滚6月回款(分) / 特殊发放笔数
+          sp_wangli: { normRankMonths: [1,1,1,1,1,1], scissors: 0.12, marketGap: 0.05, leadIndex: 1.7, collected6m: 1800000_00, specialPayout12m: 3, contribGrowth: 0.267 },
+          sp_zhaomin: { normRankMonths: [2,2,2,2,2,2], scissors: 0.34, marketGap: 0.08, leadIndex: 1.1, collected6m: 900000_00, specialPayout12m: 0 },
+          sp_sunhao: { normRankMonths: [4,3,5,4,4,5], scissors: -0.05, marketGap: -0.02, leadIndex: 0.9, collected6m: 520000_00, specialPayout12m: 0 },
+          sp_zhouqi: { normRankMonths: [6,6,7,6,6,6], scissors: 0.02, marketGap: 0.10, leadIndex: 0.8, collected6m: 410000_00, specialPayout12m: 0 },
+          sp_wuqi: { normRankMonths: [3,4,3,3,4,3], scissors: 0.31, marketGap: -0.06, leadIndex: 1.0, collected6m: 700000_00, specialPayout12m: 0 },
+        },
+        m21Done: true, netContributionAmt: 800000_00,
+      },
+      dingjia: {
+        board: 'dingjia', exportedAt: '2026-07-01', dataVersion: 1, coefficientsHash: null, importedAt: '2026-07-02',
+        derived: { goodHireIndex: 1.05, r: 0.18, irrevocable: true, matrixTAmt: 40000_00 }, entities: {},
+      },
+      zhaoren: {
+        board: 'zhaoren', exportedAt: '2026-07-01', dataVersion: 1, coefficientsHash: null, importedAt: '2026-07-02',
+        derived: { batchPaybackMonths: 6, rampCycle: 'regular' }, entities: {},
+      },
+      yuren: {
+        board: 'yuren', exportedAt: '2026-07-01', dataVersion: 1, coefficientsHash: null, importedAt: '2026-07-02',
+        derived: { coachingDoseActual: 3.4 }, entities: {},
+      },
+    },
+
+    // 悬赏（闸③ 演示用；静默认可通道默认未启）
+    silentTrackOn: false,
+    ui: { backupLastExportAt: '2026-07-01' },
+  };
+}
+
+
+/* ==================== engine.js ==================== */
+// ============================================================================
+// 引擎层：件三函数库（唯一权威口径）。全部纯函数，读 DB + 显式 today。
+// SII/EI/DVI/AHC · M29.5 · M28 · 十二道闸 · M16 · M37 · M38 · M17 · MC
+// ============================================================================
+const Engine = (() => {
+
+  const bandBy = (v, lo, hi, higherIsBetter) => {
+    if (v == null) return null;
+    if (higherIsBetter) return v >= hi ? 'success' : v >= lo ? 'warning' : 'danger';
+    return v > hi ? 'danger' : v > lo ? 'warning' : 'success'; // 越低越好（SII）
+  };
+
+  // ---------- 3.1 四大指数 ----------
+  function indices(DB, today) {
+    const gS = DB.governance.sii, cS = getCoef('sii'), wS = cS.w, hS = gS.activeHeadcount;
+    const siiRaw =
+      wS[0] * (gS.dailyReportOn ? 1 : 0) +
+      wS[1] * (gS.rollcallOn ? 1 : 0) +
+      wS[2] * Math.min(gS.spotChecksPerWeek / cS.spotCap, 1) +
+      wS[3] * Math.min(gS.approvalLevels / cS.approveCap, 1) +
+      wS[4] * Math.min((safeDiv(gS.monthlyViewsTotal, hS * cS.viewPerCapMonth) ?? 0), 1) +
+      wS[5] * Math.min((safeDiv(gS.rxCountTotal, hS * cS.rxPerCapMonth) ?? 0), 1);
+    const sii = Math.round(siiRaw);
+
+    const gE = DB.governance.ei, cE = getCoef('ei'), wE = cE.w, hE = gE.activeHeadcount;
+    // 🔧L-C15：建议提出数=0 → 采纳项按 0 计（A-19 例外：授权通道未被使用，非证据缺失）
+    const adoptRatio = gE.suggestionsRaised > 0 ? gE.suggestionsAdopted / gE.suggestionsRaised : 0;
+    const eiRaw =
+      wE[0] * Math.min((safeDiv(gE.objectionsRaisedQuarter, hE * cE.objectionPerCapQuarter) ?? 0), 1) +
+      wE[1] * adoptRatio +
+      wE[2] * gE.covenantConfirmRatio +
+      wE[3] * (1 - gE.cardIgnoreRate);
+    const ei = Math.round(eiRaw);
+
+    // DVI：数据源=算账器信封；未导入→null（"—（需算账器数据）"）
+    const sz = DB.externalRefs.suanzhang;
+    const dvi = (sz && sz.derived && sz.derived.dvi != null) ? sz.derived.dvi : null;
+
+    const a = DB.governance.ahcInputs, cA = getCoef('ahc'), wA = cA.w;
+    const ahcRaw =
+      wA[0] * a.honoredRatio +
+      wA[1] * a.irrevocableRatio +
+      wA[2] * (1 - Math.min(a.interceptCount / cA.interceptCap, 1)) +
+      wA[3] * (1 - Math.min(a.ratchetCount / cA.ratchetCap, 1));
+    const ahc = Math.round(ahcRaw);
+
+    return {
+      sii: { value: sii, raw: siiRaw, band: bandBy(sii, cS.bands[0], cS.bands[1], false), asOf: today, source: '本机' },
+      ei: { value: ei, raw: eiRaw, band: bandBy(ei, cE.bands[0], cE.bands[1], true), asOf: today, source: '本机' },
+      dvi: { value: dvi, raw: dvi, band: bandBy(dvi, 30, 60, true), asOf: sz ? sz.exportedAt : null, source: dvi == null ? null : '算账器' },
+      ahc: { value: ahc, raw: ahcRaw, band: bandBy(ahc, cA.bands[0], cA.bands[1], true), asOf: today, source: '本机' },
+    };
+  }
+
+  // ---------- 3.2 M29.5 自评-实评偏差器 ----------
+  function deviation(DB, today) {
+    const s = DB.governance.selfRating, ind = indices(DB, today);
+    const pairs = [['监督 SII', s.sii, ind.sii.value], ['授权 EI', s.ei, ind.ei.value], ['可见 DVI', s.dvi, ind.dvi.value], ['信用 AHC', s.ahc, ind.ahc.value]];
+    const diffs = pairs.filter(p => p[2] != null).map(p => ({ label: p[0], self: p[1], actual: p[2], gap: Math.abs(p[1] - p[2]) }));
+    const gap = diffs.length ? Math.round(diffs.reduce((s2, d) => s2 + d.gap, 0) / diffs.length) : null;
+    return { rows: diffs, gap };
+  }
+
+  // ---------- 3.5 M28 产权 ----------
+  function m28Value(agr) {
+    if (agr.kind === 'mentoring') return (agr.apprenticeMonthlyNetAmt || 0) * agr.rate * agr.durationMonths;
+    if (agr.kind === 'royalty') return (agr.teamMonthlyIncrementAmt || 0) * agr.rate * agr.durationMonths;
+    return null;
+  }
+  // 🔴 irrevocable：下调/缩短在代码层无成功路径（L-D1）。唯一出口=留痕。
+  function tryDowngradeM28(DB, m28Id, today, note) {
+    const agr = DB.entities.M28Agreement.find(x => x.m28Id === m28Id);
+    if (!agr) return { ok: false, reason: 'not_found' };
+    // 无论输入如何，rate/duration 不被修改；只产生留痕 + AHC 扣分事件 + 全员可见
+    DB.entities.OverrideEvent.push({ id: makeId('ovr'), m28Id, at: today, action: 'try_downgrade', note: note || '', visibleToAll: true });
+    DB.governance.ahcInputs.interceptCount += 1; // 拦截下调次数 +1 → AHC 重算下降
+    return { ok: false, reason: 'irrevocable_blocked', downgraded: false, logged: true };
+  }
+
+  // ---------- 3.7 M16.1 价签（权威 6 项）T1–T4 ----------
+  function priceTag(DB, today) {
+    const p = DB.priceTag; const gm = p.monthlyGrossMarginAmt;
+    const person = DB.entities.Salesperson.find(s => s.spId === p.spId);
+    const headline = Math.round(gm * (p.hireMonths + p.paybackMonths));  // ≈ 权威估算 = 75 万
+    const rampGap = Math.round(gm * p.rampGapMonthsEq);                    // ② 最大头
+    const rampGapShare = safeDiv(rampGap, headline);
+    const raiseAnnual = p.raiseMonthlyAmt * 12;
+    const raiseVsTag = safeDiv(headline, raiseAnnual);
+    const shortenGainAnnual = Math.round(rampGap * p.shortenPct * p.hiresPerYear); // T4
+    const items = [
+      { key: 'hiring', name: '① 招聘成本', amt: person ? person.hiringCostAmt : getCoef('hiringCostDefaultAmt'), scope: '完全招聘成本' },
+      { key: 'ramp', name: '② 爬坡缺口', amt: rampGap, scope: '🔴 最大头', big: true },
+      { key: 'idlepipe', name: '③ 空窗管道', amt: Math.round(gm * p.hireMonths), scope: '招聘周期内无人产出' },
+      { key: 'mgr', name: '④ 经理时间', amt: Math.round(gm * 0.4), scope: '重新带人的管理耗时' },
+      { key: 'decay', name: '⑤ 接手劣化 35%（慢性）', amt: Math.round(gm * getCoef('pipelineDecayInPriceTag')), scope: '常规客户/管道整体降效' },
+      { key: 'handover', name: '⑥ 在途单交接 40%（急性）', amt: null, scope: '仅具名 HandoverCard；王丽今日无在途单 → —' },
+    ];
+    return {
+      spId: p.spId, name: person ? person.name : '—',
+      headline, rampGap, rampGapShare, raiseAnnual, raiseVsTag, shortenGainAnnual,
+      hitGate5: rampGapShare != null && rampGapShare > getCoef('rampGapShareRedline'),
+      items, asOf: today,
+    };
+  }
+
+  // ---------- 3.7 M16.8 依赖度雷达 ----------
+  function dependency(DB, today) {
+    const sz = DB.externalRefs.suanzhang;
+    if (!sz || !sz.perPerson) return { value: null };
+    const rows = Object.entries(sz.perPerson).map(([id, v]) => ({ id, collected: v.collected6m || 0, leadIndex: v.leadIndex }));
+    const total = rows.reduce((s, r) => s + r.collected, 0);
+    if (total === 0) return { value: null };
+    rows.sort((a, b) => b.collected - a.collected);
+    const top = rows[0];
+    const ratio = safeDiv(top.collected, total);
+    const person = DB.entities.Salesperson.find(s => s.spId === top.id);
+    const c = getCoef('dependency');
+    return {
+      value: ratio, topName: person ? person.name : top.id, topLeadIndex: top.leadIndex,
+      band: ratio >= c.danger ? 'danger' : ratio >= c.warn ? 'warning' : 'success',
+      selfMade: top.leadIndex > 1.5, asOf: sz.exportedAt,
+    };
+  }
+
+  // ---------- 3.7 M16.3 该谈名单（五触发源）含榜眼 T15 ----------
+  function secondPlaceTrigger(DB, spId) {
+    const sz = DB.externalRefs.suanzhang; if (!sz || !sz.perPerson || !sz.perPerson[spId]) return { hit: false };
+    const pp = sz.perPerson[spId]; const [lo, hi] = getCoef('secondPlaceRankBand'); const n = getCoef('secondPlaceMonths');
+    const recent = (pp.normRankMonths || []).slice(-n);
+    const bandOk = recent.length >= n && recent.every(r => r >= lo && r <= hi);
+    const zeroSpecial = (pp.specialPayout12m || 0) === 0;
+    const scissorsPos = (pp.scissors || 0) > 0;
+    const hit = bandOk && (scissorsPos || zeroSpecial);
+    return { hit, months: recent.length, rank: recent[recent.length - 1], scissors: pp.scissors, zeroSpecial };
+  }
+  function talkList(DB, today) {
+    const out = [];
+    for (const s of DB.entities.Salesperson) {
+      if (!s.isActive) continue;
+      const triggers = [];
+      // ① 周年前14天
+      const anni = anniversaryInDays(s.hireDate, today);
+      if (anni != null && anni >= 0 && anni <= 14) triggers.push({ src: 'anniversary', label: '周年档', detail: `${anni} 天后周年` });
+      // ④ 剪刀差≥30% ∧ 市价差>0
+      const sz = DB.externalRefs.suanzhang; const pp = sz && sz.perPerson ? sz.perPerson[s.spId] : null;
+      if (pp && pp.scissors >= 0.30 && pp.marketGap > 0) triggers.push({ src: 'scissors', label: '剪刀差档', detail: `剪刀差 ${Rate.pct(pp.scissors)}` });
+      // ⑤ 榜眼
+      const sp = secondPlaceTrigger(DB, s.spId);
+      if (sp.hit) triggers.push({ src: 'second_place', label: '榜眼档', detail: `连续 ${sp.months} 月第 ${sp.rank}` });
+      if (triggers.length) out.push({ spId: s.spId, name: s.name, triggers, pp });
+    }
+    return out;
+  }
+  function anniversaryInDays(hireDate, today) {
+    if (!hireDate) return null;
+    const t = D.parse(today); const y = t.getUTCFullYear();
+    const md = hireDate.slice(5);
+    let next = `${y}-${md}`;
+    if (D.diffDays(today, next) < 0) next = `${y + 1}-${md}`;
+    return D.diffDays(today, next);
+  }
+
+  // ---------- 3.8 M37 参照点账本 T13 ----------
+  function precheck(DB, spId, plannedAmt, today) {
+    const sz = DB.externalRefs.suanzhang; const pp = sz && sz.perPerson ? sz.perPerson[spId] : null;
+    // 历史参照点 = 去年同期同名目实收
+    const lastYear = D.parse(today).getUTCFullYear() - 1;
+    const hist = DB.entities.PayoutEntry.filter(x => x.employeeId === spId && (x.type === 'year_end_bonus' || x.type === 'dividend') && x.period && x.period.startsWith(String(lastYear)))
+      .reduce((s, x) => s + x.amt, 0) || null;
+    const growth = pp && pp.contribGrowth != null ? pp.contribGrowth : null;
+    let trend = null;
+    if (hist != null) {
+      const refRound = getCoef('refRound');
+      const g = growth == null ? 0 : growth;
+      trend = Math.round(hist * (1 + g) / refRound) * refRound;
+    }
+    let verdict = null;
+    if (hist != null) {
+      if (plannedAmt < hist) verdict = 'below_history';
+      else if (trend != null && plannedAmt < trend) verdict = 'below_trend';
+      else verdict = 'ok';
+    }
+    return { hist, growth, trend, verdict, plannedAmt };
+  }
+
+  // ---------- 3.9 M38 余震与交接 T14 ----------
+  function handoverSummary(cards) {
+    const sum = cards.reduce((s, c) => s + (c.amountAmt || 0), 0);
+    const loss = Math.round(sum * getCoef('handoverLossRate'));
+    const save = Math.round(loss * getCoef('handoverSavableShare'));
+    return { count: cards.length, sum, loss, save };
+  }
+  function aftershockRank(DB, leaverId, today) {
+    const sz = DB.externalRefs.suanzhang; const leaver = DB.entities.Salesperson.find(s => s.spId === leaverId);
+    const rows = [];
+    for (const s of DB.entities.Salesperson) {
+      if (!s.isActive || s.spId === leaverId) continue;
+      const pp = sz && sz.perPerson ? sz.perPerson[s.spId] : null; if (!pp) continue;
+      let score = 0; const sig = [];
+      if (pp.scissors > 0) { score++; sig.push('剪刀差>0'); }
+      if (pp.marketGap > 0) { score++; sig.push('市价差>0'); }
+      const sameTerr = !!leaver && (s.cityTier === leaver.cityTier || (!!s.hireBatchId && s.hireBatchId === leaver.hireBatchId));
+      if (sameTerr) { score++; sig.push('同辖区/批次'); }
+      rows.push({ spId: s.spId, name: s.name, score, sig, scissors: pp.scissors, marketGap: pp.marketGap });
+    }
+    rows.sort((a, b) => b.score - a.score);
+    return rows.slice(0, 3);
+  }
+
+  // ---------- 3.3 M30：异议 pending>7天 → 关联负面标记自动失效（L-D6，默认保护员工）----
+  function sweepObjections(DB, today) {
+    let flipped = 0;
+    for (const o of DB.entities.ObjectionEntry) {
+      if (o.status === 'pending' && o.createdAt && D.diffDays(o.createdAt, today) > 7) {
+        o.markActive = false; flipped++;
+      }
+    }
+    return flipped;
+  }
+
+  // ---------- 3.6 十二道闸 ----------
+  function boardLocked(DB) { const sz = DB.externalRefs.suanzhang; return !(sz && sz.m21Done); } // 闸①
+  function rankingConfig() { return { realName: true, showRankOnly: true, hideAmount: true, hideQuota: true, dataSource: 'm21_normalized' }; } // 闸②唯一合法
+  // 闸③ 挤出对冲（A-12 / L-C07；与 5号闸⑧、公约§6.1 逐字同源 R-04）
+  function isResultTrigger(t) { return t === 'record_break' || t === 'sprint' || t === 'backlog_clear'; }
+  function isExempt(t) { return t === 'first_deal' || t === 'hire'; }
+  function bountySaveCheck(t, silentTrackOn) {
+    if (isExempt(t)) return { ok: true, reason: 'exempt' };
+    if (isResultTrigger(t) && !silentTrackOn) return { ok: false, reason: 'need_silent_track', script: 'L-15', showEnable: true };
+    return { ok: true, reason: 'ok' };
+  }
+  // 闸⑨ 黑暗三角崩塌 [10,18]
+  function collapseGate(monthsIn, mom3Chg, hasScore) {
+    if (!hasScore) return { verdict: null, note: '无评分数据 → —' };
+    const [lo, hi] = getCoef('collapseMonthIn');
+    const hit = monthsIn >= lo && monthsIn <= hi && mom3Chg < -0.40;
+    return { verdict: hit ? 'warning' : null, note: hit ? '预期中的崩塌（只输出不建议挽留）' : '' };
+  }
+
+  // ---------- 3.10 M17 分红（三重闸 ⇄ 四问 串联）T11 / T19 ----------
+  function computeDividend(DB, today, opts) {
+    opts = opts || {};
+    const cfg = opts.cfg || DB.dividend;
+    const ind = opts.indicators || indices(DB, today);
+    // ① 三重闸 = 资格门（数值权归老板）
+    const gates = [
+      { key: 'companyCollect', label: '公司回款', ...cfg.gateCompanyCollect },
+      { key: 'companyNet', label: '公司净贡献', ...cfg.gateCompanyNet },
+      { key: 'personalCollect', label: '个人回款', ...cfg.gatePersonalCollect },
+    ];
+    const threeGatePass = gates.filter(g => g.enabled).every(g => g.pass);
+    const result = { gates, threeGatePass, pool: 0, fourQuestionsRun: false, four: null, fourFailCount: null, verdict: null };
+    if (!threeGatePass) {
+      result.pool = 0; result.verdict = 'no_eligibility'; // 池=0，流程终止，四问零调用
+      return result;
+    }
+    // 池（三重闸过后才算）
+    result.pool = Math.round(cfg.netBeforeDividendAmt * cfg.poolRate);
+    // ② 四问 = 体检（结构权归系统）—— 🔴 永不清零池
+    result.fourQuestionsRun = true;
+    const dose = DB.externalRefs.yuren && DB.externalRefs.yuren.derived ? DB.externalRefs.yuren.derived.coachingDoseActual : null;
+    const ghi = opts.goodHireIndex != null ? opts.goodHireIndex : (DB.externalRefs.dingjia && DB.externalRefs.dingjia.derived ? DB.externalRefs.dingjia.derived.goodHireIndex : null);
+    const four = [
+      { q: 'Q1 好招指数≥1.0', pass: ghi != null ? ghi >= 1.0 : null, val: ghi },
+      { q: 'Q2 EI≥30', pass: ind.ei.value >= 30, val: ind.ei.value },
+      { q: 'Q3 SII≤60', pass: ind.sii.value <= 60, val: ind.sii.value },
+      { q: 'Q4 辅导剂量≥3h/月人', pass: dose == null ? null : dose >= 3, val: dose }, // 未导入→null（退化为三问）
+    ];
+    const fails = four.filter(x => x.pass === false).length;
+    result.four = four; result.fourFailCount = fails;
+    result.verdict = fails >= 2 ? 'danger' : fails === 1 ? 'warning' : 'ok'; // 一否🟡 两否🔴 四否🔴
+    return result;
+  }
+
+  // ---------- 3.10 MC 监督成本发包 ----------
+  function monitorCost(DB, spId, today) {
+    const ind = indices(DB, today); const dvi = ind.dvi.value;
+    const s = DB.entities.Salesperson.find(x => x.spId === spId); if (!s) return { value: null };
+    const c = getCoef('mc'), w = c.w;
+    const geo = s.cityTier === 'tier1' ? 0 : s.cityTier === 'tier2' ? 1 : s.cityTier === 'tier3' ? 2 : 3;
+    if (dvi == null) return { value: null, reason: '需 DVI（算账器数据）' };
+    const localJudge = 0.5; // normalize(客单价CV+周期CV+品类熵) 占位（需 Deal 明细，缺→中位）
+    const attrRate = 0.7;
+    const mc = w[0] * (1 - dvi / 100) + w[1] * (geo / 3) + w[2] * localJudge + w[3] * (1 - attrRate);
+    return { value: Math.round(mc), band: mc > c.bands[1] ? 'success' : mc < c.bands[0] ? 'danger' : 'warning' };
+  }
+
+  return {
+    indices, deviation, m28Value, tryDowngradeM28, priceTag, dependency,
+    talkList, secondPlaceTrigger, anniversaryInDays, precheck, handoverSummary, aftershockRank,
+    boardLocked, rankingConfig, isResultTrigger, isExempt, bountySaveCheck, collapseGate,
+    computeDividend, monitorCost, sweepObjections,
+  };
+})();
+
+
+/* ==================== scripts.js ==================== */
+// ============================================================================
+// 话术库 L 系（件五，逐字；变量 {} 注入）。每条含 📎 出处（A-22）。
+// 🔴 结论由判定函数返回，话术只负责措辞（A-19：不硬编码结论）。
+// ============================================================================
+const SCRIPTS = {
+  L01: (v) => `高监督(${v.sii}) + 低授权(${v.ei}) + 低信用(${v.ahc}) → 🔴 分红会白花；🔴 销冠不会交出配方（他不信你）；🔴 你会一直留不住人（异议提出 0 次＝没人敢说话）。✅ 修复顺序按 ROI（各项收益＝修复后重算指数−当前值，系统实算）。`,
+  L02: (v) => `你自评平均偏差 ${v.gap} 分。📎 世界管理调查（Bloom & Van Reenen, QJE）：管理者自评与客观评分几乎零相关——最差的企业自我感觉最好。愿意看这张图的老板，已经赢了一半同行。`,
+  L03: () => `90 天内异议提出次数＝0。要么没人敢用，要么没人知道有这个入口——两种情况都指向：你的团队没有心理安全。`,
+  L05: () => `留人功能已锁定。📎 Zoltners（数千个销售辖区）：约六成（≈56%）的辖区太大或太小；辖区不公平是销售流失的顶级驱动因素之一。他要走，是因为你没给他钱，还是因为你没给他饭吃？[ 导入算账器数据包，先做地盘审计 ]`,
+  L06: (v) => `📎 Organization Science 2016：奖励一上，原本内在驱动的优秀者在奖励范围之外的日常任务上效率下降 8%——收益来自一小撮靠奖励驱动的人，成本来自所有人。✅ 必须开启静默认可通道：连续 ${v.n || 6} 月达标 → 灯塔+合约资格池，但不发奖、不播报、不排名。`,
+  L07: (v) => `系统检测到 ${v.n} 个「交出物」事件，其中 ${v.m} 个没有产权补偿。📎 第四定理（Hart，诺奖 2016）：你不给他控制权，他就不会投入你测不到的努力。🔴 且你的 AHC 是 ${v.ahc}（全员可见）：这个分数下，就算现在给产权，他也不一定信。✅ [生成 M28 协议(带教 5%×12月)] [开启 irrevocable] [先兑现欠着的 ${v.k} 笔承诺]`,
+  L08: (v) => `你准备启用${v.period}分红，池比例 ${v.rate}。📎 元回归（56 项研究）：分红只有与「低监督+授权+培训+市场水平底薪」组合才有效。系统体检：🔴 ${v.n} 条不达。✅ 修复顺序：${v.fix || '按 ROI'}。[ 我知道风险，仍要启用（留痕，计入 AHC 扣分）]`,
+  L09: (v) => `${v.name}：归一化排名连续 ${v.m} 个月第 ${v.r}，剪刀差 ${v.sc}，12 个月零特殊奖励。冠军有超额提成，垫底有辅导和淘汰线——只有千年老二什么都没有，而猎头名单上他排最前。📎 Ahearne 2025：中上段承受最强"挫败-价值失配"，恰是流失与被挖高危带。✅ 建议：单独战役+单独承诺。`,
+  L10a: (v) => `拟发 ${v.amt} 低于他去年同期实收 ${v.hist}——这不是发钱，是宣战。📎 Mas, QJE 2006。`,
+  L10b: (v) => `拟发 ${v.amt} 高于去年（${v.hist}），但低于他心里的"应得数"（${v.trend}，按贡献增长 ${v.g} 推算）——涨了钱，买到怨气。📎 Mas, QJE 2006：参照点才是计价器。`,
+  L10c: (v) => `拟发 ${v.amt} ≥ 趋势参照点 ${v.trend}。这笔钱他会记成"被看见"。`,
+  L10d: () => `发放沟通铁律：公开"规则"（这笔钱怎么算出来的公式），永不公开"数字"（别人拿多少）。📎 Card et al., AER 2012：公开工资只做减法——伤人的是名次，不是金额。`,
+  L11: (v) => `${v.leaver} 离职的余震期已开始。同部门错价最重的三个人：${v.list}。📎 AMJ 2009：离职会传染。📎 中国连锁企业 RCT：指定名单一对一周聊，流失率实打实降 1.7pp。一周内每人谈一次。你不去谈，猎头替你谈。`,
+  L12: (v) => `他带走的不只是他自己：在途 ${v.n} 单、账面 ${v.sum}，按全球折损口径你将损失 ≈${v.loss}，其中约一半（${v.save}）可救。📎 接手他人管道的成交率比原销售低 30–50%（HBR）。交接卡已生成，请指派接手人。`,
+  L13: (v) => `监督成本 MC=${v.mc} → 🟢 该发包。📎 Brickley & Dark 1987。⚠️ 漏水守恒：发包不是消除代理问题，是把"偷懒"换成"搭便车"（📎 Holmström & Milgrom 1991）。`,
+  L14full: (v) => `你们老板的履约信用：${v.ahc} 分。过去 12 个月，他兑现了 ${v.a} 笔承诺中的 ${v.b} 笔，从未尝试下调过任何一笔分成。`,
+  L14low: (v) => `你的反敲竹杠信用分是 ${v.ahc}。过去 12 个月：达成 ${v.a} 笔只兑现 ${v.b} 笔（履约率 ${v.r}）；尝试下调分成 ${v.c} 次（全部被系统拦截）。🔴 你的销冠都看得见这些数字。✅ 唯一解法：把 AHC 修上去——信用不能买，只能攒。`,
+  L15: (v) => `你要挂的是一个**结果赏**（${v.templateName || '结果类悬赏'}）——奖的是他本来就想干的事。📎 Gubler-Larkin-Pierce (2016), Org Sci：象征与物质奖励挤出骨干，产出 −8%；📎 Heyman & Ariely：小额金钱把社会规范切成市场规范；📎 Gneezy & Rustichini 2000《A Fine Is a Price》：罚款取消后行为不回弹——切换不可逆。真正的风险不是"给了钱"，而是：当公司里所有值得做的事都明码标价，没标价的事就自动等于不值得做的事。✅ 系统不拦你发钱，只要求你同时留一条不发钱的承认路径：静默认可通道——连续 6 个月达标 → 进灯塔 + 进前程合约资格池，不发奖、不播报、不排名。不是不许用钱，是不许只有钱。`,
+};
+
+
+/* ==================== selftest.js ==================== */
+// ============================================================================
+// 件七 · 验收用例集（19 条对拍）+ 件六 · 红线断言（L-D 系）
+// 🔴 时钟注入（公约 C-14/R-11）：所有含日期对拍注入 TEST_TODAY=2026-07-13
+// 徽章数 = 对拍条数 = 19（R-10）。三绿=收货。
+// ============================================================================
+const TEST_TODAY = '2026-07-13';
+
+function approx(a, b, tol) { return a != null && b != null && Math.abs(a - b) <= (tol || 0.5); }
+function round1(n) { return Math.round(n * 10) / 10; }
+
+function runSelfTest() {
+  const T = TEST_TODAY;
+  const tcases = [];
+  const push = (id, title, pass, got, want) => tcases.push({ id, title, pass: !!pass, got: String(got), want: String(want) });
+
+  // 独立、纯净的出厂实例（不受用户编辑影响；确定性）
+  const db = factory(); setCoefOverride(db.coefOverride || {});
+
+  // ---- T1 价签=75万 ----
+  const pt = Engine.priceTag(db, T);
+  push('T1', '价签＝75 万（权威 6 项口径）', approx(Money.wanNum(pt.headline), 75, 0.05), Money.wan(pt.headline), '75.0 万');
+  // ---- T2 爬坡缺口占比=67.7% 触闸⑤ ----
+  push('T2', '爬坡缺口占比＝67.7% 触闸⑤', approx(pt.rampGapShare, 0.677, 0.001) && pt.hitGate5, Rate.pct(pt.rampGapShare), '67.7% · 触闸');
+  // ---- T3 加薪vs价签=20.8倍 ----
+  push('T3', '加薪 vs 价签＝20.8 倍', approx(round1(pt.raiseVsTag), 20.8, 0.05), Num.x(pt.raiseVsTag), '20.8 倍');
+  // ---- T4 缩短爬坡年化=42.6万 ----
+  push('T4', '缩短爬坡 37% 年化＝42.6 万', approx(round1(Money.wanNum(pt.shortenGainAnnual)), 42.6, 0.05), Money.wan(pt.shortenGainAnnual), '42.6 万');
+  // ---- T5 排行榜合法配置 ----
+  const rc = Engine.rankingConfig();
+  push('T5', '排行榜合法配置（实名/无金额配额/源＝归一化）', rc.realName && rc.hideAmount && rc.hideQuota && rc.dataSource === 'm21_normalized', JSON.stringify(rc), '{实名,无金额,无配额,归一化}');
+  // ---- T6 带教分成=3.48万（69.6倍）----
+  const men = db.entities.M28Agreement.find(a => a.kind === 'mentoring');
+  const menVal = Engine.m28Value(men), oneOff = getCoef('m28').oneOffAmt;
+  push('T6', '带教分成＝3.48 万（69.6 倍）', approx(Money.wanNum(menVal), 3.48, 0.005) && approx(menVal / oneOff, 69.6, 0.1), `${Money.wan(menVal,2)} / ${round1(menVal/oneOff)}倍`, '3.48 万 / 69.6 倍');
+  // ---- T7 使用费=3.5万 ----
+  const roy = db.entities.M28Agreement.find(a => a.kind === 'royalty');
+  push('T7', '配方使用费＝3.5 万', approx(round1(Money.wanNum(Engine.m28Value(roy))), 3.5, 0.05), Money.wan(Engine.m28Value(roy)), '3.5 万');
+  // ---- T8/T9/T10 指数 ----
+  const ind = Engine.indices(db, T);
+  push('T8', 'SII＝73（月总查看 20 次·10 人）', ind.sii.value === 73, ind.sii.value, 73);
+  push('T9', 'EI＝4（异议 0/无建议/确认 0%/忽略 82%）', ind.ei.value === 4, ind.ei.value, 4);
+  const envDb = withDB(db, () => buildEnvelope(T));
+  push('T10', 'AHC＝41 + 导出信封 derived.ahc + M28Agreement 同包', ind.ahc.value === 41 && envDb.derived.ahc === 41 && Array.isArray(envDb.entities.M28Agreement) && envDb.entities.M28Agreement.length >= 2 && SALES_PAGE_HAS_AHC, `AHC ${ind.ahc.value}, 信封 ahc=${envDb.derived.ahc}, M28×${envDb.entities.M28Agreement.length}`, '41 / 双载荷');
+  // ---- T11 分红四问四红 ----
+  const db11 = factory(); db11.externalRefs.yuren.derived.coachingDoseActual = 2; // Q4 fail
+  const div11 = Engine.computeDividend(db11, T, { indicators: { ei: { value: 10 }, sii: { value: 70 } }, goodHireIndex: 0.8 });
+  push('T11', '分红四问四红 → 硬红灯 + 池未清零（须二次确认+留痕）', div11.fourFailCount === 4 && div11.verdict === 'danger' && div11.pool > 0, `${div11.fourFailCount} 否 / 池 ${Money.wan(div11.pool)}`, '4 否 / 池>0');
+  // ---- T12 下调分成率 → 失败+留痕+AHC降+拦截记录 ----
+  const db12 = factory(); setCoefOverride(db12.coefOverride);
+  const ahcBefore = Engine.indices(db12, T).ahc.value; const ovrBefore = db12.entities.OverrideEvent.length;
+  const dg = Engine.tryDowngradeM28(db12, 'm28_demo1', T, '试图下调');
+  const rateUnchanged = db12.entities.M28Agreement.find(a => a.m28Id === 'm28_demo1').rate === 0.05;
+  const ahcAfter = Engine.indices(db12, T).ahc.value; const ovrAfter = db12.entities.OverrideEvent.length;
+  push('T12', '下调分成 → 操作失败 + 留痕 + AHC 下降 + 拦截记录+1', dg.ok === false && dg.downgraded === false && rateUnchanged && ahcAfter < ahcBefore && ovrAfter === ovrBefore + 1, `ok=${dg.ok}, rate=0.05:${rateUnchanged}, AHC ${ahcBefore}→${ahcAfter}, 留痕+${ovrAfter-ovrBefore}`, '失败/不变/降/+1');
+  // ---- T13 M37 三态 + 趋势 3.8万 ----
+  const pcA = Engine.precheck(db, 'sp_wangli', 28000_00, T);
+  const pcB = Engine.precheck(db, 'sp_wangli', 30000_00, T);
+  const pcC = Engine.precheck(db, 'sp_wangli', 38000_00, T);
+  push('T13', 'M37：趋势 3.8 万；28k🔴/30k🟡/38k🟢', Money.yuan(pcA.trend) === 38000 && pcA.verdict === 'below_history' && pcB.verdict === 'below_trend' && pcC.verdict === 'ok', `趋势${Money.cny(pcA.trend)} ${pcA.verdict}/${pcB.verdict}/${pcC.verdict}`, '¥38,000 🔴🟡🟢');
+  // ---- T14 M38：11单96万→38.4/19.2万/11张；余震2/2/1 ----
+  const cards = []; for (let i = 0; i < 11; i++) cards.push({ hcId: 'hc' + i, amountAmt: Math.round(96_0000_00 / 11) });
+  cards[0].amountAmt += 96_0000_00 - cards.reduce((s, c) => s + c.amountAmt, 0); // 精确凑齐 96 万
+  const hs = Engine.handoverSummary(cards);
+  const after = Engine.aftershockRank(db, 'sp_wangli', T);
+  const scores = after.map(a => a.score).join('/');
+  push('T14', 'M38：11 单 96 万→损耗 38.4/可救 19.2 万/11 张；余震 2/2/1', approx(Money.wanNum(hs.loss), 38.4, 0.05) && approx(Money.wanNum(hs.save), 19.2, 0.05) && hs.count === 11 && scores === '2/2/1', `损耗${Money.wan(hs.loss)}/可救${Money.wan(hs.save)}/${hs.count}张/余震${scores}`, '38.4/19.2/11/2-2-1');
+  // ---- T15 榜眼：连续≥3月第2+剪刀差>0 → 触发；连续2月→不触发 ----
+  const sp15 = Engine.secondPlaceTrigger(db, 'sp_zhaomin');
+  const db15b = factory(); db15b.externalRefs.suanzhang.perPerson.sp_test = { normRankMonths: [2, 2], scissors: 0.1, specialPayout12m: 0 };
+  const sp15b = Engine.secondPlaceTrigger(db15b, 'sp_test');
+  push('T15', '榜眼：连续≥3 月第 2 触发⑤（L-09）；连续 2 月不触发', sp15.hit === true && sp15b.hit === false && typeof SCRIPTS.L09 === 'function', `4月:${sp15.hit} / 2月:${sp15b.hit}`, 'true / false');
+  // ---- T16 偏差器=42 ----
+  const dev = Engine.deviation(db, T);
+  push('T16', '偏差器：自评(40/70/80/85) vs 实测(73/4/54/41)→总偏差 42', dev.gap === 42, dev.gap, 42);
+  // ---- T17 信封：导入→解锁；未导入→锁屏 L-05；导出 board=liuren 含双载荷 ----
+  const dbLocked = factory(); dbLocked.externalRefs.suanzhang = null;
+  const unlocked = Engine.boardLocked(db) === false;
+  const locked = Engine.boardLocked(dbLocked) === true;
+  push('T17', '信封：导入解锁 / 未导入锁屏(L-05) / 导出 liuren 双载荷', unlocked && locked && envDb.board === 'liuren' && envDb.derived.ahc != null && envDb.entities.M28Agreement.length >= 1 && typeof SCRIPTS.L05 === 'function', `解锁:${unlocked} 锁:${locked} 导出:${envDb.board}`, '解锁/锁/liuren');
+  // ---- T18 闸③三态 ----
+  const g1 = Engine.bountySaveCheck('record_break', false);
+  const g2 = Engine.bountySaveCheck('record_break', true);
+  const g3 = Engine.bountySaveCheck('first_deal', false);
+  push('T18', '闸③三态：结果∧未启→拦截+L-15；∧已启→放行；豁免→放行', g1.ok === false && g1.script === 'L-15' && g1.showEnable === true && g2.ok === true && g3.ok === true && typeof SCRIPTS.L15 === 'function', `拦:${!g1.ok}(${g1.script}) 放:${g2.ok} 豁免:${g3.ok}`, '拦/放/放');
+  // ---- T19 分红串联 ----
+  const cfgFail = JSON.parse(JSON.stringify(db.dividend)); cfgFail.gateCompanyCollect.pass = false;
+  const d19a = Engine.computeDividend(db, T, { cfg: cfgFail });
+  const d19b = Engine.computeDividend(db, T, { cfg: db.dividend, indicators: { ei: { value: 10 }, sii: { value: 70 } }, goodHireIndex: 0.8 });
+  const dbYes = factory(); dbYes.externalRefs.yuren.derived.coachingDoseActual = 3.4;
+  const d19c = Engine.computeDividend(dbYes, T, { cfg: dbYes.dividend, indicators: { ei: { value: 40 }, sii: { value: 50 } }, goodHireIndex: 1.2 });
+  push('T19', '分红串联：①闸不达→池 0+四问零调用 ②全过∧四否→池未清零+红 ③全过∧四过→出额',
+    d19a.pool === 0 && d19a.fourQuestionsRun === false && d19b.pool > 0 && d19b.verdict === 'danger' && d19b.fourQuestionsRun === true && d19c.pool > 0 && d19c.verdict === 'ok',
+    `①池${d19a.pool}/四问${d19a.fourQuestionsRun} ②池${Money.wan(d19b.pool)}/${d19b.verdict} ③${d19c.verdict}`, '0-off / 池>0-红 / 出额');
+
+  // ---- 件六 红线断言（可运行子集）----
+  const asserts = [];
+  const pa = (id, title, pass, detail) => asserts.push({ id, title, pass: !!pass, detail });
+  pa('L-D1', 'irrevocable：下调无成功路径，rate 不变，仅留痕', rateUnchanged && dg.downgraded === false && dg.logged === true, `rate 保持 0.05；仅留痕`);
+  pa('L-D5', '悬赏保存三态；无“结果类一律拦截”旧逻辑', g1.ok === false && g2.ok === true && g3.ok === true, '三态与 5号闸⑧ 同输入同结果');
+  pa('L-D6', 'ObjectionEntry pending>7天 → 关联标记失效', (() => { const d = factory(); d.entities.ObjectionEntry.push({ objId: 'o1', status: 'pending', createdAt: D.addDays(T, -8), markActive: true }); Engine.sweepObjections(d, T); return d.entities.ObjectionEntry[0].markActive === false; })(), '8 天未处理 → markActive=false');
+  pa('L-D14', '全局 null→“—”；safeDiv 除零→null；无 Infinity/NaN', Money.cny(null) === DASH && Rate.pct(null) === DASH && safeDiv(1, 0) === null && !Number.isNaN(ind.sii.value), '“—” 唯一空态');
+  pa('L-D15', 'AHC 入信封 derived + M28Agreement 随 entities 同包；价签⑤⑥不同笔', envDb.derived.ahc != null && envDb.entities.M28Agreement.length >= 1 && pt.items.find(i => i.key === 'decay') && pt.items.find(i => i.key === 'handover'), '双载荷 + 慢性/急性 scope 分离');
+  pa('L-D16', '分红串联：三重闸不达→四问零调用；四问无清零池写路径', d19a.fourQuestionsRun === false && d19b.pool > 0, '调用链在三重闸之后');
+  pa('授-2/4', '到期只降级不锁数据：导出永不锁定；降级不删数据', resolveModeByDate('2020-01-01', T, null).mode === 'free' && resolveModeByDate('2030-01-01', T, null).mode === 'full', '过期→free；导出功能不受 mode 影响');
+  pa('授-3', '防调表：系统日期 < seenMaxDate → 锁定', resolveModeByDate('2030-01-01', '2026-01-01', '2026-07-13').mode === 'free', '回拨时钟→free');
+  pa('§4.7', 'C-04 咬合基准：short m1=65.8% / m5=32.5%（旧式 59.25%）', approx(newHireYearRate('short', 1), 0.658, 0.001) && approx(newHireYearRate('short', 5), 0.325, 0.001), '790/1200 与 390/1200');
+
+  const passCount = tcases.filter(t => t.pass).length;
+  const assertPass = asserts.filter(a => a.pass).length;
+  return { tcases, asserts, passCount, total: tcases.length, assertPass, assertTotal: asserts.length, today: T };
+}
+
+// buildEnvelope 读全局 DB；自检需临时把出厂 db 作为全局 DB 运行
+function withDB(tempDb, fn) { const prev = DB; DB = tempDb; try { return fn(); } finally { DB = prev; } }
+// 钱途页含 AHC 栏（结构断言，T10/L-D2）——由 ui 层声明
+var SALES_PAGE_HAS_AHC = true;
+
+
+/* ==================== ui.js ==================== */
+// ============================================================================
+// UI 层：路由 / 组件 / 老板端八屏 + 销售端钱途页 + 系数自检页
+// 状态→渲染单向；事件委托（data-act）；innerHTML 前一律 esc()
+// ============================================================================
+const UI = (() => {
+  const S = { route: 'overview', today: null, modal: null };
+  const app = () => document.getElementById('app');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---- 小组件 ----
+  const badge = (band, txt) => `<span class="badge badge--${band || 'neutral'}"><span class="badge-dot"></span>${esc(txt)}</span>`;
+  const bandWord = (b) => ({ success: '🟢 健康', warning: '🟡 注意', danger: '🔴 危险', gold: '金' }[b] || '—');
+  const computedTag = (t) => `<span class="computed-tag" data-tip="${esc(t || '这个分数由系统计算，老板改不了')}">🔒 计算得出</span>`;
+  const asOf = (date, board, today) => {
+    if (!date) return '';
+    const stale = today && D.diffDays(date, today) > getCoef('envelopeStaleDays');
+    return `<span class="asof ${stale ? 'stale' : ''}">（数据截至 ${esc(date)}${board ? ' · ' + esc(board) : ''}${stale ? ' 🟡 可能过期' : ''}）</span>`;
+  };
+  const meter = (pct, band) => `<div class="meter"><div class="meter-fill s-${band || 'info'}" style="width:${Math.max(0, Math.min(100, pct || 0))}%"></div></div>`;
+  const ring = (val, band) => {
+    const v = val == null ? 0 : val; const col = `var(--${band === 'success' ? 'success' : band === 'warning' ? 'warning' : band === 'danger' ? 'danger' : band === 'gold' ? 'gold' : 'info'})`;
+    return `<div class="ring" style="background:conic-gradient(${col} ${v}%, var(--surface-2) 0)"><span class="ring-num" style="color:${col}">${val == null ? '—' : val}</span></div>`;
+  };
+  const dash = (v) => v == null ? `<span class="dash" data-tip="样本不足 / 未导入">—</span>` : v;
+  const cite = (t) => `<span class="cite">${esc(t)}</span>`;
+  const actionCard = (sev, title, body, btns, citeTxt) =>
+    `<div class="action-card sev-${sev}"><div class="ac-title">${esc(title)}</div><div class="ac-body">${body}</div>${btns ? `<div class="btn-row">${btns}</div>` : ''}${citeTxt ? cite(citeTxt) : ''}</div>`;
+
+  // ---- 顶栏 + 侧栏 ----
+  function chrome(body) {
+    const lic = DB.license || {};
+    const st = StorageAdapter.probe();
+    const stale = D.diffDays(DB.ui.backupLastExportAt, S.today);
+    const backupNudge = stale > getCoef('backupNudgeDays')
+      ? `<div class="top-strip top-strip--gold no-print">🟡 你已 ${stale} 天没备份数据了——导出一份信封 JSON，只要 10 秒。 <button class="btn btn--sm" data-act="export">导出信封</button> <button class="btn btn--sm" data-act="migrate">换电脑迁移说明</button></div>` : '';
+    const nav = NAV.map(g => `<div class="nav-group"><div class="nav-group-label">${g.label}</div>${g.items.map(it =>
+      `<button class="nav-item ${S.route === it.id ? 'active' : ''}" data-act="nav" data-route="${it.id}"><span class="ico">${it.ico}</span>${esc(it.name)}${it.lock ? '<span class="lock">🔒</span>' : ''}</button>`).join('')}</div>`).join('');
+    return `
+    ${backupNudge}
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="logo">🛡️</span>销冠留人器<span class="sub">信用层</span></div>
+        <div class="topbar-spacer"></div>
+        <span class="lic no-print">授权：<b>${esc(lic.tenant || '—')}</b> · ${DB.__mode === 'free' ? '免费版' : '完整版'}</span>
+        <button class="btn btn--sm no-print" data-act="theme">🌓 主题</button>
+        <button class="btn btn--sm no-print" data-act="print">🖨️ 打印</button>
+      </header>
+      <aside class="sidebar no-print">${nav}
+        <div class="nav-group"><div class="nav-group-label">存储</div>
+          <div style="padding:0 12px;font-size:var(--fs-2xs);color:var(--text-faint)">占用 ${(st.approxBytes/1024).toFixed(0)}KB / 800KB<br>预算全系统 ≤4MB</div>
+        </div>
+      </aside>
+      <main class="main">${body}</main>
+    </div>`;
+  }
+
+  const NAV = [
+    { label: '诊断', items: [
+      { id: 'overview', name: '治理体检', ico: '🩺' },
+      { id: 'gates', name: '十二道闸', ico: '🚦' },
+    ] },
+    { label: '留存引擎', items: [
+      { id: 'pricetag', name: '流失价签', ico: '🏷️' },
+      { id: 'retention', name: '该谈·预检·离职', ico: '🧭' },
+      { id: 'm28', name: '产权 M28', ico: '📜' },
+    ] },
+    { label: '激励', items: [
+      { id: 'dividend', name: '蓝图与分红', ico: '🎯' },
+      { id: 'sales', name: '钱途页（销售端）', ico: '🌱' },
+    ] },
+    { label: '系统', items: [
+      { id: 'system', name: '信封与实验室', ico: '📦' },
+      { id: 'selftest', name: '系数与自检', ico: '✅' },
+    ] },
+  ];
+
+  // ---- 边界声明（A-23，五板块同句）----
+  const BORDER = `<div class="banner banner--info" style="margin-top:24px"><span class="b-ico">ℹ️</span><div><strong>系统边界</strong><p>这个系统不会让一个卖不动的产品卖动。如果你的产品本身有问题——先去改产品。</p></div></div>`;
+
+  // ========================================================================
+  // 屏1 地盘前置锁（闸①）：算账器未导入 → 全锁
+  // ========================================================================
+  function lockScreen() {
+    return `<div class="stack"><h1 class="section-title">留人功能已锁定</h1>
+      <div class="card"><div class="banner banner--warning"><span class="b-ico">🔒</span><div><strong>闸① 地盘前置</strong>
+      <p>${esc(SCRIPTS.L05())}</p></div></div>
+      <div class="btn-row" style="margin-top:16px"><button class="btn btn--primary" data-act="importPick">导入算账器数据包</button></div></div>${BORDER}</div>`;
+  }
+
+  // ========================================================================
+  // 屏2 治理体检（Hero：四指数 + 自评偏差 + 修复清单按 ROI）
+  // ========================================================================
+  function screenOverview() {
+    const ind = Engine.indices(DB, S.today);
+    const dev = Engine.deviation(DB, S.today);
+    const cards = [
+      ['监督 SII', ind.sii, '越低越好'], ['授权 EI', ind.ei, '越高越好'],
+      ['可见 DVI', ind.dvi, '算账器口径'], ['信用 AHC', ind.ahc, '全员可见 · 老板改不了'],
+    ].map(([label, m, hint]) => `
+      <div class="card">
+        <div class="kpi-label">${esc(label)}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin:4px 0">
+          <div class="kpi-value">${m.value == null ? '<span class="dash">—</span>' : m.value}</div>
+          ${m.value == null ? '' : badge(m.band, bandWord(m.band))}
+        </div>
+        <div class="kpi-foot">${esc(hint)} ${m.source ? asOf(m.asOf, m.source, S.today) : ''}</div>
+        ${label.includes('AHC') ? '<div style="margin-top:8px">' + computedTag() + '</div>' : ''}
+        ${m.value == null ? '<div class="kpi-foot">— 需导入算账器数据</div>' : meter(m.value, m.band)}
+      </div>`).join('');
+
+    // 自评-实评偏差
+    const devRows = dev.rows.map(r => `<div class="kv"><span class="k">${esc(r.label)}</span><span class="v">自评 ${r.self} · 实测 ${r.actual} · 偏差 <b style="color:var(--${r.gap > 40 ? 'danger' : r.gap > 20 ? 'warning' : 'success'})">${r.gap}</b></span></div>`).join('');
+
+    // 修复清单（ROI 排序，行动卡；结论由判定函数出）
+    const fixes = buildFixList(ind);
+
+    return `<div class="stack">
+      <div><h1 class="section-title">治理体检 · 四指数</h1>
+        <div class="section-desc">${esc(SCRIPTS.L01({ sii: ind.sii.value, ei: ind.ei.value, ahc: ind.ahc.value }))}</div></div>
+      <div class="kpi-grid">${cards}</div>
+
+      <div class="grid grid-2">
+        <div class="card"><div class="card-head"><div><div class="card-title">自评 vs 实测偏差</div><div class="card-sub">先猜后看 · 30 秒</div></div>
+          <div class="hero-num" style="color:var(--${dev.gap > 40 ? 'danger' : 'warning'})">${dash(dev.gap)}</div></div>
+          ${devRows}${cite('世界管理调查（Bloom & Van Reenen, QJE）：管理者自评与客观评分几乎零相关。')}
+          <div class="btn-row" style="margin-top:12px"><button class="btn btn--sm" data-act="selfrate">重新自评</button></div>
+        </div>
+        <div class="card"><div class="card-title">修复清单 · 按 ROI</div><div class="card-sub" style="margin-bottom:12px">每条为行动卡，永不自动执行——由你点击</div>
+          <div class="stack">${fixes}</div>
+        </div>
+      </div>
+      ${BORDER}
+    </div>`;
+  }
+  function buildFixList(ind) {
+    const items = [];
+    if (ind.ei.value < 30) items.push(['danger', '开启异议与建议双通道', '授权分 EI 过低 → 没人敢说话。开双通道，让异议进得来。', 'Doucouliagos et al. 2020 元回归：分红需与授权组合才有效。']);
+    if (ind.sii.value > 60) items.push(['warning', '关闭事事审批', '监督分 SII 偏高 → 你在为不信任付双份钱。', 'Org Sci 2016：高压监督挤出骨干努力。']);
+    if (ind.ahc.value < 60) items.push(['danger', '兑现欠着的承诺 + 给 M28 加 irrevocable', '信用分 AHC 过低 → 销冠不信你，配方是他唯一筹码。', 'Hart 2016 诺奖：控制权决定专用投入。']);
+    if (!items.length) items.push(['success', '四指数健康', '当前无高优先级修复项。保持。', '']);
+    return items.map(([sev, t, b, c]) => actionCard(sev, t, esc(b), '', c)).join('');
+  }
+
+  // ========================================================================
+  // 屏3 流失价签（权威 6 项）+ 错价榜
+  // ========================================================================
+  function screenPriceTag() {
+    const pt = Engine.priceTag(DB, S.today);
+    const rows = pt.items.map(it => `<tr><td>${esc(it.name)}</td><td class="num mono">${it.amt == null ? '<span class="dash">—</span>' : Money.wan(it.amt)}</td><td class="muted tiny">${esc(it.scope)}</td></tr>`).join('');
+    return `<div class="stack">
+      <div><h1 class="section-title">流失价签 · 权威 6 项口径</h1>
+        <div class="section-desc">定价器卡C / 招人器 F15 为简版（各 3 项）；本 6 项为全系统权威口径。第⑤⑥项互不重叠、不得双计同一笔。</div></div>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-head"><div><div class="card-title">${esc(pt.name)} · 若今天离职</div>
+          <div class="card-sub">≈近6月月均毛利 ×（招聘周期 + 批均回本）</div></div>
+          <div><div class="hero-num" style="color:var(--danger)">${Money.wan(pt.headline)}</div><div class="tiny muted right">权威估算总额</div></div></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>构成项</th><th class="num">金额</th><th>口径</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <div class="tiny muted" style="margin-top:8px">六项为诊断口径，与总额估算法互为参照。</div>
+        </div>
+        <div class="card"><div class="card-title">关键比值</div>
+          <div class="kv"><span class="k">爬坡缺口占比</span><span class="v"><b style="color:var(--${pt.hitGate5 ? 'danger' : 'success'})">${Rate.pct(pt.rampGapShare)}</b> ${pt.hitGate5 ? badge('danger', '触闸⑤') : ''}</span></div>
+          <div class="kv"><span class="k">加薪 vs 价签</span><span class="v">${Num.x(pt.raiseVsTag)}</span></div>
+          <div class="kv"><span class="k">缩短爬坡 37% 年化收益</span><span class="v">${Money.wan(pt.shortenGainAnnual)}</span></div>
+          ${pt.hitGate5 ? actionCard('danger', '你该修的是爬坡，不是留人', '爬坡缺口占了流失成本的大头（>45%）。加薪留人是把钱浇在漏桶上。', '', 'HBR/RAIN：接手他人管道成交率低 30–50%。') : ''}
+        </div>
+      </div>
+      ${BORDER}
+    </div>`;
+  }
+
+  // ========================================================================
+  // 屏4 十二道闸
+  // ========================================================================
+  function screenGates() {
+    const rc = Engine.rankingConfig();
+    const pt = Engine.priceTag(DB, S.today);
+    const ind = Engine.indices(DB, S.today);
+    const gate = (n, name, status, body) => `<div class="card"><div class="card-head"><div class="card-title">闸${n} ${esc(name)}</div>${badge(status.band, status.txt)}</div>${body || ''}</div>`;
+    return `<div class="stack">
+      <h1 class="section-title">留人十二道闸（11A + 1B，零 D）</h1>
+      <div class="grid grid-2">
+        ${gate('①', '地盘前置', { band: 'success', txt: '已解锁' }, '<p class="muted tiny">算账器 M21 归一化已导入，排名/淘汰/配方/提拔已具备前提。</p>')}
+        ${gate('②', '排行榜合法性', { band: 'success', txt: '合法' }, `<p class="muted tiny">唯一合法配置：实名 · 只显名次 · 不显金额/配额 · 源＝M21 归一化。</p><div class="pill-row" style="margin-top:8px">${badge('neutral', '实名')}${badge('neutral', '仅名次')}${badge('neutral', '无金额')}${badge('neutral', '无配额')}</div>`)}
+        ${gate('③', '挤出对冲', { band: DB.silentTrackOn ? 'success' : 'warning', txt: DB.silentTrackOn ? '通道已启' : '通道未启' }, `<p class="muted tiny">悬赏可对结果，但不许只有钱。结果类悬赏需先启用静默认可通道。</p><div class="btn-row" style="margin-top:8px"><button class="btn btn--sm" data-act="bountyDemo" data-t="record_break">试挂：破纪录赏</button><button class="btn btn--sm" data-act="bountyDemo" data-t="first_deal">试挂：首单赏（豁免）</button>${DB.silentTrackOn ? '' : '<button class="btn btn--sm btn--primary" data-act="enableSilent">一键启用静默认可通道</button>'}</div>`)}
+        ${gate('⑤', '爬坡优先', { band: pt.hitGate5 ? 'danger' : 'success', txt: pt.hitGate5 ? '缺口过大' : '正常' }, `<p class="muted tiny">爬坡缺口占比 ${Rate.pct(pt.rampGapShare)}（红线 45%）。</p>`)}
+        ${gate('⑥', '棘轮硬闸', { band: DB.governance.ahcInputs.ratchetCount > 0 ? 'warning' : 'success', txt: `棘轮 ${DB.governance.ahcInputs.ratchetCount} 次` }, '<p class="muted tiny">按去年业绩上调配额＝把努力当把柄。触发→[生成反棘轮条款]（irrevocable + AHC 加分）。</p>')}
+        ${gate('⑦', '反敲竹杠', { band: ind.ahc.value < getCoef('ahcTrustLine') ? 'danger' : 'success', txt: `AHC ${ind.ahc.value}` }, `<p class="muted tiny">交出物无 M28 协议 / AHC<60 → 红。${ind.ahc.value < 60 ? esc(SCRIPTS.L07({ n: 2, m: 2, ahc: ind.ahc.value, k: 16 })) : ''}</p>`)}
+        ${gate('⑧', '分红四问', { band: 'info', txt: '见分红页' }, '<p class="muted tiny">前置＝M17 三重闸已过；本闸只体检、永不清零池。</p>')}
+        ${gate('⑨', '黑暗三角崩塌', { band: 'neutral', txt: '窗口 [10,18]' }, '<p class="muted tiny">高标记 ∧ 在职 10–18 月 ∧ 近 3 月环比 <−40% → 🟡「预期中的崩塌」，只输出不建议挽留。</p>')}
+        ${gate('⑩', '双目标隔离', { band: 'success', txt: 'CI 断言' }, '<p class="muted tiny">蓝图进度与考核函数零依赖。</p>')}
+        ${gate('⑪', '只供氧', { band: 'success', txt: 'CI 断言' }, '<p class="muted tiny">钱途页零排名/零对比/零员工红灯。</p>')}
+        ${gate('⑫', '履约准入', { band: 'success', txt: '枚举锁死' }, '<p class="muted tiny">仅 bounty/challenge/contract/dividend/带教/使用费 入账。</p>')}
+      </div>${BORDER}</div>`;
+  }
+
+  // ========================================================================
+  // 屏5 产权 M28（含 irrevocable 拦截演示）
+  // ========================================================================
+  function screenM28() {
+    const rows = DB.entities.M28Agreement.map(a => {
+      const val = Engine.m28Value(a);
+      return `<tr><td>${esc(masterName(a.masterId))}</td><td>${a.kind === 'mentoring' ? '带教分成' : '配方使用费'}</td>
+        <td class="num mono">${Rate.pct(a.rate)}</td><td class="num">${a.durationMonths} 月</td>
+        <td class="num mono">${Money.wan(val)}</td><td>${a.irrevocable ? badge('gold', '🔒 irrevocable') : badge('neutral', '可改')}</td>
+        <td><button class="btn btn--sm btn--danger" data-act="tryDown" data-id="${esc(a.m28Id)}">尝试下调</button></td></tr>`;
+    }).join('');
+    const ovr = DB.entities.OverrideEvent.slice(-5).map(o => `<div class="kv"><span class="k">${esc(o.at)} · ${esc(o.action)}</span><span class="v">🔴 已拦截 · 全员可见</span></div>`).join('') || '<p class="muted tiny">暂无拦截记录。</p>';
+    return `<div class="stack">
+      <div><h1 class="section-title">产权 M28 · 配方产权与带教对价</h1>
+        <div class="section-desc">带教分成＝徒弟月净贡献 ×5%×12月；配方使用费＝团队净贡献增量 ×2%×24月。irrevocable 下调在代码层无成功路径——尝试即留痕 + AHC 扣分 + 全员可见。</div></div>
+      <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>师傅</th><th>类型</th><th class="num">费率</th><th class="num">时长</th><th class="num">对价</th><th>状态</th><th>拦截演示</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">拦截记录（G3 留痕 · 全员可见）</div>${ovr}
+          ${cite('第四定理（Hart，诺奖 2016）：你不给他控制权，他就不会投入你测不到的努力。')}</div>
+        <div class="card"><div class="card-title">带教 vs 一次性对比</div>
+          <div class="kv"><span class="k">带教分成（5%×12月）</span><span class="v">${Money.wan(Engine.m28Value(DB.entities.M28Agreement.find(a=>a.kind==='mentoring')))}</span></div>
+          <div class="kv"><span class="k">一次性奖金</span><span class="v">${Money.cny(getCoef('m28').oneOffAmt)}</span></div>
+          <div class="kv"><span class="k">倍数</span><span class="v"><b>${Num.x(Engine.m28Value(DB.entities.M28Agreement.find(a=>a.kind==='mentoring'))/getCoef('m28').oneOffAmt)}</b></span></div>
+        </div>
+      </div>${BORDER}</div>`;
+  }
+  function masterName(id) { const s = DB.entities.Salesperson.find(x => x.spId === id); return s ? s.name : id; }
+
+  // ========================================================================
+  // 屏6 该谈名单 + 依赖度 + 发放预检 + 离职登记
+  // ========================================================================
+  function screenRetention() {
+    const talks = Engine.talkList(DB, S.today);
+    const dep = Engine.dependency(DB, S.today);
+    const talkRows = talks.map(t => `<tr><td>${esc(t.name)}</td><td>${t.triggers.map(g => badge(g.src === 'second_place' ? 'gold' : 'warning', g.label)).join(' ')}</td><td class="muted tiny">${t.triggers.map(g => esc(g.detail)).join('；')}</td></tr>`).join('') || `<tr><td colspan="3" class="muted tiny">当前无触发。</td></tr>`;
+    const bangyan = talks.find(t => t.triggers.some(g => g.src === 'second_place'));
+    return `<div class="stack">
+      <h1 class="section-title">留存运营 · 该谈 / 预检 / 离职</h1>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">该谈名单 · 五触发源</div><div class="card-sub" style="margin-bottom:10px">系统永不指导「谈什么」，只告诉你「该谈谁」。</div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>员工</th><th>触发</th><th>理由</th></tr></thead><tbody>${talkRows}</tbody></table></div>
+          ${bangyan ? actionCard('warning', `榜眼预警：${bangyan.name}`, esc(SCRIPTS.L09({ name: bangyan.name, m: 3, r: 2, sc: Rate.pct(bangyan.pp.scissors) })), '<button class="btn btn--sm">生成单独承诺（前程合约）</button>', 'Ahearne 2025 JM：中上段是流失与被挖高危带。') : ''}
+        </div>
+        <div class="card"><div class="card-head"><div class="card-title">依赖度雷达</div>${dep.value == null ? '' : badge(dep.band, bandWord(dep.band))}</div>
+          <div class="hero-num" style="color:var(--${dep.band || 'info'})">${dep.value == null ? '—' : Rate.pct(dep.value)}</div>
+          <div class="kpi-foot">Top1（${esc(dep.topName || '—')}）回款占比（滚 6 月，归一化后）${asOf(dep.asOf, 'suanzhang', S.today)}</div>
+          ${dep.selfMade ? `<div class="banner banner--warning" style="margin-top:10px"><span class="b-ico">⚠️</span><div>依赖度一部分是你自己造出来的——Top1 线索指数 >1.5。</div></div>` : ''}
+          <div class="tiny muted" style="margin-top:10px">传承预案四行：配方在库 / 蓄水池储备 / 徒弟名单 / M28 有无。</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">发放预检（M37 参照点账本）</div><div class="card-sub" style="margin-bottom:10px">发钱前预检：拟发 vs 历史/趋势参照点。</div>
+          ${precheckPanel()}
+        </div>
+        <div class="card"><div class="card-title">离职登记向导（M38）</div><div class="card-sub" style="margin-bottom:10px">两步：原因 → 在途单逐单录入 → 余震名单 + 交接卡。</div>
+          <div class="btn-row"><button class="btn btn--primary" data-act="leaveWizard">启动离职登记</button></div>
+          <div class="tiny muted" style="margin-top:10px">📎 中国连锁企业 RCT：指定名单一对一周聊，流失率降 1.7pp。</div>
+        </div>
+      </div>${BORDER}</div>`;
+  }
+  function precheckPanel() {
+    const spOpts = DB.entities.Salesperson.filter(s => s.isActive).map(s => `<option value="${s.spId}">${esc(s.name)}</option>`).join('');
+    return `<label class="field"><span class="field-label">员工</span><select id="pc-sp">${spOpts}</select></label>
+      <label class="field"><span class="field-label">拟发金额（元）</span><input id="pc-amt" type="number" placeholder="如 30000" value="30000"></label>
+      <div class="btn-row"><button class="btn btn--primary" data-act="runPrecheck">预检</button></div>
+      <div id="pc-out" style="margin-top:12px"></div>`;
+  }
+
+  // ========================================================================
+  // 屏7 蓝图 + 分红（三重闸→四问 串联）+ 履约总账
+  // ========================================================================
+  function screenDividend() {
+    const div = Engine.computeDividend(DB, S.today);
+    const ind = Engine.indices(DB, S.today);
+    const gateRows = div.gates.map(g => `<div class="kv"><span class="k">${esc(g.label)} ${g.enabled ? '' : '<span class="tiny faint">(未启用)</span>'}</span><span class="v">${g.enabled ? (g.pass ? badge('success', '达') : badge('danger', '未达')) : '—'}</span></div>`).join('');
+    let fourHtml;
+    if (!div.threeGatePass) {
+      fourHtml = `<div class="banner banner--danger"><span class="b-ico">🔴</span><div><strong>未达发放资格，未体检</strong><p>三重闸任一不达 → 池 = 0，流程终止，四问零调用。</p></div></div>`;
+    } else {
+      const qs = div.four.map(q => `<div class="kv"><span class="k">${esc(q.q)}</span><span class="v">${q.pass == null ? '—（未采集）' : q.pass ? badge('success', '过') : badge('danger', '否')} <span class="tiny muted">${q.val == null ? '' : q.val}</span></span></div>`).join('');
+      fourHtml = `${qs}<div class="banner banner--${div.verdict} " style="margin-top:10px"><span class="b-ico">${div.verdict === 'danger' ? '🔴' : div.verdict === 'warning' ? '🟡' : '🟢'}</span><div>${div.fourFailCount} 条不达。${div.verdict === 'danger' ? esc(SCRIPTS.L08({ period: '季度', rate: Rate.pct(DB.dividend.poolRate), n: div.fourFailCount })) : '体检通过。'}</div></div>
+      ${div.verdict !== 'ok' ? '<div class="btn-row" style="margin-top:8px"><button class="btn btn--danger btn--sm" data-act="forceDividend">我知道风险，仍要启用（留痕，计入 AHC 扣分）</button></div>' : ''}
+      <div class="tiny muted" style="margin-top:8px">🔴 体检永不清零池——只警告，数值权归老板。</div>`;
+    }
+    return `<div class="stack">
+      <h1 class="section-title">蓝图与分红 · 创业三级梯</h1>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-head"><div class="card-title">① 三重闸 · 发不发（资格门）</div><div class="hero-num sm" style="color:var(--${div.threeGatePass ? 'success' : 'danger'})">${div.threeGatePass ? '✓' : '池 0'}</div></div>
+          ${gateRows}<div class="tiny muted" style="margin-top:6px">老板设、独立启停、不达池=0、不重分。数值权归老板。</div></div>
+        <div class="card"><div class="card-head"><div class="card-title">② 分红四问 · 该不该发（体检）</div>${div.threeGatePass ? `<div class="hero-num sm" style="color:var(--${div.verdict})">${div.pool != null ? Money.wan(div.pool) : '—'}</div>` : ''}</div>
+          ${fourHtml}</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">经营蓝图（与考核隔离）</div>
+          ${DB.blueprint.milestones.map(m => `<div class="kv"><span class="k">${esc(m.name)}</span><span class="v">${m.done ? badge('success', '已达') : badge('neutral', '进行中')}</span></div>`).join('')}
+          <div class="tiny muted" style="margin-top:6px">蓝图进度不被任何考核函数调用（闸⑩）。</div></div>
+        <div class="card"><div class="card-title">履约总账（双时间戳 · 全员可见）</div>
+          <div class="kv"><span class="k">履约率（滚 12 月）</span><span class="v"><b>${Rate.pct(DB.governance.ahcInputs.honoredRatio)}</b></span></div>
+          <div class="kv"><span class="k">已达成 / 已履约</span><span class="v">${DB.governance.ahcInputs.achievedCount} / ${DB.governance.ahcInputs.honoredCount}</span></div>
+          <div class="tiny muted" style="margin-top:6px">赏在明处，催在暗处：未兑现黄脸仅老板自见。</div></div>
+      </div>${BORDER}</div>`;
+  }
+
+  // ========================================================================
+  // 销售端钱途页（七栏 · 只供氧：零排名/零对比/零员工红灯）
+  // ========================================================================
+  function screenSales() {
+    const ind = Engine.indices(DB, S.today);
+    const ahc = ind.ahc;
+    const a = DB.governance.ahcInputs;
+    return `<div class="stack">
+      <div class="banner banner--info no-print"><span class="b-ico">🌱</span><div><strong>销售端预览 · 钱途页</strong><p>只供氧：零排名、零对比、零员工红灯。唯一"红"是⑤栏——老板的信用（放老板的血）。</p></div></div>
+      <h1 class="section-title">你的钱途</h1>
+      <div class="kpi-grid">
+        <div class="card"><div class="kpi-label">① 现在</div><div class="kpi-value sm">${Money.cny(DB.entities.Salesperson[0].baseSalaryAmt)}<span class="kpi-unit">底薪/月</span></div><div class="kpi-foot">本人回款可见（唯一利润豁免）</div></div>
+        <div class="card"><div class="kpi-label">② 下一步</div><div class="kpi-value sm">有效档</div><div class="kpi-foot">达标即进阶</div></div>
+        <div class="card"><div class="kpi-label">③ 台阶</div><div class="kpi-value sm">专家 / 主管</div><div class="kpi-foot">双轨可选</div></div>
+        <div class="card"><div class="kpi-label">④ 产权</div><div class="kpi-value sm">带教 5%×12月</div><div class="kpi-foot">配方使用费 2%×24月</div></div>
+      </div>
+      <div class="card" style="border:2px solid var(--${ahc.band})">
+        <div class="card-head"><div><div class="card-title">⑤ 老板的信用（AHC）</div><div class="card-sub">ⓘ 这个分数由系统计算，老板改不了</div></div>
+          ${ring(ahc.value, ahc.band)}</div>
+        <div class="grid grid-2" style="margin-top:8px">
+          <div class="kv"><span class="k">履约率（40 分项）</span><span class="v">${Rate.pct(a.honoredRatio)}</span></div>
+          <div class="kv"><span class="k">irrevocable 覆盖（25 分项）</span><span class="v">${Rate.pct(a.irrevocableRatio)}</span></div>
+          <div class="kv"><span class="k">拦截下调（20 分项）</span><span class="v">${a.interceptCount} 次（全部被系统拦截）</span></div>
+          <div class="kv"><span class="k">棘轮触发（15 分项）</span><span class="v">${a.ratchetCount} 次</span></div>
+        </div>
+        <div class="tiny muted" style="margin-top:8px">${esc(ahc.value >= 80 ? SCRIPTS.L14full({ ahc: ahc.value, a: a.achievedCount, b: a.honoredCount }) : '信用不能买，只能攒。')}</div>
+      </div>
+      <div class="grid grid-2">
+        <div class="card"><div class="kpi-label">⑥ 战绩</div><div class="kpi-foot">你的里程碑与灯塔纪录（自动 + 老板手填，修改留痕全员可见）。</div></div>
+        <div class="card"><div class="kpi-label">⑦ 灯塔 + 双入口</div>
+          <div class="btn-row" style="margin-top:8px"><button class="btn btn--sm">我有异议</button><button class="btn btn--sm">我有个建议（可匿名）</button></div>
+          <div class="tiny muted" style="margin-top:6px">提出异议永不进考核路径。</div></div>
+      </div>
+    </div>`;
+  }
+
+  // ========================================================================
+  // 屏8 信封与实验室
+  // ========================================================================
+  function screenSystem() {
+    const refs = ['suanzhang', 'dingjia', 'zhaoren', 'yuren'].map(b => {
+      const r = extRef(b); const nm = { suanzhang: '算账器', dingjia: '定价器', zhaoren: '招人器', yuren: '育人器' }[b];
+      return `<div class="kv"><span class="k">${nm}（${b}）</span><span class="v">${r ? '已导入 ' + asOf(r.exportedAt, null, S.today) : '<span class="dash">未导入</span>'}</span></div>`;
+    }).join('');
+    const experiments = ['损失框架', '实名匿名', '高强度练习', '任务导向处方', 'M28产权vs一次性', '线索重划', 'JOLT', '季度配速'];
+    return `<div class="stack">
+      <h1 class="section-title">数据信封与系数实验室</h1>
+      <div class="grid grid-2">
+        <div class="card"><div class="card-title">数据信封（board = liuren）</div><div class="card-sub" style="margin-bottom:10px">导出双载荷：ahc（derived）+ M28Agreement（entities）。🔴 导出功能永不锁定。</div>
+          <div class="btn-row"><button class="btn btn--primary" data-act="export">导出信封 JSON</button><button class="btn" data-act="importPick">导入他方信封</button></div>
+          <div class="hr"></div><div class="card-sub" style="margin-bottom:6px">已导入的他方信封（只读 · 整条覆盖）：</div>${refs}
+        </div>
+        <div class="card"><div class="card-title">系数实验室 M31（8 预置 · 分层随机）</div>
+          <div class="pill-row" style="margin-top:8px">${experiments.map(e => badge('neutral', e)).join('')}</div>
+          <div class="tiny muted" style="margin-top:10px">🔴 老板不能手选分组；分层随机以 M21 归一化历史为键。样本<10 结果标"仅供参考"。</div>
+          <div class="btn-row" style="margin-top:10px"><button class="btn btn--sm" data-act="exportAnon">导出匿名实验包（占位 · 不联网）</button></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">授权与降级（公约【11】）</div>
+        <div class="grid grid-2">
+          <div><div class="kv"><span class="k">授权客户</span><span class="v">${esc(DB.license.tenant)}</span></div>
+          <div class="kv"><span class="k">板块</span><span class="v">liuren</span></div>
+          <div class="kv"><span class="k">到期</span><span class="v">${esc(DB.license.expiry)}</span></div>
+          <div class="kv"><span class="k">当前模式</span><span class="v">${DB.__mode === 'free' ? badge('warning', '免费版（已降级）') : badge('success', '完整版')}</span></div></div>
+          <div><label class="field"><span class="field-label">粘贴续期码（离线校验 · ECDSA 公钥验签）</span><input id="lic-code" placeholder="SKAB-LR-..."></label>
+          <div class="btn-row"><button class="btn btn--primary" data-act="applyLicense">应用</button></div>
+          <div class="tiny muted" style="margin-top:8px">🔒 HTML 内只含公钥；到期只降级不锁数据；导出永不锁定；不做设备指纹（A-17/授-3）。</div></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">危险操作</div><div class="btn-row"><button class="btn btn--danger" data-act="reset">重置为出厂数据</button></div></div>
+      ${BORDER}</div>`;
+  }
+
+  // ========================================================================
+  // 系数与自检
+  // ========================================================================
+  function screenSelfTest() {
+    const r = runSelfTest();
+    const tcards = r.tcases.map(t => `<div class="tcase ${t.pass ? 'pass' : 'fail'}"><span class="t-mark">${t.pass ? '✓' : '✗'}</span><div><span class="t-id">${t.id}</span> ${esc(t.title)}<div class="t-detail">got: ${esc(t.got)} · want: ${esc(t.want)}</div></div></div>`).join('');
+    const acards = r.asserts.map(a => `<div class="tcase ${a.pass ? 'pass' : 'fail'}"><span class="t-mark">${a.pass ? '✓' : '✗'}</span><div><span class="t-id">${esc(a.id)}</span> ${esc(a.title)}<div class="t-detail">${esc(a.detail)}</div></div></div>`).join('');
+    const allGreen = r.passCount === r.total && r.assertPass === r.assertTotal;
+    return `<div class="stack">
+      <h1 class="section-title">系数与自检</h1>
+      <div class="card selftest-hero">
+        ${ring(Math.round(r.passCount / r.total * 100), allGreen ? 'success' : 'danger')}
+        <div><div class="hero-num" style="color:var(--${allGreen ? 'success' : 'danger'})">${r.passCount}/${r.total}</div>
+        <div class="kpi-label">件七对拍徽章（三绿＝收货）</div>
+        <div class="kpi-foot">红线断言 ${r.assertPass}/${r.assertTotal} · 时钟注入 TEST_TODAY = ${esc(r.today)}（C-14/R-11）</div></div>
+      </div>
+      <div><h2 class="card-title" style="margin-bottom:10px">件七 · 验收用例集（T1–T19）</h2><div class="badge-grid">${tcards}</div></div>
+      <div><h2 class="card-title" style="margin:16px 0 10px">件六 · 红线断言（可运行子集）</h2><div class="badge-grid">${acards}</div></div>
+      <div class="card"><div class="card-title">系数总表（结构权系统 / 数值权老板）</div>
+        <div class="tiny muted" style="margin-top:6px">全部系数经 getCoef 取用；数值权归老板（可覆盖）。此处为只读速览，编辑入口在各功能页。</div>
+        <div class="grid grid-3" style="margin-top:10px">
+          <div class="kv"><span class="k">AHC 信任线</span><span class="v">${getCoef('ahcTrustLine')}</span></div>
+          <div class="kv"><span class="k">爬坡缺口红线</span><span class="v">${Rate.pct(getCoef('rampGapShareRedline'))}</span></div>
+          <div class="kv"><span class="k">接手劣化(慢性)</span><span class="v">${Rate.pct(getCoef('pipelineDecayInPriceTag'))}</span></div>
+          <div class="kv"><span class="k">交接折损(急性)</span><span class="v">${Rate.pct(getCoef('handoverLossRate'))}</span></div>
+          <div class="kv"><span class="k">信封过期阈值</span><span class="v">${getCoef('envelopeStaleDays')} 天</span></div>
+          <div class="kv"><span class="k">备份提醒阈值</span><span class="v">${getCoef('backupNudgeDays')} 天</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ---- 路由 ----
+  const ROUTES = { overview: screenOverview, pricetag: screenPriceTag, gates: screenGates, m28: screenM28, retention: screenRetention, dividend: screenDividend, sales: screenSales, system: screenSystem, selftest: screenSelfTest };
+  function render() {
+    document.documentElement.dataset.theme = DB.settings.theme === 'auto' ? '' : DB.settings.theme;
+    // 闸① 全锁：算账器未导入 → 除系统/自检外全部锁屏
+    if (Engine.boardLocked(DB) && !['system', 'selftest'].includes(S.route)) {
+      app().innerHTML = chrome(lockScreen()); return;
+    }
+    const view = (ROUTES[S.route] || screenOverview)();
+    app().innerHTML = chrome(view) + (S.modal || '');
+  }
+
+  return { S, render, esc, badge, ring, toast, openModal, closeModal, actions: null };
+
+  function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+  function openModal(html) { S.modal = `<div class="modal-backdrop" data-act="closeModalBg"><div class="modal">${html}</div></div>`; render(); }
+  function closeModal() { S.modal = null; render(); }
+})();
+
+
+/* ==================== boot.js ==================== */
+// ============================================================================
+// 启动装配：加载 DB → 解析授权（离线 ECDSA 验签）→ 首屏渲染 → 事件委托
+// UI 层唯一取真实时钟处（公约 C-14）：UI.S.today
+// ============================================================================
+function boot() {
+  loadDB();
+  UI.S.today = D.realToday();
+
+  // 授权解析（授-2 到期只降级；授-3 防调表 seenMaxDate）
+  const lic = DB.license || {};
+  const seen = lic.seenMaxDate;
+  if (!seen || UI.S.today > seen) { DB.license.seenMaxDate = UI.S.today; saveDB(); }
+  const res = resolveModeByDate(lic.expiry, UI.S.today, DB.license.seenMaxDate);
+  DB.__mode = res.mode;
+  // 异步验签（不阻塞首屏；失败即无效 → free）
+  if (lic.code) verifyLicenseCode(lic.code).then(v => {
+    if (v.ok && v.payload) {
+      DB.license.tenant = v.payload.tenant; DB.license.expiry = v.payload.expiry; DB.license.board = v.payload.board;
+      DB.license.verified = true;
+      DB.__mode = resolveModeByDate(v.payload.expiry, UI.S.today, DB.license.seenMaxDate).mode;
+    } else { DB.license.verified = false; }
+    UI.render();
+  });
+
+  UI.render();
+  wireEvents();
+}
+
+function wireEvents() {
+  document.addEventListener('click', onClick);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') UI.closeModal(); });
+}
+
+function onClick(e) {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const act = t.dataset.act;
+  const H = handlers[act];
+  if (H) { e.preventDefault(); H(t); }
+}
+
+const handlers = {
+  nav: (t) => { UI.S.route = t.dataset.route; UI.S.modal = null; UI.render(); window.scrollTo(0, 0); },
+  theme: () => { const cur = DB.settings.theme; DB.settings.theme = cur === 'auto' ? 'dark' : cur === 'dark' ? 'light' : 'auto'; saveDB(); UI.render(); UI.toast('主题：' + DB.settings.theme); },
+  print: () => window.print(),
+  closeModalBg: (t) => { if (t.classList.contains('modal-backdrop')) UI.closeModal(); },
+  closeModal: () => UI.closeModal(),
+
+  export: () => {
+    const env = buildEnvelope(UI.S.today);
+    downloadJSON(env, `skab_liuren_${UI.S.today}.json`);
+    DB.ui.backupLastExportAt = UI.S.today; saveDB(); UI.render();
+    UI.toast('已导出信封（含 ahc + M28Agreement 双载荷）');
+  },
+  exportAnon: () => UI.toast('匿名实验包已生成（占位 · 全程不联网）'),
+  migrate: () => UI.openModal(`<div class="modal-head"><h3>换电脑迁移</h3><button class="x-btn" data-act="closeModal">×</button></div>
+    <ol style="padding-left:18px;line-height:2"><li>在旧电脑点「导出信封 JSON」，得到一个文件。</li><li>把文件拷到新电脑（U 盘/网盘均可）。</li><li>在新电脑打开本 HTML → 信封页「导入他方信封」选该文件。</li></ol>
+    <p class="tiny muted">「数据不出你电脑」的另一面是「数据只在你电脑」——丢数据的责任由系统主动防，所以每 ${getCoef('backupNudgeDays')} 天提醒你备份一次。</p>`),
+
+  importPick: () => pickFile((obj) => {
+    const r = importEnvelope(obj, UI.S.today);
+    if (!r.ok) { UI.toast('导入失败：schema 不符'); return; }
+    UI.toast(`已导入 ${r.board}${r.hashMismatch ? '（系数指纹不一致，建议同步）' : ''}`);
+    UI.render();
+  }),
+
+  selfrate: () => {
+    const s = DB.governance.selfRating;
+    UI.openModal(`<div class="modal-head"><h3>自评四滑杆（先猜后看）</h3><button class="x-btn" data-act="closeModal">×</button></div>
+      ${['sii', 'ei', 'dvi', 'ahc'].map(k => `<label class="field"><span class="field-label">${({ sii: '监督 SII', ei: '授权 EI', dvi: '可见 DVI', ahc: '信用 AHC' })[k]}：<b id="sr-${k}-v">${s[k]}</b></span><input type="range" min="0" max="100" value="${s[k]}" id="sr-${k}" oninput="document.getElementById('sr-${k}-v').textContent=this.value"></label>`).join('')}
+      <div class="btn-row"><button class="btn btn--primary" data-act="saveSelfrate">保存并看实测</button></div>`);
+  },
+  saveSelfrate: () => {
+    ['sii', 'ei', 'dvi', 'ahc'].forEach(k => { const el = document.getElementById('sr-' + k); if (el) DB.governance.selfRating[k] = +el.value; });
+    saveDB(); UI.closeModal(); UI.toast('已保存自评');
+  },
+
+  bountyDemo: (t) => {
+    const tr = t.dataset.t;
+    const chk = Engine.bountySaveCheck(tr, DB.silentTrackOn);
+    if (chk.ok) { UI.toast(`🟢 「${tr}」放行保存${chk.reason === 'exempt' ? '（豁免）' : ''}`); return; }
+    UI.openModal(`<div class="modal-head"><h3>闸③ 拦截保存</h3><button class="x-btn" data-act="closeModal">×</button></div>
+      <div class="banner banner--danger"><span class="b-ico">🔴</span><div>${UI.esc(SCRIPTS.L15({ templateName: tr }))}</div></div>
+      <div class="btn-row" style="margin-top:14px"><button class="btn btn--primary" data-act="enableSilent">一键启用静默认可通道</button><button class="btn" data-act="closeModal">改用行为类悬赏</button></div>`);
+  },
+  enableSilent: () => { DB.silentTrackOn = true; saveDB(); UI.closeModal(); UI.render(); UI.toast('已启用静默认可通道（连续 6 月达标 → 灯塔 + 合约资格池）'); },
+
+  tryDown: (t) => {
+    const r = Engine.tryDowngradeM28(DB, t.dataset.id, UI.S.today, '界面尝试下调');
+    saveDB(); UI.render();
+    UI.toast('🔴 下调在代码层无成功路径——已留痕 + AHC 扣分 + 全员可见');
+  },
+
+  runPrecheck: () => {
+    const sp = document.getElementById('pc-sp').value;
+    const amt = Math.round((+document.getElementById('pc-amt').value || 0) * 100);
+    const pc = Engine.precheck(DB, sp, amt, UI.S.today);
+    const out = document.getElementById('pc-out'); if (!out) return;
+    if (pc.hist == null) { out.innerHTML = `<div class="banner banner--info"><span class="b-ico">ℹ️</span><div>—（首年无参照）仅出提示。</div></div>`; return; }
+    const map = { below_history: ['danger', SCRIPTS.L10a({ amt: Money.cny(amt), hist: Money.cny(pc.hist) })], below_trend: ['warning', SCRIPTS.L10b({ amt: Money.cny(amt), hist: Money.cny(pc.hist), trend: Money.cny(pc.trend), g: Rate.pct(pc.growth) })], ok: ['success', SCRIPTS.L10c({ amt: Money.cny(amt), trend: Money.cny(pc.trend) })] };
+    const [band, msg] = map[pc.verdict];
+    out.innerHTML = `<div class="banner banner--${band}"><span class="b-ico">${band === 'danger' ? '🔴' : band === 'warning' ? '🟡' : '🟢'}</span><div>${UI.esc(msg)}</div></div>
+      <div class="tiny muted" style="margin-top:8px">${UI.esc(SCRIPTS.L10d())}</div>`;
+  },
+
+  forceDividend: () => { DB.entities.OverrideEvent.push({ id: makeId('ovr'), at: UI.S.today, action: 'force_dividend_risk_ack', visibleToAll: true }); DB.governance.ahcInputs.interceptCount += 0; saveDB(); UI.toast('已留痕：我知道风险仍要启用（计入 AHC）'); },
+
+  leaveWizard: () => {
+    const spOpts = DB.entities.Salesperson.filter(s => s.isActive).map(s => `<option value="${s.spId}">${UI.esc(s.name)}</option>`).join('');
+    UI.openModal(`<div class="modal-head"><h3>离职登记向导（M38）</h3><button class="x-btn" data-act="closeModal">×</button></div>
+      <label class="field"><span class="field-label">离职员工</span><select id="lw-sp">${spOpts}</select></label>
+      <label class="field"><span class="field-label">在途单账面合计（万元，演示一次录入）</span><input id="lw-sum" type="number" value="96"></label>
+      <label class="field"><span class="field-label">在途单笔数</span><input id="lw-n" type="number" value="11"></label>
+      <div class="btn-row"><button class="btn btn--primary" data-act="runLeave">生成余震名单 + 交接卡</button></div>
+      <div id="lw-out" style="margin-top:12px"></div>`);
+  },
+  runLeave: () => {
+    const sp = document.getElementById('lw-sp').value;
+    const n = Math.max(1, +document.getElementById('lw-n').value || 1);
+    const sum = Math.round((+document.getElementById('lw-sum').value || 0) * 1e6);
+    const cards = []; for (let i = 0; i < n; i++) cards.push({ amountAmt: Math.round(sum / n) });
+    cards[0].amountAmt += sum - cards.reduce((s, c) => s + c.amountAmt, 0);
+    const hs = Engine.handoverSummary(cards);
+    const after = Engine.aftershockRank(DB, sp, UI.S.today);
+    const list = after.map(a => `${UI.esc(a.name)}（${a.score}分：${a.sig.join('/') || '—'}）`).join('；');
+    const out = document.getElementById('lw-out');
+    out.innerHTML = `<div class="banner banner--warning"><span class="b-ico">⚠️</span><div>${UI.esc(SCRIPTS.L11({ leaver: masterNameSafe(sp), list }))}</div></div>
+      <div class="banner banner--danger" style="margin-top:8px"><span class="b-ico">🔴</span><div>${UI.esc(SCRIPTS.L12({ n, sum: Money.wan(sum), loss: Money.wan(hs.loss), save: Money.wan(hs.save) }))}</div></div>
+      <div class="tiny muted" style="margin-top:8px">已生成 ${hs.count} 张交接卡（可打印，指派接手人）；损耗回填该离职者价签第六项。</div>`;
+  },
+
+  applyLicense: async (t) => {
+    const code = (document.getElementById('lic-code') || {}).value;
+    if (!code) { UI.toast('请粘贴续期码'); return; }
+    const v = await verifyLicenseCode(code.trim());
+    if (!v.ok) { UI.toast('续期码无效：' + v.reason); return; }
+    DB.license = { code: code.trim(), tenant: v.payload.tenant, board: v.payload.board, expiry: v.payload.expiry, verified: true, seenMaxDate: DB.license.seenMaxDate };
+    DB.__mode = resolveModeByDate(v.payload.expiry, UI.S.today, DB.license.seenMaxDate).mode;
+    saveDB(); UI.render(); UI.toast('续期成功：' + v.payload.tenant);
+  },
+
+  reset: () => UI.openModal(`<div class="modal-head"><h3>确认重置</h3><button class="x-btn" data-act="closeModal">×</button></div>
+    <p>将清空当前数据并恢复出厂种子。此操作不可撤销。</p>
+    <div class="btn-row" style="margin-top:14px"><button class="btn btn--danger" data-act="resetGo">确认重置</button><button class="btn" data-act="closeModal">取消</button></div>`),
+  resetGo: () => { resetDB(); UI.closeModal(); UI.render(); UI.toast('已重置为出厂数据'); },
+};
+
+function masterNameSafe(id) { const s = DB.entities.Salesperson.find(x => x.spId === id); return s ? s.name : id; }
+
+// ---- 文件工具（file:// 可用；A-17 无网络）----
+function downloadJSON(obj, name) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function pickFile(cb) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = () => { const f = inp.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { try { cb(JSON.parse(fr.result)); } catch (_) { UI.toast('文件解析失败'); } }; fr.readAsText(f); };
+  inp.click();
+}
+
+// 启动
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+}
+
+})();
+</script>
+</body>
+</html>
