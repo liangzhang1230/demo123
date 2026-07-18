@@ -39,6 +39,32 @@ export async function put(db, ctx, table, row, eventType) {
 }
 
 /**
+ * 表行 UPSERT（覆盖式）+ 事件 append，同一事务 —— 派生落表（derived_scalars / m21_norms）专用：
+ * dayRoll/重算同键再写 = 覆盖值，行数不变（v5.1 §2.3 / 公约 A-21）。
+ * conflict：{ cols: ['a','b'] } 或 { constraint: 'uniq_name' }（含 NULL 的唯一键用约束名推断）。
+ * opts.touch：冲突更新时置为 DB now() 的列（如 computed_at——插入走列默认，重算刷新 asOf）。
+ * 🔴 时间戳一律 DB now()，本函数零真实时钟调用（公约 C-14）。
+ */
+export async function upsert(db, ctx, table, conflict, row, eventType, opts = {}) {
+  const full = { tenant_id: ctx.tenantId, created_by: ctx.actorId, ...row };
+  const cols = Object.keys(full);
+  const skip = new Set([...(conflict.cols || []), 'tenant_id', 'created_by']);
+  const sets = cols.filter(c => !skip.has(c)).map(c => `${c} = excluded.${c}`);
+  for (const c of opts.touch || []) sets.push(`${c} = now()`);
+  const target = conflict.constraint ? `on constraint ${conflict.constraint}` : `(${conflict.cols.join(',')})`;
+  const sql = `insert into ${table}(${cols.join(',')}) values (${cols.map((_, i) => '$' + (i + 1)).join(',')})
+    on conflict ${target} do update set ${sets.join(', ')}, updated_by = $${cols.length + 1}, updated_at = now()`;
+  await db.transaction(async tx => {
+    await tx.query(sql, [...cols.map(k => param(full[k])), ctx.actorId]);
+    await tx.query(
+      `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
+      [ctx.tenantId, eventType, ctx.actorId, row.sp_id != null ? String(row.sp_id) : (row.target_id != null ? String(row.target_id) : null),
+       JSON.stringify(toPayload(row))]);
+  });
+  return full;
+}
+
+/**
  * 纯事件 append（无表行变更的业务动作留痕，如 plan_adopted）。
  * 与 put/patch 的事件写完全同构；🔴 禁止用它替代表行双写——有表行的写必须走 put/patch。
  */
