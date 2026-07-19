@@ -42,6 +42,7 @@
     color:var(--cream);overflow:hidden;padding:58px 72px 50px 80px;
     display:flex;flex-direction:column;isolation:isolate;
   }
+  .card > *{flex-shrink:0;}   /* 禁止子元素被压缩，溢出即暴露，便于精确校对 */
   .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:10px;
     background:linear-gradient(180deg,var(--acc) 0%, var(--acc-deep) 100%);
     box-shadow:0 0 26px rgba(var(--acc-rgb),.5);}
@@ -164,6 +165,22 @@
   .u-tick{fill:var(--dim);font-size:23px;}
   .u-stop0{stop-color:var(--acc);stop-opacity:.35;}
   .u-stop1{stop-color:var(--acc);stop-opacity:0;}
+  .d-crash{fill:none;stroke:var(--rev);stroke-width:5;stroke-linecap:round;}
+  .d-dot{fill:var(--rev);}
+  .d-label{fill:var(--rev);font-size:25px;font-weight:800;}
+
+  /* 横向排名条 */
+  .bars{display:flex;flex-direction:column;gap:8px;margin:2px 0 10px;}
+  .bar-row{display:flex;align-items:center;gap:15px;}
+  .bar-lab{width:228px;font-size:25px;color:#D6E4DE;font-weight:700;white-space:nowrap;text-align:right;}
+  .bar-track{flex:1;height:22px;background:rgba(255,255,255,.06);border-radius:7px;overflow:hidden;}
+  .bar-fill{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--acc-deep),var(--acc));}
+  .bar-fill.hi{background:linear-gradient(90deg,var(--acc),var(--acc-2));box-shadow:0 0 14px rgba(var(--acc-rgb),.5);}
+  .bar-fill.lose{background:linear-gradient(90deg,#b8442c,var(--rev));}
+  .bar-fill.dim{background:rgba(255,255,255,.16);}
+  .bar-val{width:130px;font-size:25px;font-weight:800;color:var(--acc-2);white-space:nowrap;}
+  .bar-val.lose{color:var(--rev);}
+  .bar-val.dim{color:var(--dim);}
 </style>
 </head>
 <body>
@@ -206,6 +223,171 @@ const CARDS = [
     citeJour:"Psychological Science 24(6):1024–1030",
     gradeLevel:"y", gradeText:"较稳",
   },
+  /* ================= 底003 ================= */
+  {
+    fileNo:"实证档案 NO.003", pillar:"柱一 · 我能不能干销售",
+    tags:["🛡 怕被低估","🕵 被蒙在鼓里"],
+    badge:"顶刊 · 纵向追踪",
+    headQ:["开局最炸的新人","往往崩得最快"],
+    verdict:[{t:"短期冲高，随后"},{t:"跌下神坛",cls:"hl-coral hl-under"}],
+    hook:"别羡慕那个一进来就爆单的同事——这条崩塌曲线，是有论文的，不是你运气差。",
+    b1title:"数据说",
+    chart:"decline",
+    b1body:'自恋 / 精神病态型<b>短期业绩冲高</b>，随后收益全丧失；闷头算计、面试平淡的，<b>长期反而最强</b>。',
+    b2title:"扎心真相",
+    b2body:'让人眼前一亮的人，和最终能赢的人，<span class="mint">常是两个人</span>——稳定复利，才是提款机的样子。',
+    citeSrc:"Satornino, Allen, Shi & Bolander (2023)",
+    citeJour:"Journal of Marketing 87(2):298–318",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底009 ================= */
+  {
+    fileNo:"实证档案 NO.009", pillar:"柱一 · 我能不能干销售",
+    tags:["🔥 想放弃","🛡 怕被低估"],
+    badge:"顶刊 · 追踪研究",
+    headQ:["考试没过、但够乐观","反而卖得最好"],
+    verdict:[{t:"超级乐观组 · 第二年"},{t:"反超 57%",cls:"hl-coral hl-under"}],
+    hook:"大都会人寿招了一批“笔试没通过”的人，只因一个特质——结果他们卖赢了所有人。",
+    b1title:"数据说",
+    stats:[
+      {cap:"乐观前半组 · 两年累计",num:"+37%",tagn:"多卖这么多 ▲",kind:"win"},
+      {cap:"超级乐观组 · 第二年",num:"+57%",tagn:"反超正常录取 ▲",kind:"win"},
+    ],
+    b1body:'机制:乐观者把拒绝归因为<b>"暂时的、具体的"</b>——所以被拒之后，还敢打下一个电话。',
+    b2title:"扎心真相",
+    b2body:'能不能扛过销售最难那关(被拒)，不看脸皮厚，看<span class="mint">你怎么解释"这次没成"</span>——这，能练。',
+    citeSrc:"Seligman & Schulman (1986)",
+    citeJour:"J. Personality & Social Psych. 50(4):832–838",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* ================= 底010 ================= */
+  {
+    fileNo:"实证档案 NO.010", pillar:"柱一 · 我能不能干销售",
+    tags:["🛡 怕被低估","🔥 想放弃"],
+    badge:"元分析 · 跨职业",
+    headQ:["干成销售靠的性格","不是能说会道"],
+    verdict:[{t:"是"},{t:"尽责",cls:"hl-mint"},{t:"：自律 · 可靠 · 跟到底"}],
+    hook:"跨所有职业、几十年数据里，最稳的那个性格预测因子——不是外向，是“尽责”。",
+    b1title:"数据说",
+    stats:[
+      {cap:"尽责性（自律 · 可靠 · 跟到底）→ 绩效",num:"跨职业 第 1",tagn:"最一致的预测因子 ▲（效度约 .19）",kind:"win"},
+    ],
+    b1body:'大五人格里，只有<b>尽责性</b>是跨所有职业最一致的业绩预测因子；<b>外向</b>只在销售等特定岗位有限相关。',
+    b2title:"扎心真相",
+    b2body:'你羡慕的"天生会来事"不是关键。<span class="mint">按流程、跟到底、可不可靠</span>——靠习惯，不靠天赋。',
+    citeSrc:"Barrick & Mount (1991)",
+    citeJour:"Personnel Psychology 44(1):1–26",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底031 ================= */
+  {
+    fileNo:"实证档案 NO.031", pillar:"柱一 · 我能不能干销售",
+    tags:["🧭 选公司","🛡 怕被低估","🕵 被蒙在鼓里"],
+    badge:"元分析",
+    headQ:["怕自己没经验","不敢入行销售？"],
+    verdict:[{t:"经验对真实成交，"},{t:"几乎不预测",cls:"hl-coral hl-under"}],
+    hook:"年限对真实成交，几乎不预测，甚至略负——老练，只是“看起来像个销售”。",
+    b1title:"数据说",
+    stats:[
+      {cap:"经验 → 主管评分",num:"r=.26",tagn:"只是看着像",kind:"win"},
+      {cap:"经验 → 客观成交",num:"≈ -.06",tagn:"约等于零，甚至略负",kind:"lose"},
+    ],
+    b1body:'老练的人"看起来像个销售"，但<b>卖不卖得出，跟干过几年无关</b>。',
+    b2title:"扎心真相",
+    b2body:'转行、退伍、刚毕业，别被"没经验"劝退——这行的门槛，<span class="mint">比劝退你的人说的低</span>。',
+    citeSrc:"Vinchur, Schippmann, Switzer & Roth (1998)",
+    citeJour:"J. Applied Psychology 83(4):586–597",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底042 ================= */
+  {
+    fileNo:"实证档案 NO.042", pillar:"柱一 · 我能不能干销售",
+    tags:["🧭 选公司","🛡 怕被低估","🕵 被蒙在鼓里"],
+    badge:"元分析 · 116 篇",
+    headQ:["怕自己天生","不是干销售的料？"],
+    verdict:[{t:"史上最大规模研究:天赋排"},{t:"倒数",cls:"hl-coral hl-under"}],
+    hook:"汇总 116 篇研究、1653 个关联，把“天赋”排到了倒数。",
+    b1title:"对业绩影响力排序",
+    chart:"bars",
+    bars:[
+      {lab:"角色认知",w:100,val:"第 1",kind:"hi"},
+      {lab:"技能",w:84,val:"第 2"},
+      {lab:"动机",w:68,val:"第 3"},
+      {lab:"个人因素",w:50,val:"第 4"},
+      {lab:"天资 / 天赋",w:34,val:"倒数第 2",kind:"lose"},
+      {lab:"组织环境",w:24,val:"垫底",kind:"dim"},
+    ],
+    b1body:'真正靠前的角色认知、技能、动机，<b>全是后天能练的</b>。',
+    b2title:"扎心真相",
+    b2body:'"我没这天赋"只是借口——拉开差距的是<span class="mint">能练的技能和动机</span>，不是天生的料。',
+    citeSrc:"Churchill, Ford, Hartley & Walker (1985)",
+    citeJour:"J. Marketing Research 22(2):103–118",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底080 ================= */
+  {
+    fileNo:"实证档案 NO.080", pillar:"柱一 · 我能不能干销售",
+    tags:["💰 想多拿","🧭 选公司"],
+    badge:"顶刊元分析 · 530+ 引用",
+    headQ:["能不能卖好","实测就看这 5 样"],
+    verdict:[{t:"聪明(智商)，只排"},{t:"中游",cls:"hl-coral hl-under"}],
+    hook:"把 25 年销售研究汇总，真正预测业绩的前几名里，“聪明”只排中间，还有一样是公司在坑你。",
+    b1title:"真正预测业绩的 5 样（β）",
+    chart:"bars",
+    bars:[
+      {lab:"销售知识",w:100,val:".28",kind:"hi"},
+      {lab:"适应性（看人下菜）",w:96,val:".27"},
+      {lab:"认知能力（智商）",w:82,val:".23 · 中游"},
+      {lab:"工作投入",w:82,val:".23"},
+      {lab:"角色模糊（拖累）",w:89,val:"−.25",kind:"lose"},
+    ],
+    b1body:'"会卖的知识"排第一、"看人下菜的适应性"第二；<b>智商只排中游</b>。而<b>角色模糊</b>在实打实拖垮你。',
+    b2title:"扎心真相",
+    b2body:'一家让你长期<b>搞不清"该干嘛、按啥算钱"</b>的公司，不是管理松，是<span class="mint">直接在扣你业绩</span>。',
+    citeSrc:"Verbeke, Dietz & Verwaal (2011)",
+    citeJour:"J. Acad. Marketing Science 39(3):407–428",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底100 ================= */
+  {
+    fileNo:"实证档案 NO.100", pillar:"柱一 · 我能不能干销售",
+    tags:["💰 想多拿","🛡 怕被低估"],
+    badge:"顶刊 · 经典 GED 研究",
+    headQ:["光聪明，不够","挣钱的是能练的本事"],
+    verdict:[{t:"同样考分，非认知弱 ="},{t:"辍学者工资",cls:"hl-coral hl-under"}],
+    hook:"同样的考分，非认知技能弱的人，挣的是辍学者的工资——决定收入的，不只是智商。",
+    b1title:"数据说",
+    stats:[
+      {cap:"考分（认知能力）",num:"= 高中毕业",tagn:"一样聪明",kind:"win"},
+      {cap:"收入（非认知技能弱）",num:"= 辍学者",tagn:"聪明没变现 ▼",kind:"lose"},
+    ],
+    b1body:'拿 GED（高中同等学力）的人考分和正常毕业生一样，但因<b>坚持、自律、靠谱更弱</b>，收入掉到辍学者水平。',
+    b2title:"扎心真相",
+    b2body:'你能不能卖好、挣得多，主要不看智商，看<span class="mint">坚持、靠谱、自律</span>——它们，能练出来。',
+    citeSrc:"Heckman & Rubinstein (2001)",
+    citeJour:"American Economic Review 91(2):145–149",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底043 ================= */
+  {
+    fileNo:"实证档案 NO.043", pillar:"柱一 · 我能不能干销售",
+    tags:["🧭 选公司","💰 想多拿","🕵 被蒙在鼓里"],
+    badge:"元分析 · n=77,560",
+    headQ:["都说销售是","“钱”驱动的动物？"],
+    verdict:[{t:"更能预测业绩的，是你"},{t:"喜不喜欢",cls:"hl-mint"}],
+    hook:"7 万多人的数据说:比钱更能预测你业绩的，是你到底喜不喜欢这件事。",
+    b1title:"数据说",
+    stats:[
+      {cap:"内在动机（享受 · 成长）",num:"r=.298",tagn:"更能预测业绩 ▲",kind:"win"},
+      {cap:"外在动机（钱 · 奖金）",num:"r=.176",tagn:"反而更弱",kind:"lose"},
+    ],
+    b1body:'动机与业绩正相关(r=.245)；其中<b>内在动机</b>与业绩的关联，明显<b>强于"为了钱"的外在动机</b>。',
+    b2title:"扎心真相",
+    b2body:'光"为了钱"逼自己，反而不是最出业绩的姿势。选行选公司，<span class="mint">也看你会不会真喜欢上它</span>。',
+    citeSrc:"J. Acad. Marketing Science (2022) 元分析",
+    citeJour:"127 项研究 · n=77,560",
+    gradeLevel:"g", gradeText:"铁证",
+  },
 ];
 
 function uChart(){
@@ -224,12 +406,32 @@ function uChart(){
   </svg>`;
 }
 
+function declineChart(){
+  return `<svg class="uchart" viewBox="0 0 900 210" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <line class="u-axis" x1="40" y1="176" x2="880" y2="176"/>
+    <path class="u-line" d="M40 150 C 150 150, 230 34, 300 34"/>
+    <path class="d-crash" d="M300 34 C 430 34, 470 172, 880 168"/>
+    <circle class="u-dot" cx="300" cy="34" r="12"/>
+    <circle class="d-dot" cx="820" cy="166" r="11"/>
+    <text class="u-label" x="300" y="22" text-anchor="middle" font-family="Noto Sans CJK SC">开局爆单</text>
+    <text class="d-label" x="700" y="120" text-anchor="middle" font-family="Noto Sans CJK SC">第12个月 · 跌下神坛</text>
+  </svg>`;
+}
+function barsChart(items){
+  return `<div class="bars">${items.map(b=>`
+    <div class="bar-row">
+      <span class="bar-lab">${b.lab}</span>
+      <span class="bar-track"><span class="bar-fill ${b.kind||''}" style="width:${b.w}%"></span></span>
+      <span class="bar-val ${b.kind==='lose'?'lose':(b.kind==='dim'?'dim':'')}">${b.val}</span>
+    </div>`).join("")}</div>`;
+}
+
 function render(c){
   const verdict = c.verdict.map(v=>`<span class="${v.cls||''}">${v.t}</span>`).join("");
   const stats = c.stats ? `<div class="stats">${c.stats.map(s=>`
       <div class="stat ${s.kind}"><div class="cap">${s.cap}</div>
         <div class="num">${s.num}</div><div class="tagn">${s.tagn}</div></div>`).join("")}</div>` : "";
-  const chart = c.chart==="u" ? uChart() : "";
+  const chart = c.chart==="u" ? uChart() : c.chart==="decline" ? declineChart() : c.chart==="bars" ? barsChart(c.bars) : "";
   return `
   <div class="card">
     <div class="top">
@@ -248,7 +450,6 @@ function render(c){
     </div>
     <div class="headline"><div class="q">${c.headQ[0]}</div><div class="q">${c.headQ[1]}</div></div>
     <div class="verdict"><span class="arrow">▸</span><div>${verdict}</div></div>
-    <div class="hook"><span class="mark">&ldquo;</span>${c.hook}</div>
     <div class="ruler">${Array.from({length:36}).map(()=>"<i></i>").join("")}</div>
     <div class="block">
       <div class="block-label"><span class="block-num">01</span><span class="block-title">${c.b1title}</span><span class="block-line"></span></div>
