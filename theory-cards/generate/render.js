@@ -140,7 +140,9 @@ html,body{background:#333;}
 .sec .bignum{flex:none;align-self:center;font-family:'Anton';font-size:96px;line-height:.85;letter-spacing:-1px;}
 .bignum.gain{color:var(--gain);}
 .bignum.loss{color:var(--loss);}
-.bignum.neutral{color:var(--ink);font-family:'Noto Serif CJK SC',serif;font-weight:700;font-size:60px;writing-mode:vertical-rl;letter-spacing:2px;border-left:5px solid var(--acc);padding-left:14px;margin-left:6px;}
+.bignum.neutral{color:var(--ink);font-family:'Noto Serif CJK SC',serif;font-weight:700;font-size:78px;}
+/* concept stamp: 竖排概念印（理论条用词，非数字）*/
+.bignum.concept{color:var(--ink);font-family:'Noto Serif CJK SC',serif;font-weight:700;font-size:60px;writing-mode:vertical-rl;letter-spacing:2px;border-left:5px solid var(--acc);padding-left:14px;margin-left:6px;}
 
 /* section 3 ledger rows */
 .ledger{display:flex;flex-direction:column;gap:15px;flex:1;justify-content:center;}
@@ -205,7 +207,7 @@ function cardHtml(c) {
       <div class="badge"><span class="chk">✓</span>${c.badge}</div>
     </div>
     <div class="subrow">
-      <span class="chip pillar">柱${c.pillar} · ${p.name}</span>
+      <span class="chip pillar">${c.chip || ('柱' + c.pillar + ' · ' + p.name)}</span>
       ${tags}
       <span class="sample">${c.sample}</span>
     </div>
