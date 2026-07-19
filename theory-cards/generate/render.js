@@ -253,7 +253,9 @@ function cardHtml(c) {
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--force-color-profile=srgb'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1520 }, deviceScaleFactor: 2 });
+  const only = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
   for (const c of CARDS) {
+    if (only && !only.has(c.slug || c.no)) continue;
     const html = `<!doctype html><html><head><meta charset="utf-8"><style>${css()}</style></head><body>${cardHtml(c)}</body></html>`;
     await page.setContent(html, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
