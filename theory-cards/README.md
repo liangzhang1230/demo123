@@ -1,0 +1,26 @@
+# 销售定价学 · 实证档案 —— 理论卡片
+
+138 条销售管理实证理论，一条一张卡片。视觉识别系统：**米黄档案纸 + 红色「实证存档」印章 + 衬线体大标题 + 卷宗装订孔**，柱色（A–I 九根柱）区分品类。
+
+## 结构（每张固定骨架）
+- 顶部：实证印章 + 档案编号 + 柱标签 + 人群标（🅑老板/🅢管理者/🅗人事）+ 顶刊背书
+- 衬线大标题（钩子式）
+- `01 数据发现` → `02 你在犯错` → `03 值多少钱/代价`
+- 论文出处（可查证）
+- 统一钩子：关注+评论「要」→ 免费领《精选10条·可落地版》
+- 话题标签 + `@销售定价学` 落款
+
+## 目录
+- `generate/cards.js` —— 卡片文案与柱色数据
+- `generate/render.js` —— Playwright 渲染成 1080×1520 PNG
+- `generate/sheet.js` / `montage.js` —— 拼图/对比图
+- `fonts/` —— Anton / Archivo Black / Space Mono（拉丁数字/等宽）
+- `out/` —— 已渲染成品
+
+## 重新生成
+依赖：Noto Sans/Serif CJK（`apt-get install fonts-noto-cjk`）、`npm i playwright`、Chromium。
+运行：`node generate/render.js`（渲染前把 `fonts/` 放到 `generate/` 同级，或改 `FONTS` 路径）。
+
+## 进度
+- ✅ 批次 1：001–010（柱A 薪酬 / 柱B 配额 / 柱C 招聘）
+- ⬜ 011–138 待续
