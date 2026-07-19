@@ -77,9 +77,9 @@
   .tag{font-size:24px;color:var(--dim);background:rgba(255,255,255,.05);
     border:1px solid var(--hairline-soft);border-radius:8px;padding:7px 15px;}
 
-  .headline{margin-top:18px;font-weight:900;line-height:1.13;letter-spacing:-.5px;
+  .headline{margin-top:14px;font-weight:900;line-height:1.12;letter-spacing:-.5px;
     font-size:67px;color:var(--cream);}
-  .verdict{margin-top:14px;font-size:43px;font-weight:900;line-height:1.22;
+  .verdict{margin-top:11px;font-size:43px;font-weight:900;line-height:1.2;
     display:flex;align-items:baseline;gap:16px;}
   .verdict .arrow{color:var(--acc);font-size:37px;}
   .hl-coral{color:var(--rev);}
@@ -97,8 +97,8 @@
   .ruler i{flex:1;border-left:2px solid rgba(var(--acc-rgb),.16);height:10px;}
   .ruler i:nth-child(5n+1){height:20px;border-color:rgba(var(--acc-rgb),.5);}
 
-  .block{margin-top:12px;}
-  .block-label{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
+  .block{margin-top:9px;}
+  .block-label{display:flex;align-items:center;gap:16px;margin-bottom:6px;}
   .block-num{font-size:40px;font-weight:900;color:var(--acc);
     font-variant-numeric:tabular-nums;letter-spacing:1px;}
   .block-title{font-size:34px;font-weight:800;color:var(--cream);letter-spacing:.5px;}
@@ -107,7 +107,7 @@
   .body b{color:var(--cream);font-weight:800;}
   .body .mint{color:var(--acc);font-weight:800;}
 
-  .stats{display:flex;gap:24px;margin:4px 0 16px;}
+  .stats{display:flex;gap:24px;margin:2px 0 12px;}
   .stat{flex:1;background:var(--surface);border:1px solid var(--hairline-soft);
     border-radius:18px;padding:14px 26px;position:relative;overflow:hidden;}
   .stat.win{border-color:rgba(var(--acc-rgb),.4);background:rgba(var(--acc-rgb),.07);}
@@ -121,9 +121,9 @@
   .stat.win .tagn{color:var(--acc-2);}
   .stat.lose .tagn{color:var(--rev);}
 
-  .cite{margin-top:auto;padding-top:16px;border-top:1px solid var(--hairline-soft);
+  .cite{margin-top:auto;padding-top:13px;border-top:1px solid var(--hairline-soft);
     display:flex;align-items:center;gap:10px;font-size:24px;color:var(--dim);
-    flex-wrap:wrap;line-height:1.35;}
+    flex-wrap:wrap;line-height:1.32;}
   .cite .src{color:#C3D4CD;font-weight:700;}
   .cite .book{color:var(--acc);font-size:24px;}
   .cite .grade{display:inline-flex;align-items:center;gap:9px;font-weight:800;
@@ -137,7 +137,7 @@
   /* ====== 通用强钩子条（对标原样片的黄色CTA盒，放倒数第二层）====== */
   .convert{display:flex;align-items:stretch;margin-top:14px;border-radius:16px;overflow:hidden;
     background:linear-gradient(135deg,var(--acc),var(--acc-deep));color:#04140d;
-    box-shadow:0 10px 28px rgba(var(--acc-rgb),.30);}
+    box-shadow:0 10px 28px rgba(var(--acc-rgb),.30);margin-top:10px;}
   .convert .left{display:flex;flex-direction:column;justify-content:center;gap:8px;
     padding:16px 26px;white-space:nowrap;}
   .convert .left .act{font-size:29px;font-weight:900;letter-spacing:.5px;}
@@ -151,7 +151,7 @@
   .convert .right .r1{font-size:31px;font-weight:900;letter-spacing:.3px;}
   .convert .right .r2{font-size:24px;font-weight:800;opacity:.82;}
 
-  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
   .foot .handle{font-size:31px;font-weight:900;color:var(--cream);}
   .foot .handle b{color:var(--acc);}
   .foot .note{font-size:23px;color:var(--dim);letter-spacing:.5px;}
@@ -675,6 +675,403 @@ const CARDS = [
     citeSrc:"Burt (2004)",
     citeJour:"American Journal of Sociology 110(2):349–399",
     gradeLevel:"y", gradeText:"较稳",
+  },
+
+  /* ============ 柱三 · 选公司 · 面试 · 求职 · 去留 ============ */
+  /* 底053 */
+  {
+    fileNo:"实证档案 NO.053", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🕵 被蒙在鼓里"],
+    badge:"诺奖级基石文献",
+    headQ:["招聘广告写得越漂亮","越可能是个坑"],
+    verdict:[{t:"诺奖“柠檬市场”:"},{t:"好货被烂货挤走",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"信息不对称 · 柠檬市场（诺奖 2001）",num:"你在下风口",tagn:"公司知道达标率/流失率，你看不到 ▼",kind:"lose"}],
+    b1body:'公司清楚这岗位真实的达标率、流失率、提成到底拿不拿得到——<b>而这些恰恰是你面试时最看不到的</b>。承诺越满，越要警惕。',
+    b2title:"扎心真相",
+    b2body:'你不是不够聪明，是<span class="mint">从一开始就坐在信息的下风口</span>——你被展示的，正是公司希望你看到的那面。',
+    citeSrc:"Akerlof (1970)",
+    citeJour:"Quarterly Journal of Economics 84(3):488–500",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底060 */
+  {
+    fileNo:"实证档案 NO.060", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🕵 被蒙在鼓里"],
+    badge:"诺奖级基石文献",
+    headQ:["“零底薪、来了就是老板”","是最廉价的一句谎"],
+    verdict:[{t:"谁为你付代价，"},{t:"谁才在真选你",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[
+      {cap:"给你实打实底薪",num:"在押注你",tagn:"有成本 = 可信信号 ▲",kind:"win"},
+      {cap:"零底薪 · 全靠提成",num:"零风险",tagn:"廉价信号 · 风险全甩你 ▼",kind:"lose"},
+    ],
+    b1body:'信号可不可信，取决于对方<b>为它付了多少代价</b>。给你底薪，是公司拿真金白银承担"你干不出成绩"的风险。',
+    b2title:"扎心真相",
+    b2body:'别忙着给公司发信号(美化简历)，先学会<span class="mint">读公司发给你的信号</span>——谁担了成本，谁是真的。',
+    citeSrc:"Spence (1973)",
+    citeJour:"Quarterly Journal of Economics 87(3):355–374",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底062 */
+  {
+    fileNo:"实证档案 NO.062", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🕵 被蒙在鼓里"],
+    badge:"顶刊 · 事件研究",
+    headQ:["工资越透明","平均工资反而越低？"],
+    verdict:[{t:"老板宁可谁都不多给，"},{t:"也不愿为你破例",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"立法允许员工互相打听工资后 · 平均工资",num:"-2%",tagn:"怕给你破例，得跟一串人重谈 ▼",kind:"lose"}],
+    b1body:'"这是公司统一标准、真没法为你破例"——很多时候不是场面话，是老板在权衡<b>多给你的 vs 被别人知道后要付的连锁成本</b>。',
+    b2title:"扎心真相",
+    b2body:'看懂这本账，你才知道<span class="mint">该在哪儿使劲、哪儿使劲是白费</span>。',
+    citeSrc:"Cullen & Pakzad-Hurson (2023)",
+    citeJour:"Econometrica 91(3):765–802",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底063 */
+  {
+    fileNo:"实证档案 NO.063", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🛡 怕被低估"],
+    badge:"元分析 · 8.6 万人",
+    headQ:["靠“聊得来”挑人的面试","基本等于抽签"],
+    verdict:[{t:"面你的方式，"},{t:"暴露了这家公司的水平",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[
+      {cap:"结构化面试（题目/评分事先定）",num:"真有用",tagn:"情境题效度最高 ▲",kind:"win"},
+      {cap:"随便聊、凭感觉",num:"≈ 抽签",tagn:"凭眼缘 = 噪音 ▼",kind:"lose"},
+    ],
+    b1body:'面试准不准，取决于它<b>结构化的程度</b>，不是面试官多"会看人"。全程漫无边际闲聊、凭感觉拍板——这本身就是信号。',
+    b2title:"扎心真相",
+    b2body:'连挑人都这么随意的公司，<span class="mint">管理多半也随意</span>。',
+    citeSrc:"McDaniel, Whetzel, Schmidt & Maurer (1994)",
+    citeJour:"J. Applied Psychology 79(4):599–616",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底005 */
+  {
+    fileNo:"实证档案 NO.005", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🛡 怕被低估","🕵 被蒙在鼓里"],
+    badge:"顶刊 · 全行业重估",
+    headQ:["你被面试刷掉","多半是他不会招人"],
+    verdict:[{t:"连“考智商”，"},{t:"都不再是最强预测器",cls:"hl-coral hl-under"}],
+    b1title:"2022 重算后 · 选拔工具效度排名",
+    chart:"bars",
+    bars:[
+      {lab:"结构化面试",w:100,val:".42 · 升第一",kind:"hi"},
+      {lab:"传记式资料",w:90,val:".38"},
+      {lab:"智力测验",w:74,val:".31 ↓从.51",kind:"lose"},
+      {lab:"正直测验",w:74,val:".31"},
+      {lab:"尽责性",w:45,val:".19"},
+    ],
+    b1body:'沿用 25 年的老排名把效度<b>系统性高估</b>了。重算后，智力测验<b>从 .51 掉到 .31</b>，被结构化面试反超。',
+    b2title:"扎心真相",
+    b2body:'你被一场闲聊刷掉，和你行不行的关系，<span class="mint">比你以为的小得多</span>。（.42 带浮动，重估学界仍有争议）',
+    citeSrc:"Sackett, Zhang, Berry & Lievens (2022)",
+    citeJour:"J. Applied Psychology 107(11):2040–2068",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底121 */
+  {
+    fileNo:"实证档案 NO.121", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🕵 被蒙在鼓里","💰 想多拿"],
+    badge:"顶刊 · 近 2500 人田野实验",
+    headQ:["不写“工资可谈”的岗位","最会吃掉你的钱"],
+    verdict:[{t:"规则越模糊，越吃"},{t:"不好意思开口的人",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[
+      {cap:"招聘不写“可谈” · 规则模糊时",num:"被压价",tagn:"沉默者吃亏，男女差距更大 ▼",kind:"lose"},
+      {cap:"一旦明写“工资可谈”",num:"差距消失",tagn:"甚至反转 ▲",kind:"win"},
+    ],
+    b1body:'性别差距很大一块不是"天生敢不敢"，是<b>被规则说不说清楚制造出来的</b>。',
+    b2title:"扎心真相",
+    b2body:'规则越模糊，越吃"不好意思开口"的人——<span class="mint">而模糊，往往是设计出来的</span>。',
+    citeSrc:"Leibbrandt & List (2015)",
+    citeJour:"Management Science 61(9):2016–2024",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底122 */
+  {
+    fileNo:"实证档案 NO.122", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🕵 被蒙在鼓里","🧭 选公司"],
+    badge:"全国代表性调查 · 11505 人",
+    headQ:["约束你的那张纸","总在你答应后才出现"],
+    verdict:[{t:"这不是巧合，是"},{t:"顺序设计",cls:"hl-coral hl-under"}],
+    b1title:"竞业协议 · 真实调查",
+    chart:"bars",
+    bars:[
+      {lab:"签时手上没别的机会",w:100,val:"约 2/3",kind:"lose"},
+      {lab:"接受 offer 后才被要求签",w:52,val:"约 1/3",kind:"lose"},
+      {lab:"会主动去谈条款的",w:16,val:"仅 10%",kind:"dim"},
+    ],
+    b1body:'机关就在<b>时间差</b>:等你已经答应、已经拒了别家、准备入职，你的谈判筹码归零，那张纸才递到你面前。',
+    b2title:"扎心真相",
+    b2body:'同一份条款，你还有三个 offer 时签、和已经辞了职时签，<span class="mint">是两个完全不同的价格</span>。',
+    citeSrc:"Starr, Prescott & Bishara (2021)",
+    citeJour:"Journal of Law & Economics 64(1):53–84",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底064 */
+  {
+    fileNo:"实证档案 NO.064", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","💰 想多拿"],
+    badge:"奠基文献 + 2000 万人实验",
+    headQ:["给你下份工作的","不是铁哥们"],
+    verdict:[{t:"是你差点忘了名字的"},{t:"点头之交",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[{cap:"弱关系（泛泛之交 · 老同事）",num:"更管用",tagn:"带来你圈子外接触不到的信息 ▲",kind:"win"}],
+    b1body:'铁哥们和你混在同一个圈子，知道的机会和你高度重叠；<b>点头之交连接着你圈子之外的世界</b>。2022 年千万级实验再度确认。',
+    b2title:"扎心真相",
+    b2body:'别只在最熟的三五个人里打听机会——<span class="mint">你职业的下一站，多半藏在你差点想不起来的联系人里</span>。',
+    citeSrc:"Granovetter (1973) · LinkedIn RCT (2022)",
+    citeJour:"American Journal of Sociology 78(6):1360–1380",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底065 */
+  {
+    fileNo:"实证档案 NO.065", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","💰 想多拿"],
+    badge:"顶刊 · 9 家公司实测",
+    headQ:["内推进来的人能力差不多","公司却更爱要"],
+    verdict:[{t:"内推的价值不是更强，是"},{t:"留得久",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[{cap:"被内推的员工 · 离职率",num:"低 10–30%",tagn:"关键时刻表现还更好 ▲",kind:"win"}],
+    b1body:'被内推者更容易被录用、也更愿接 offer——即便技能和普通应聘者差不多。不是他们更聪明，是<b>人和岗位匹配得更准</b>。',
+    b2title:"扎心真相",
+    b2body:'冷投是命中率最低的一条路——<span class="mint">被人引荐进去的，从一开始就赢在匹配上</span>。',
+    citeSrc:"Burks, Cowgill, Hoffman & Housman (2015)",
+    citeJour:"Quarterly Journal of Economics 130(2):805–839",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底067 */
+  {
+    fileNo:"实证档案 NO.067", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🛡 怕被低估"],
+    badge:"田野实验 · 100 个城市",
+    headQ:["同一份简历","空窗越久越没人回"],
+    verdict:[{t:"大半伤害，发生在"},{t:"头 8 个月",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"待业时间对回电率的“信号惩罚”",num:"头 8 个月",tagn:"扣得最狠 · 前期最猛 ▼",kind:"lose"}],
+    b1body:'雇主把"待业久"当成"这人可能有问题"的信号(不管公不公平)——<b>待业的每一个月，都在悄悄扣你的回电率</b>。',
+    b2title:"扎心真相",
+    b2body:'"再等等看、等个更好的"这种念头代价很实在——<span class="mint">别让空窗自己长大</span>。',
+    citeSrc:"Kroft, Lange & Notowidigdo (2013)",
+    citeJour:"Quarterly Journal of Economics 128(3):1123–1167",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底068 */
+  {
+    fileNo:"实证档案 NO.068", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🔥 想放弃"],
+    badge:"AER 高被引 · 田野实验",
+    headQ:["简历只换个名字","回电率差一半"],
+    verdict:[{t:"你被刷掉，"},{t:"很多时候跟能力无关",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"同样的简历 · 仅随机换个名字",num:"回电差 50%",tagn:"筛简历这关，又吵又偏 ▼",kind:"lose"}],
+    b1body:'"筛简历"是一道充满噪音和隐性偏见的关口——<b>你被刷掉，很多时候和你的真实能力无关</b>。（美国种族情境，仅取机制）',
+    b2title:"扎心真相",
+    b2body:'别把简历阶段的拒绝，内化成"我不行"的证据——正因为冷筛这么不准，<span class="mint">能绕过它的内推、熟人引荐才这么值钱</span>。',
+    citeSrc:"Bertrand & Mullainathan (2004)",
+    citeJour:"American Economic Review 94(4):991–1013",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底124 */
+  {
+    fileNo:"实证档案 NO.124", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🔥 想放弃"],
+    badge:"顶刊 · 随机对照实验",
+    headQ:["简历投烂了没回音？","问题可能不在简历"],
+    verdict:[{t:"是你只在"},{t:"一条窄缝里找",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"由系统推荐“相关的其他职业”后",num:"面试邀约↑",tagn:"对搜得窄/失业久的人最有效 ▲",kind:"win"}],
+    b1body:'"投了很多没回音"常常不是能力问题，是<b>搜索面太窄</b>:你只盯着和现在一模一样的岗位名，而你完全能干的岗位就在隔壁。',
+    b2title:"扎心真相",
+    b2body:'把搜索从"我现在的职位名"扩到"任务相近的一圈"，<span class="mint">面试机会的池子不是一个量级</span>。（仅测到面试↑）',
+    citeSrc:"Belot, Kircher & Muller (2019)",
+    citeJour:"Review of Economic Studies 86(4):1411–1447",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底072 */
+  {
+    fileNo:"实证档案 NO.072", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🔥 想放弃","🛡 怕被低估"],
+    badge:"经典 · 五实验 · 广泛复现",
+    headQ:["预测 33.9 天写完","实际花了 55.5 天"],
+    verdict:[{t:"你永远在"},{t:"低估自己",cls:"hl-coral hl-under"}],
+    b1title:"计划谬误",
+    stats:[
+      {cap:"学生预测 · 论文完成",num:"33.9 天",tagn:"脑子里放的是顺利剧本",kind:"win"},
+      {cap:"实际 · 完成",num:"55.5 天",tagn:"明知会低估，还继续低估 ▼",kind:"lose"},
+    ],
+    b1body:'人会系统性低估自己完成一件事要多久——<b>只低估自己、不低估别人</b>。找到下家、练成能出单的销售，全比你乐观估计的久。',
+    b2title:"扎心真相",
+    b2body:'低估了会怎样?钱烧完、耐心耗尽、还没等到回报就放弃了。解药:<span class="mint">别按想象算，按上一次实际花了多久算</span>。',
+    citeSrc:"Buehler, Griffin & Ross (1994)",
+    citeJour:"J. Personality & Social Psych. 67(3):366–381",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底073 */
+  {
+    fileNo:"实证档案 NO.073", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🔥 想放弃"],
+    badge:"元分析",
+    headQ:["找工作靠的是动作量","“心态好”跟结果没关系"],
+    verdict:[{t:"乐观，是唯一"},{t:"不预测求职的因素",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"众多前因里 · 乐观与求职行为的相关",num:"≈ 0",tagn:"真正管用的是自我效能/动作量 ▲",kind:"win"}],
+    b1body:'把人推去找、去投、去联系的，是自我效能、动机、尽责这些自我调节的东西——<b>光是心态乐观，不会让你多投一份简历</b>。',
+    b2title:"扎心真相",
+    b2body:'找工作不是"保持积极"的心态活，是动作活——你缺的往往不是乐观，是<span class="mint">今天到底投了几家、联系了几个人</span>。',
+    citeSrc:"Kanfer, Wanberg & Kantrowitz (2001)",
+    citeJour:"J. Applied Psychology 86(5):837–855",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底055 */
+  {
+    fileNo:"实证档案 NO.055", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🔥 想放弃"],
+    badge:"元分析背书（6.5 万人级）",
+    headQ:["你留下不是因为满意","满意度根本不预测你走不走"],
+    verdict:[{t:"拴住你的是"},{t:"另外三样东西",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[{cap:"真正决定你留还是走的",num:"联系·契合·牺牲",tagn:"不是“满不满意” ▲",kind:"win"}],
+    b1body:'很多人天天骂公司却始终不走，不是贱，是被三根线缠住:<b>联系</b>(和多少人事绑着)、<b>契合</b>(和生活搭不搭)、<b>牺牲</b>(走了要放弃什么)。',
+    b2title:"扎心真相",
+    b2body:'认清是哪根线缠着你，比问自己"还满意吗"有用一百倍——<span class="mint">因为满意度这个问题本身就骗人</span>。',
+    citeSrc:"Mitchell, Holtom, Lee 等 (2001)",
+    citeJour:"Academy of Management Journal 44(6):1102–1121",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底056 */
+  {
+    fileNo:"实证档案 NO.056", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🔥 想放弃","🧭 选公司"],
+    badge:"奠基文献 · 2000+ 引用",
+    headQ:["越是你自己选的","你越走不了"],
+    verdict:[{t:"赔钱的决定，人反而"},{t:"追加投入去救它",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"要为一个已在赔钱的决定负个人责任时",num:"越陷越深",tagn:"投更多资源去救，而非止损 ▼",kind:"lose"}],
+    b1body:'这份工作是你顶着家里反对选的、拍胸脯说"我能行"进去的——<b>正因为是你自己选的，你才更容易一年年耗下去</b>，只为不承认当初错了。',
+    b2title:"扎心真相",
+    b2body:'这不是你意志薄弱，这是人性默认设置——<span class="mint">认出它，是止损的第一步</span>。',
+    citeSrc:"Staw (1976)",
+    citeJour:"Org. Behavior & Human Performance 16(1):27–44",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底057 */
+  {
+    fileNo:"实证档案 NO.057", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🔥 想放弃","🧭 选公司"],
+    badge:"经典 · 巨样本",
+    headQ:["“我都干三年了，舍不得走”","这句话正偷你下个三年"],
+    verdict:[{t:"已经花掉的时间，"},{t:"留下也回不来",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"沉没成本效应",num:"回不来了",tagn:"却是最多人不走的理由 ▼",kind:"lose"}],
+    b1body:'人一旦投进去了钱、时间、精力，就更倾向把一件<b>已经不划算的事硬撑下去</b>——只为了"不显得浪费"。',
+    b2title:"扎心真相",
+    b2body:'"舍不得已经付出的"是被反复记录的思维惯性——但<span class="mint">过去的三年，你留下也拿不回</span>。（时间维度学界有争议）',
+    citeSrc:"Arkes & Blumer (1985)",
+    citeJour:"Org. Behavior & Human Decision Proc. 35(1):124–140",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底058 */
+  {
+    fileNo:"实证档案 NO.058", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🔥 想放弃","🧭 选公司"],
+    badge:"顶刊 · 486 人实验",
+    headQ:["不是这工作有多好","是“不动”最省力"],
+    verdict:[{t:"只要现状是个选项，人就"},{t:"不理性地赖着不动",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"现状偏差 · 486 人实验 + 真实医保/退休数据",num:"过度选“不变”",tagn:"哪怕换一下明显更好 ▼",kind:"lose"}],
+    b1body:'新员工会选明显更划算的方案，<b>老员工却赖在旧方案里不换</b>。近年研究在"选工作"情境里也复现了这个偏差。',
+    b2title:"扎心真相",
+    b2body:'你"再等等看、现在换太麻烦"的念头，很大一部分不是理性判断，是<span class="mint">大脑在偷懒</span>。',
+    citeSrc:"Samuelson & Zeckhauser (1988)",
+    citeJour:"Journal of Risk and Uncertainty 1(1):7–59",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底123 */
+  {
+    fileNo:"实证档案 NO.123", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🔥 想放弃","🛡 怕被低估","🧭 选公司"],
+    badge:"顶刊 · 行政数据",
+    headQ:["被裁的代价","不是空窗几个月"],
+    verdict:[{t:"是往后好几年的"},{t:"工资水位",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"被裁的高年资工人 · 长期年收入",num:"约 -25%/年",tagn:"且损失在离职前就开始堆积 ▼",kind:"lose"}],
+    b1body:'被裁真正拿走的不是几个月工资，而是<b>一段本来会继续往上走的收入轨道</b>——即使找到同类新工作，损失依然很大。',
+    b2title:"扎心真相",
+    b2body:'公司在走下坡，等被动出局才动，账比主动挪贵得多——<span class="mint">损失从船倾斜那刻就开始计</span>。（25% 有争议）',
+    citeSrc:"Jacobson, LaLonde & Sullivan (1993)",
+    citeJour:"American Economic Review 83(4):685–709",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+  /* 底004 */
+  {
+    fileNo:"实证档案 NO.004", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🕵 被蒙在鼓里","💰 想多拿","🧭 选公司"],
+    badge:"顶刊 · 348 销售 × 3 年",
+    headQ:["你越拼命","明年配额调得越高"],
+    verdict:[{t:"多干不多赚:销冠"},{t:"卡线限产、然后先走",cls:"hl-coral hl-under"}],
+    b1title:"数据说",
+    stats:[{cap:"公司按上年业绩上调配额（棘轮效应）",num:"越干越亏",tagn:"系统性压低最能干者的产出 ▼",kind:"lose"}],
+    b1body:'你那股"多干反而吃亏"的憋屈<b>不是错觉，是被结构设计出来的</b>——干得越猛、明年配额调得越高，还可能顺手降提成。',
+    b2title:"扎心真相",
+    b2body:'看懂它，你才知道<span class="mint">面试该问什么、这家该不该久留</span>。',
+    citeSrc:"Chung, Steenburgh & Sudhir (2014)",
+    citeJour:"Marketing Science 33(2):165–187",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底128 */
+  {
+    fileNo:"实证档案 NO.128", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🕵 被蒙在鼓里","🧭 选公司","💰 想多拿"],
+    badge:"双诺奖作者 · 诺奖级理论",
+    headQ:["纯提成不是奖励你","是通知你“别的都别干”"],
+    verdict:[{t:"病根在合同，"},{t:"不在你",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[{cap:"只给“能测量的那部分”发重奖时",num:"其余全被牺牲",tagn:"精力从测不出的地方被抽走 ▼",kind:"lose"}],
+    b1body:'能测的是这个月签单数；<b>测不出的是</b>——客户留住多久、有没有为冲量过度承诺、有没有在积累带得走的能力。纯提成=通知你这些都不必做。',
+    b2title:"扎心真相",
+    b2body:'一家公司<span class="mint">只考核最容易数的那个数字</span>，说明它要么没想清楚，要么打算用完你这一波。',
+    citeSrc:"Holmström & Milgrom (1991) · 双诺奖",
+    citeJour:"J. Law, Economics & Organization 7:24–52",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底078 */
+  {
+    fileNo:"实证档案 NO.078", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🧭 选公司","🛡 怕被低估"],
+    badge:"顶刊 · 4 万销售 · 131 家公司",
+    headQ:["最会卖的人被提成主管","然后变成最差的经理"],
+    verdict:[{t:"别把主管的糟糕，"},{t:"当成针对你",cls:"hl-mint"}],
+    b1title:"数据说",
+    stats:[
+      {cap:"销售业绩越突出",num:"越易升",tagn:"哪怕有更准的管理力指标",kind:"win"},
+      {cap:"这些人当主管后",num:"下属业绩↓",tagn:"彼得原理 · 首个大规模实证 ▼",kind:"lose"},
+    ],
+    b1body:'他不会带人，是因为当初靠"会卖"上位、不是靠"会带"——<b>结构性通病，不是你的错</b>。',
+    b2title:"扎心真相",
+    b2body:'你想升的那个主管位，可能让你<span class="mint">离开最擅长、也最赚钱的一线</span>。',
+    citeSrc:"Benson, Li & Shue (2019)",
+    citeJour:"Quarterly Journal of Economics 134(4):2085–2134",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* 底127 */
+  {
+    fileNo:"实证档案 NO.127", pillar:"柱三 · 选公司 · 面试 · 去留",
+    tags:["🕵 被蒙在鼓里","🧭 选公司"],
+    badge:"作者 2012 诺贝尔经济学奖",
+    headQ:["“48 小时答复，过期作废”","诺奖得主研究了一辈子"],
+    verdict:[{t:"限时不是效率，是"},{t:"筹码剥夺",cls:"hl-coral hl-under"}],
+    b1title:"医生入门市场 · 答复期历史",
+    stats:[{cap:"雇主抢人 → 答复期一次比一次短",num:"10 天 → 12 小时",tagn:"4 年内，连 12 小时都嫌太长 ▼",kind:"lose"}],
+    b1body:'"限时答复"精确地打掉你三样东西:<b>比较其他机会的时间、拿到别家 offer 的可能、冷静核对条款的余地</b>。这是竞争结构的必然。',
+    b2title:"扎心真相",
+    b2body:'同一份 offer，给你两周考虑、和给你 24 小时"过期作废"——<span class="mint">你能拿到的实际价格，完全不是一回事</span>。',
+    citeSrc:"Roth & Xing (1994)",
+    citeJour:"American Economic Review 84(4):992–1044",
+    gradeLevel:"g", gradeText:"铁证",
   },
 ];
 
