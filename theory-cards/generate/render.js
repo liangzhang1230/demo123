@@ -69,7 +69,7 @@ html,body{background:#333;}
 .wm em{position:absolute;bottom:34px;font-style:normal;font-size:15px;letter-spacing:3px;font-family:'SpaceMono',monospace;}
 
 /* discoverability tag row (fills lower band, aids 小红书/抖音 reach) */
-.htags{margin-top:auto;flex:none;padding-top:12px;display:flex;flex-wrap:nowrap;gap:10px;overflow:hidden;}
+.htags{margin-top:auto;flex:none;padding-top:8px;display:flex;flex-wrap:nowrap;gap:10px;overflow:hidden;}
 .htags span{font-size:20px;font-weight:700;color:var(--acc);
   background:color-mix(in srgb,var(--acc) 12%,transparent);
   padding:7px 14px;border-radius:8px;white-space:nowrap;}
