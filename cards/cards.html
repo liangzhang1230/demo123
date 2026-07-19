@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>销冠底牌 · 实证档案卡</title>
+<style>
+  :root{
+    /* ——— 个人向配色（区别于企业向的纯黑+金+红）——— */
+    --ink-0:#0A1613;      /* 深墨绿黑 底 */
+    --ink-1:#0E201A;      /* 渐变上端 */
+    --ink-2:#0c1a16;
+    --surface:rgba(255,255,255,.035);
+    --hairline:rgba(140,225,190,.16);
+    --hairline-soft:rgba(255,255,255,.07);
+    --mint:#2FE0A0;       /* 签名主色：翡翠绿 = 能练、成长、你行 */
+    --mint-2:#7DF3C8;
+    --cream:#F2F7F4;      /* 数据/正文 近白 */
+    --dim:#93AAA2;        /* 弱化墨绿灰 */
+    --dim-2:#6E857D;
+    --gold:#F4C664;       /* 极少量：档案编号 / 证据星 */
+    --coral:#FF7A66;      /* 极少量：唯一的"扎心/反转"数字 */
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:#05100c;}
+  body{
+    font-family:"Noto Sans CJK SC","Noto Sans CJK SC Regular",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    display:flex;flex-direction:column;align-items:center;gap:48px;padding:48px;
+  }
+
+  /* ============ 卡片容器 1080 x 1440 (3:4) ============ */
+  .card{
+    position:relative;
+    width:1080px;height:1440px;
+    background:
+      radial-gradient(120% 80% at 82% -8%, rgba(47,224,160,.14), rgba(47,224,160,0) 46%),
+      radial-gradient(90% 60% at -10% 108%, rgba(47,224,160,.08), rgba(47,224,160,0) 50%),
+      linear-gradient(168deg, var(--ink-1) 0%, var(--ink-0) 58%, #08130f 100%);
+    color:var(--cream);
+    overflow:hidden;
+    padding:58px 72px 50px 80px;
+    display:flex;flex-direction:column;
+    isolation:isolate;
+  }
+  /* 左侧签名翡翠竖脊 */
+  .card::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:10px;
+    background:linear-gradient(180deg,var(--mint) 0%, #14a978 100%);
+    box-shadow:0 0 26px rgba(47,224,160,.5);
+  }
+  /* 极淡网格纹理（实证/坐标感） */
+  .card::after{
+    content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+    background-size:60px 60px;
+    mask-image:radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+  }
+
+  /* ============ 顶栏 ============ */
+  .top{display:flex;justify-content:space-between;align-items:center;}
+  .brand-mark{display:flex;align-items:center;gap:14px;}
+  .brand-dot{width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(135deg,var(--mint),#12a877);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#04140d;font-size:22px;box-shadow:0 4px 14px rgba(47,224,160,.35);}
+  .brand-name{font-size:27px;font-weight:700;letter-spacing:2px;color:var(--cream);}
+  .brand-name b{color:var(--mint);}
+  .file-no{font-size:23px;color:var(--dim);letter-spacing:1px;margin-top:3px;
+    font-variant-numeric:tabular-nums;}
+  .badge{
+    display:flex;align-items:center;gap:10px;
+    border:1.5px solid var(--hairline);
+    background:rgba(47,224,160,.06);
+    border-radius:999px;padding:12px 22px;
+    font-size:24px;font-weight:700;color:var(--mint-2);white-space:nowrap;}
+  .badge .tick{width:26px;height:26px;border-radius:50%;
+    background:var(--mint);color:#04140d;display:flex;align-items:center;
+    justify-content:center;font-size:17px;font-weight:900;}
+
+  /* ============ 柱 + 标签行 ============ */
+  .meta-row{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap;}
+  .pillar{font-size:26px;font-weight:700;color:var(--gold);letter-spacing:1px;}
+  .sep{color:var(--dim-2);font-size:22px;}
+  .tag{font-size:24px;color:var(--dim);background:rgba(255,255,255,.05);
+    border:1px solid var(--hairline-soft);border-radius:8px;padding:7px 15px;}
+
+  /* ============ 大标题 ============ */
+  .headline{margin-top:18px;font-weight:900;line-height:1.13;letter-spacing:-.5px;
+    font-size:67px;color:var(--cream);}
+  .headline .q{color:var(--cream);}
+  .verdict{margin-top:14px;font-size:43px;font-weight:900;line-height:1.22;
+    display:flex;align-items:baseline;gap:16px;}
+  .verdict .arrow{color:var(--mint);font-size:37px;}
+  .hl-coral{color:var(--coral);}
+  .hl-mint{color:var(--mint);}
+  .hl-under{position:relative;}
+  .hl-under::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;height:12px;
+    background:rgba(255,122,102,.22);z-index:-1;border-radius:3px;}
+
+  /* ============ 钩子 pull-quote ============ */
+  .hook{position:relative;margin-top:16px;padding:2px 0 2px 52px;
+    font-size:36px;line-height:1.46;color:#D8E6E0;font-weight:500;}
+  .hook .mark{position:absolute;left:-6px;top:-32px;font-size:104px;line-height:1;
+    color:var(--mint);opacity:.5;font-family:Georgia,"Noto Serif CJK SC",serif;}
+
+  /* ============ 标尺分隔 ============ */
+  .ruler{display:flex;align-items:flex-end;gap:0;height:20px;margin:16px 0 2px;
+    opacity:.55;}
+  .ruler i{flex:1;border-left:2px solid var(--hairline);height:10px;}
+  .ruler i:nth-child(5n+1){height:20px;border-color:rgba(47,224,160,.5);}
+
+  /* ============ 区块 ============ */
+  .block{margin-top:12px;}
+  .block-label{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
+  .block-num{font-size:40px;font-weight:900;color:var(--mint);
+    font-variant-numeric:tabular-nums;letter-spacing:1px;}
+  .block-title{font-size:34px;font-weight:800;color:var(--cream);letter-spacing:.5px;}
+  .block-line{flex:1;height:2px;background:linear-gradient(90deg,var(--hairline),transparent);}
+  .body{font-size:36px;line-height:1.52;color:#D6E4DE;font-weight:400;}
+  .body b{color:var(--cream);font-weight:800;}
+  .body .mint{color:var(--mint);font-weight:800;}
+
+  /* ============ 数据 stat ============ */
+  .stats{display:flex;gap:24px;margin:4px 0 16px;}
+  .stat{flex:1;background:var(--surface);border:1px solid var(--hairline-soft);
+    border-radius:18px;padding:14px 26px;position:relative;overflow:hidden;}
+  .stat.win{border-color:rgba(47,224,160,.4);background:rgba(47,224,160,.07);}
+  .stat.lose{border-color:rgba(255,122,102,.28);}
+  .stat .cap{font-size:24px;color:var(--dim);margin-bottom:2px;}
+  .stat .num{font-size:72px;font-weight:900;line-height:1.05;letter-spacing:-1px;
+    font-variant-numeric:tabular-nums;}
+  .stat.win .num{color:var(--mint);}
+  .stat.lose .num{color:var(--coral);}
+  .stat .tagn{font-size:24px;margin-top:6px;font-weight:700;}
+  .stat.win .tagn{color:var(--mint-2);}
+  .stat.lose .tagn{color:var(--coral);}
+
+  /* ============ 引用条 ============ */
+  .cite{margin-top:auto;padding-top:16px;border-top:1px solid var(--hairline-soft);
+    display:flex;align-items:center;gap:10px;font-size:24px;color:var(--dim);
+    flex-wrap:wrap;line-height:1.35;}
+  .cite .src{color:#C3D4CD;font-weight:700;}
+  .cite .book{color:var(--mint);font-size:24px;}
+  .cite .grade{display:inline-flex;align-items:center;gap:9px;font-weight:800;
+    white-space:nowrap;padding:5px 15px 5px 12px;border-radius:999px;
+    border:1px solid var(--hairline-soft);}
+  .cite .gdot{width:16px;height:16px;border-radius:50%;box-shadow:0 0 10px currentColor;}
+  .grade.g{color:#2FE0A0;} .grade.g .gdot{background:#2FE0A0;}
+  .grade.y{color:#F4C664;} .grade.y .gdot{background:#F4C664;}
+  .grade.o{color:#FF9A52;} .grade.o .gdot{background:#FF9A52;}
+
+  /* ============ 底栏 ============ */
+  .foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;}
+  .foot .handle{font-size:38px;font-weight:900;color:var(--cream);}
+  .foot .handle b{color:var(--mint);}
+  .foot .tagline{font-size:24px;color:var(--dim);margin-top:6px;letter-spacing:.5px;}
+  .foot .cta{font-size:27px;font-weight:800;color:#04140d;
+    background:linear-gradient(135deg,var(--mint),#19b585);
+    padding:14px 26px;border-radius:12px;box-shadow:0 6px 18px rgba(47,224,160,.3);}
+
+  /* mini inverted-U chart */
+  .uchart{width:100%;height:158px;margin:2px 0 14px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const CARDS = [
+  /* ================= 底001 ================= */
+  {
+    fileNo:"实证档案 NO.001", pillar:"柱一 · 我能不能干销售",
+    tags:["💰 想多拿","🛡 怕被低估","🕵 被蒙在鼓里"],
+    badge:"同行评审 · 元分析",
+    headQ:["智商高、学历好","就能做好销售？"],
+    verdict:[{t:"数据："},{t:"几乎没用",cls:"hl-coral hl-under"}],
+    hook:"预测你能不能把东西卖出去，最强的信号不是聪明——是一个面试根本没在测的东西。",
+    b1title:"数据说",
+    stats:[
+      {cap:"成就动机 → 客观业绩",num:"r=.41",tagn:"全表最强 ▲",kind:"win"},
+      {cap:"智商 → 客观成交",num:"r=.04",tagn:"≈ 等于没有",kind:"lose"},
+    ],
+    b1body:'能说会道 <b>≠</b> 能成交。真正拉开成交的，是<b>争第一、不服输、自我驱动</b>——不是智商。',
+    b2title:"扎心真相",
+    b2body:'你不是没天赋，是<b>练错了方向</b>——而它，<span class="mint">后天能练</span>。',
+    citeSrc:"Vinchur, Schippmann, Switzer & Roth (1998)",
+    citeJour:"J. Applied Psychology 83(4):586–597",
+    gradeLevel:"g", gradeText:"铁证",
+  },
+  /* ================= 底002 ================= */
+  {
+    fileNo:"实证档案 NO.002", pillar:"柱一 · 我能不能干销售",
+    tags:["🛡 怕被低估","🔥 想放弃"],
+    badge:"单一强研究 · 顶刊",
+    headQ:["性格内向","做不了销售？"],
+    verdict:[{t:"最能卖的，偏偏"},{t:"不是最外向",cls:"hl-coral hl-under"},{t:"的"}],
+    hook:"“我内向，天生不适合干销售”——沃顿教授拿数据，把这句话判了错。",
+    b1title:"数据说",
+    chart:"u",
+    b1body:'业绩对外向程度呈<b>倒 U 型</b>：<b>两向性格</b>（能推进、又会倾听）创收最高；外向与业绩的整体相关，<b>弱到几乎测不出</b>。',
+    b2title:"扎心真相",
+    b2body:'你安静、会听、能观察，正是销冠原料的一半——你缺的<span class="mint">不是性格，是方法</span>。',
+    citeSrc:"Grant, A. M. (2013)",
+    citeJour:"Psychological Science 24(6):1024–1030",
+    gradeLevel:"y", gradeText:"较稳",
+  },
+];
+
+function uChart(){
+  return `<svg class="uchart" viewBox="0 0 900 210" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="ug" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2FE0A0" stop-opacity=".35"/>
+        <stop offset="1" stop-color="#2FE0A0" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <line x1="40" y1="170" x2="880" y2="170" stroke="rgba(255,255,255,.14)" stroke-width="2"/>
+    <path d="M40 150 Q 460 -40 880 150" fill="none" stroke="#2FE0A0" stroke-width="5" stroke-linecap="round"/>
+    <path d="M40 150 Q 460 -40 880 150 L 880 170 L 40 170 Z" fill="url(#ug)"/>
+    <circle cx="460" cy="55" r="12" fill="#2FE0A0"/>
+    <circle cx="460" cy="55" r="22" fill="none" stroke="#2FE0A0" stroke-width="2" opacity=".5"/>
+    <text x="460" y="30" fill="#7DF3C8" font-size="27" font-weight="800" text-anchor="middle" font-family="Noto Sans CJK SC">两向性格 · 创收峰值</text>
+    <text x="52" y="200" fill="#93AAA2" font-size="23" font-family="Noto Sans CJK SC">最内向</text>
+    <text x="848" y="200" fill="#93AAA2" font-size="23" text-anchor="end" font-family="Noto Sans CJK SC">最外向</text>
+  </svg>`;
+}
+
+function render(c){
+  const tags = c.tags.map(t=>`<span class="tag">${t}</span>`).join("");
+  const verdict = c.verdict.map(v=>`<span class="${v.cls||''}">${v.t}</span>`).join("");
+  const stats = c.stats ? `<div class="stats">${c.stats.map(s=>`
+      <div class="stat ${s.kind}">
+        <div class="cap">${s.cap}</div>
+        <div class="num">${s.num}</div>
+        <div class="tagn">${s.tagn}</div>
+      </div>`).join("")}</div>` : "";
+  const chart = c.chart==="u" ? uChart() : "";
+  return `
+  <div class="card">
+    <div class="top">
+      <div class="brand-mark">
+        <div class="brand-dot">底</div>
+        <div>
+          <div class="brand-name">销冠<b>底牌</b> · 反常识实证库</div>
+          <div class="file-no">${c.fileNo}</div>
+        </div>
+      </div>
+      <div class="badge"><span class="tick">✓</span>${c.badge}</div>
+    </div>
+
+    <div class="meta-row">
+      <span class="pillar">${c.pillar}</span>
+      ${c.tags.map(t=>`<span class="tag">${t}</span>`).join("")}
+    </div>
+
+    <div class="headline">
+      <div class="q">${c.headQ[0]}</div>
+      <div class="q">${c.headQ[1]}</div>
+    </div>
+    <div class="verdict"><span class="arrow">▸</span><div>${verdict}</div></div>
+
+    <div class="hook"><span class="mark">&ldquo;</span>${c.hook}</div>
+
+    <div class="ruler">${Array.from({length:36}).map(()=>"<i></i>").join("")}</div>
+
+    <div class="block">
+      <div class="block-label">
+        <span class="block-num">01</span>
+        <span class="block-title">${c.b1title}</span>
+        <span class="block-line"></span>
+      </div>
+      ${stats}${chart}
+      <div class="body">${c.b1body}</div>
+    </div>
+
+    <div class="block">
+      <div class="block-label">
+        <span class="block-num">02</span>
+        <span class="block-title">${c.b2title}</span>
+        <span class="block-line"></span>
+      </div>
+      <div class="body">${c.b2body}</div>
+    </div>
+
+    <div class="cite">
+      <span class="book">📚</span>
+      <span class="src">${c.citeSrc}</span>
+      <span class="sep">·</span>
+      <span>${c.citeJour}</span>
+      <span class="sep">·</span>
+      <span class="grade ${c.gradeLevel}"><i class="gdot"></i>${c.gradeText}</span>
+    </div>
+
+    <div class="foot">
+      <div>
+        <div class="handle">@<b>销售定价学</b></div>
+        <div class="tagline">全球40年销售实证 · 每条都查得到论文出处</div>
+      </div>
+      <div class="cta">关注 → 别再练错方向</div>
+    </div>
+  </div>`;
+}
+
+document.getElementById("root").innerHTML = CARDS.map(render).join("");
+</script>
+</body>
+</html>
