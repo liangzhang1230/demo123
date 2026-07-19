@@ -6,6 +6,9 @@ const fs = require('fs');
 const FONTS = path.join(__dirname, 'fonts');
 const f = n => 'file://' + path.join(FONTS, n);
 
+// 固定三色系统：黑 + 红 + 绿（钩子块另配金色）。绿=唯一强调色，全卡统一。
+const ACCENT = '#127A4E'; // 绿
+
 function css() {
   return `
 @font-face{font-family:'Anton';src:url('${f('Anton.woff2')}') format('woff2');font-weight:400;}
@@ -19,9 +22,9 @@ function css() {
   --ink2:#5A554A;       /* muted ink */
   --seal:#C33A26;       /* vermillion official-seal red */
   --loss:#C33A26;
-  --gain:#12734A;       /* deep archival green */
+  --gain:#127A4E;       /* 绿 = 正向数字，与 --acc 同色 */
   --line:#C9BC9E;       /* hairline on paper */
-  --acc:#0F6E6A;        /* fallback; overridden per-card via inline --acc */
+  --acc:#127A4E;        /* 绿 = 唯一强调色 */
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{background:#333;}
@@ -137,7 +140,7 @@ html,body{background:#333;}
 .sec .bignum{flex:none;align-self:center;font-family:'Anton';font-size:96px;line-height:.85;letter-spacing:-1px;}
 .bignum.gain{color:var(--gain);}
 .bignum.loss{color:var(--loss);}
-.bignum.neutral{color:var(--acc);font-family:'Noto Serif CJK SC',serif;font-weight:700;font-size:78px;}
+.bignum.neutral{color:var(--ink);font-family:'Noto Serif CJK SC',serif;font-weight:700;font-size:78px;}
 
 /* section 3 ledger rows */
 .ledger{display:flex;flex-direction:column;gap:15px;flex:1;justify-content:center;}
@@ -188,7 +191,7 @@ function cardHtml(c) {
       <div class="lrow"><div class="k">${r.k}</div><div class="dots"></div>
         <div class="v ${r.color}">${r.v}<small>${r.unit}</small></div></div>`).join('')}</div>`
     : `<div class="body s3text">${c.s3.text}</div>`;
-  return `<div class="card" style="--acc:${c.accent || p.ink}">
+  return `<div class="card" style="--acc:${ACCENT}">
     <div class="punch"></div>
     <div class="wm"><i></i><b>实证</b><span>存 档</span><em>SPS·可查证</em></div>
     <div class="mast">
