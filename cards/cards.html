@@ -87,9 +87,9 @@
   .hl-under::after{content:"";position:absolute;left:-2px;right:-2px;bottom:2px;height:12px;
     background:rgba(var(--rev-rgb),.22);z-index:-1;border-radius:3px;}
 
-  .hook{position:relative;margin-top:16px;padding:2px 0 2px 52px;
-    font-size:36px;line-height:1.46;color:#D8E6E0;font-weight:500;}
-  .hook .mark{position:absolute;left:-6px;top:-32px;font-size:104px;line-height:1;
+  .hook{position:relative;margin-top:14px;padding:2px 0 2px 50px;
+    font-size:34px;line-height:1.44;color:#D8E6E0;font-weight:500;}
+  .hook .mark{position:absolute;left:-6px;top:-30px;font-size:96px;line-height:1;
     color:var(--acc);opacity:.5;font-family:Georgia,"Noto Serif CJK SC",serif;}
 
   .ruler{display:flex;align-items:flex-end;gap:0;height:20px;margin:16px 0 2px;opacity:.55;}
@@ -133,13 +133,27 @@
   .grade.y{color:#F4C664;} .grade.y .gdot{background:#F4C664;}
   .grade.o{color:#FF9A52;} .grade.o .gdot{background:#FF9A52;}
 
-  .foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;}
-  .foot .handle{font-size:38px;font-weight:900;color:var(--cream);}
+  /* ====== 通用强钩子条（对标原样片的黄色CTA盒，放倒数第二层）====== */
+  .convert{display:flex;align-items:stretch;margin-top:14px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(135deg,var(--acc),var(--acc-deep));color:#04140d;
+    box-shadow:0 10px 28px rgba(var(--acc-rgb),.30);}
+  .convert .left{display:flex;flex-direction:column;justify-content:center;gap:8px;
+    padding:16px 26px;white-space:nowrap;}
+  .convert .left .act{font-size:29px;font-weight:900;letter-spacing:.5px;}
+  .convert .left .chip{display:inline-flex;align-items:center;gap:8px;margin-top:2px;}
+  .convert .left .chip b{background:#04140d;color:var(--acc);font-weight:900;font-size:28px;
+    padding:3px 18px;border-radius:9px;letter-spacing:2px;}
+  .convert .left .chip span{font-size:24px;font-weight:800;opacity:.7;}
+  .convert .div{width:2px;background:rgba(4,20,13,.25);margin:16px 0;}
+  .convert .right{flex:1;display:flex;flex-direction:column;justify-content:center;gap:5px;
+    padding:14px 26px;}
+  .convert .right .r1{font-size:31px;font-weight:900;letter-spacing:.3px;}
+  .convert .right .r2{font-size:24px;font-weight:800;opacity:.82;}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .foot .handle{font-size:31px;font-weight:900;color:var(--cream);}
   .foot .handle b{color:var(--acc);}
-  .foot .tagline{font-size:24px;color:var(--dim);margin-top:6px;letter-spacing:.5px;}
-  .foot .cta{font-size:27px;font-weight:800;color:#04140d;
-    background:linear-gradient(135deg,var(--acc),var(--acc-deep));
-    padding:14px 26px;border-radius:12px;box-shadow:0 6px 18px rgba(var(--acc-rgb),.3);}
+  .foot .note{font-size:23px;color:var(--dim);letter-spacing:.5px;}
 
   .uchart{width:100%;height:158px;margin:2px 0 14px;}
   .u-axis{stroke:rgba(255,255,255,.14);stroke-width:2;}
@@ -250,10 +264,20 @@ function render(c){
       <span class="sep">·</span><span>${c.citeJour}</span>
       <span class="sep">·</span><span class="grade ${c.gradeLevel}"><i class="gdot"></i>${c.gradeText}</span>
     </div>
+    <div class="convert">
+      <div class="left">
+        <div class="act">关注 + 评论</div>
+        <div class="chip"><b>查</b><span>就发你</span></div>
+      </div>
+      <div class="div"></div>
+      <div class="right">
+        <div class="r1">领《选公司 · 避坑自测》</div>
+        <div class="r2">先看你踩了几条 →</div>
+      </div>
+    </div>
     <div class="foot">
-      <div><div class="handle">@<b>销售定价学</b></div>
-        <div class="tagline">全球40年销售实证 · 每条都查得到论文出处</div></div>
-      <div class="cta">关注 → 别再练错方向</div>
+      <div class="handle">@<b>销售定价学</b></div>
+      <div class="note">每条都查得到论文 · 关注不迷路 →</div>
     </div>
   </div>`;
 }
