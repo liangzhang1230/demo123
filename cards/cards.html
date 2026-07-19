@@ -6,15 +6,15 @@
 <title>销冠底牌 · 实证档案卡</title>
 <style>
   :root{
-    /* —— 可切换的签名色（只有这一组变量随主题改变，其余全部不动）—— */
-    --acc:#2FE0A0;            /* 主签名色 */
-    --acc-rgb:47,224,160;
-    --acc-2:#7DF3C8;          /* 浅色调（徽章文字/图表标签）*/
-    --acc-deep:#14a978;       /* 深色调（竖脊/CTA渐变下端）*/
-    --ink-0:#0A1613;          /* 底色 深 */
-    --ink-1:#0E201A;          /* 底色 渐变上端 */
-    --rev:#FF7A66;            /* 唯一的"扎心/反转"点睛色 */
-    --rev-rgb:255,122,102;
+    /* —— 签名色：青蓝 Azure（定稿）—— */
+    --acc:#37C7FF;            /* 主签名色 */
+    --acc-rgb:55,199,255;
+    --acc-2:#9FE4FF;          /* 浅色调（徽章文字/图表标签）*/
+    --acc-deep:#1385CC;       /* 深色调（竖脊/CTA渐变下端）*/
+    --ink-0:#0A1420;          /* 底色 深 */
+    --ink-1:#0D1E2E;          /* 底色 渐变上端 */
+    --rev:#FF8A5C;            /* 唯一的"扎心/反转"点睛色 */
+    --rev-rgb:255,138,92;
 
     /* —— 固定不变 —— */
     --surface:rgba(255,255,255,.035);
@@ -140,10 +140,10 @@
   .convert .left{display:flex;flex-direction:column;justify-content:center;gap:8px;
     padding:16px 26px;white-space:nowrap;}
   .convert .left .act{font-size:29px;font-weight:900;letter-spacing:.5px;}
-  .convert .left .chip{display:inline-flex;align-items:center;gap:8px;margin-top:2px;}
-  .convert .left .chip b{background:#04140d;color:var(--acc);font-weight:900;font-size:28px;
-    padding:3px 18px;border-radius:9px;letter-spacing:2px;}
-  .convert .left .chip span{font-size:24px;font-weight:800;opacity:.7;}
+  .convert .left .chip{display:inline-flex;align-items:center;gap:12px;margin-top:2px;
+    font-size:30px;font-weight:900;}
+  .convert .left .chip b{background:#04140d;color:var(--acc);font-weight:900;font-size:31px;
+    padding:4px 22px;border-radius:9px;letter-spacing:3px;}
   .convert .div{width:2px;background:rgba(4,20,13,.25);margin:16px 0;}
   .convert .right{flex:1;display:flex;flex-direction:column;justify-content:center;gap:5px;
     padding:14px 26px;}
@@ -266,8 +266,8 @@ function render(c){
     </div>
     <div class="convert">
       <div class="left">
-        <div class="act">关注 + 评论</div>
-        <div class="chip"><b>查</b><span>就发你</span></div>
+        <div class="act">关注 +</div>
+        <div class="chip">评论 <b>查</b></div>
       </div>
       <div class="div"></div>
       <div class="right">
