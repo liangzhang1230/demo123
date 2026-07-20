@@ -34,7 +34,8 @@ function html(fmt){
   .ceilbar::after{content:"▼ ▼ ▼";position:absolute;left:6px;top:${horiz?5:7}px;font-size:${horiz?11:15}px;color:#23211C;letter-spacing:6px;}
   h1{font-weight:900;line-height:1.06;letter-spacing:1px;}
   h1 .red{color:#C33A26;}
-  .u{display:inline-block;border-bottom:${horiz?7:10}px solid #C33A26;padding-bottom:2px;line-height:.9;}
+  h1 .green{color:#127A4E;}
+  .u{display:inline-block;border-bottom:${horiz?7:10}px solid currentColor;padding-bottom:2px;line-height:.9;}
   .handle{font-family:"Noto Sans CJK SC",sans-serif;color:#5A554A;font-weight:700;}
   .handle b{color:#23211C;}
   .handle .g{color:#127A4E;}
@@ -56,7 +57,7 @@ function html(fmt){
       <div class="ceil" style="font-size:13px;letter-spacing:2px;margin-bottom:16px;">
         <span>收入天花板</span><span class="ceilbar"></span>
       </div>
-      <h1 style="font-size:70px;">为什么你<span class="red">拼了命</span>，<br>还是<span class="u red">穷</span>？</h1>
+      <h1 style="font-size:70px;">为什么你<span class="red">拼了命</span>，<br>还是<span class="u green">穷</span>？</h1>
     </div>
     <div class="handle" style="position:absolute;left:78px;bottom:26px;font-size:15px;letter-spacing:1px;">
       <b>@销售<span class="g">定价学</span></b> · 全球40年销售管理实证 · 每条带论文出处
@@ -73,7 +74,7 @@ function html(fmt){
       <div class="ceil" style="font-size:20px;letter-spacing:3px;margin-bottom:30px;width:70%;">
         <span>收入天花板</span><span class="ceilbar"></span>
       </div>
-      <h1 style="font-size:132px;">为什么<br>你<span class="red">拼了命</span>，<br>还是<span class="u red">穷</span>？</h1>
+      <h1 style="font-size:132px;">为什么<br>你<span class="red">拼了命</span>，<br>还是<span class="u green">穷</span>？</h1>
     </div>
     <div class="handle" style="position:absolute;left:120px;bottom:64px;font-size:26px;letter-spacing:1px;">
       <b>@销售<span class="g">定价学</span></b><br>
