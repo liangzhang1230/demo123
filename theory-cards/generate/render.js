@@ -258,10 +258,10 @@ function cardHtml(c) {
         <div class="m2">全库 138 条 · <b>每条带论文出处，可自行查证</b></div>
       </div>
     </div>` : `<div class="cta">
-      <div class="lft"><div class="big">关注<br>＋评论</div><div class="key">要</div></div>
+      <div class="lft"><div class="big">关注<br>＋评论</div><div class="key">10</div></div>
       <div class="bar"></div>
-      <div class="rgt"><div class="t1">免费领 <b>《精选 10 条 · 可落地版》</b></div>
-        <div class="t2">照着改 → 先堵住一个正在漏钱的窟窿</div></div>
+      <div class="rgt"><div class="t1">评论「10」拿 <b>《堵漏 10 条》</b></div>
+        <div class="t2">10 个正在漏钱的窟窿 · 判据＋改法＋论文出处</div></div>
     </div>`}
 
     <div class="htags">${(c.htags||[]).map(t => `<span>${t}</span>`).join('')}</div>
