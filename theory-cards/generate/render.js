@@ -8,6 +8,8 @@ const f = n => 'file://' + path.join(FONTS, n);
 
 // 固定三色系统：黑 + 红 + 绿（钩子块另配金色）。绿=唯一强调色，全卡统一。
 const ACCENT = '#127A4E'; // 绿
+// 纯净版：CLEAN=1 去掉底部引流钩子块（抖音等平台合规铺量用），只留干货+出处+品牌+话题
+const CLEAN = !!process.env.CLEAN;
 
 function css() {
   return `
@@ -233,12 +235,12 @@ function cardHtml(c) {
 
     <div class="src"><span class="slabel"><span class="dot"></span>论文出处</span><span class="cite">${c.src}</span><span class="verify">可查证 ✓</span></div>
 
-    <div class="cta">
+    ${CLEAN ? '' : `<div class="cta">
       <div class="lft"><div class="big">关注<br>＋评论</div><div class="key">要</div></div>
       <div class="bar"></div>
       <div class="rgt"><div class="t1">免费领 <b>《精选 10 条 · 可落地版》</b></div>
         <div class="t2">照着改 → 先堵住一个正在漏钱的窟窿</div></div>
-    </div>
+    </div>`}
 
     <div class="htags">${(c.htags||[]).map(t => `<span>${t}</span>`).join('')}</div>
 
@@ -265,7 +267,7 @@ function cardHtml(c) {
     });
     console.log(`  fit ${c.slug || c.no}: content=${fit.scrollH}px / box=${fit.clientH}px ${fit.scrollH>fit.clientH?'*** OVERFLOW ***':'ok'}`);
     const el = await page.$('.card');
-    const out = path.join(__dirname, `card_${c.slug || c.no}.png`);
+    const out = path.join(__dirname, `card_${CLEAN ? 'clean_' : ''}${c.slug || c.no}.png`);
     await el.screenshot({ path: out });
     console.log('wrote', out);
   }
