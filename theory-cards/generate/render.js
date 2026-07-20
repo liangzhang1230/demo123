@@ -182,6 +182,22 @@ html,body{background:#333;}
 .foot-brand .name span{color:var(--seal);}
 .foot-brand .tl{font-size:20px;color:var(--ink2);font-weight:600;margin-top:4px;}
 .foot-brand .follow{font-size:23px;font-weight:800;color:var(--acc);white-space:nowrap;}
+
+/* 纯净版专用「存档条」——填补去掉钩子后的空位，档案骑缝章风格 */
+.filebar{margin-top:18px;border:3px solid var(--ink);border-radius:16px;padding:22px 28px;
+  display:flex;align-items:center;gap:24px;background:rgba(255,255,255,.34);position:relative;overflow:hidden;}
+.filebar::after{content:'';position:absolute;right:-30px;top:-30px;width:150px;height:150px;border-radius:50%;
+  border:6px double var(--seal);opacity:.14;}
+.filebar .chop{flex:none;width:104px;height:104px;border:4px solid var(--seal);border-radius:12px;color:var(--seal);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-7deg);
+  font-family:'Noto Serif CJK SC',serif;box-shadow:inset 0 0 0 2px rgba(195,58,38,.4);}
+.filebar .chop b{font-size:38px;font-weight:700;letter-spacing:4px;line-height:1;margin-left:4px;}
+.filebar .chop span{font-size:15px;letter-spacing:5px;margin-top:6px;margin-left:5px;}
+.filebar .meta{flex:1;}
+.filebar .meta .m1{font-size:30px;font-weight:900;color:var(--ink);letter-spacing:1px;}
+.filebar .meta .m1 em{font-style:normal;color:var(--seal);}
+.filebar .meta .m2{font-size:23px;color:var(--ink2);font-weight:700;margin-top:8px;font-family:'SpaceMono',monospace;}
+.filebar .meta .m2 b{color:var(--gain);font-family:'Noto Sans CJK SC';}
 `;
 }
 
@@ -235,7 +251,13 @@ function cardHtml(c) {
 
     <div class="src"><span class="slabel"><span class="dot"></span>论文出处</span><span class="cite">${c.src}</span><span class="verify">可查证 ✓</span></div>
 
-    ${CLEAN ? '' : `<div class="cta">
+    ${CLEAN ? `<div class="filebar">
+      <div class="chop"><b>实证</b><span>审 定</span></div>
+      <div class="meta">
+        <div class="m1">实证档案 · NO.<em>${c.no}</em> · 柱${c.pillar}</div>
+        <div class="m2">全库 138 条 · <b>每条带论文出处，可自行查证</b></div>
+      </div>
+    </div>` : `<div class="cta">
       <div class="lft"><div class="big">关注<br>＋评论</div><div class="key">要</div></div>
       <div class="bar"></div>
       <div class="rgt"><div class="t1">免费领 <b>《精选 10 条 · 可落地版》</b></div>
