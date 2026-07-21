@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>公司筛选器 · 销售找选留</title>
+<style>
+/* ========== 设计令牌 · 移动优先 · 深浅双色 ========== */
+:root{
+  --bg:#0F1416; --card:#1A2124; --card2:#212A2E; --line:rgba(255,255,255,.10);
+  --ink:#ECF1F0; --mute:#93A0A2; --faint:#68767A;
+  --brand:#5BB98C; --brand-d:#3E8E6A;
+  --green:#5BB98C; --amber:#E0A63F; --red:#E06B6B; --blue:#7FA8B8;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Songti SC","SimSun",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sh:0 8px 30px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --bg:#EAEEEC; --card:#FCFDFC; --card2:#F1F5F3; --line:rgba(20,30,28,.10);
+  --ink:#18211E; --mute:#5C6A66; --faint:#8A9691;
+  --sh:0 6px 22px rgba(20,30,28,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+  padding:0 0 76px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{max-width:520px;margin:0 auto;padding:0 15px}
+.screen{display:none;animation:rise .28s ease both;padding-top:14px}
+.screen.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.screen{animation:none}}
+
+/* ========== 顶栏 ========== */
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(var(--bg) 72%,transparent);
+  backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:space-between;
+  padding:12px 15px 8px;max-width:520px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;letter-spacing:.02em}
+.brand i{width:26px;height:26px;border-radius:7px;background:var(--brand);color:#08130E;
+  display:grid;place-items:center;font-size:15px;font-style:normal}
+.tbtn{background:var(--card2);border:1px solid var(--line);color:var(--mute);border-radius:9px;
+  padding:6px 10px;font-size:12px;cursor:pointer}
+.tbtn:active{transform:scale(.96)}
+
+/* ========== 卡片 / 排版 ========== */
+h1{font-size:26px;line-height:1.3;font-weight:700;margin:6px 0 12px;letter-spacing:.01em}
+h2{font-size:19px;font-weight:700;margin:2px 0 10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--brand);text-transform:uppercase;font-weight:600}
+p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
+:root[data-theme="light"] p.lead{color:#3A443F}
+.dim{color:var(--mute);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:var(--sh)}
+.card.tight{padding:13px}
+.sec-h{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase;font-weight:600;margin:0 0 4px}
+.sec-h .n{width:20px;height:20px;border-radius:6px;background:var(--card2);color:var(--brand);
+  display:grid;place-items:center;font-size:11px;flex:none}
+
+/* ========== 表单 ========== */
+.field{padding:11px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:none}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+.field .hint{font-size:11.5px;color:var(--faint);line-height:1.5;margin-bottom:7px}
+.field input[type=number],.field input[type=text]{width:100%;background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;color:var(--ink);font-family:var(--mono);font-size:16px;padding:10px 12px}
+.field input:focus{outline:none;border-color:var(--brand)}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.seg{flex:1 1 auto;min-width:60px;text-align:center;font-size:13px;padding:9px 6px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card2);color:var(--mute);cursor:pointer;transition:.12s;user-select:none}
+.seg[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#08130E;font-weight:700}
+.seg:active{transform:scale(.97)}
+
+/* 体检三档 */
+.chk{padding:12px 0;border-bottom:1px solid var(--line)}
+.chk .q{font-size:14.5px;font-weight:600;margin-bottom:2px}
+.chk .qh{font-size:11.5px;color:var(--faint);margin-bottom:8px;line-height:1.5}
+.opts3{display:flex;gap:6px}
+.o3{flex:1;text-align:center;font-size:12.5px;line-height:1.35;padding:9px 4px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card2);color:var(--mute);cursor:pointer;transition:.12s}
+.o3[aria-pressed="true"]{color:#08130E;font-weight:700}
+.o3.g[aria-pressed="true"]{background:var(--green);border-color:var(--green)}
+.o3.y[aria-pressed="true"]{background:var(--amber);border-color:var(--amber)}
+.o3.r[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.o3:active{transform:scale(.97)}
+
+/* 一票否决 */
+.veto{display:flex;gap:11px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.veto:last-child{border-bottom:none}
+.veto input{appearance:none;width:20px;height:20px;border:1.5px solid var(--red);border-radius:6px;flex:none;
+  margin-top:1px;cursor:pointer;position:relative;background:var(--card2)}
+.veto input:checked{background:var(--red);border-color:var(--red)}
+.veto input:checked::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+.veto span{font-size:13.5px;line-height:1.5}
+.veto span em{font-style:normal;color:var(--faint);font-size:11.5px;display:block;margin-top:1px}
+
+/* 滑块 */
+.slide{padding:12px 0;border-bottom:1px solid var(--line)}
+.slide .sh{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:600}
+.slide .sv{font-family:var(--mono);color:var(--brand);font-weight:700}
+.slide input[type=range]{width:100%;margin-top:9px;accent-color:var(--brand)}
+.slide .hint{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+
+/* 折叠 */
+.acc{border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;background:var(--card)}
+.acc>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary .chev{color:var(--faint);transition:.2s;font-size:13px}
+.acc[open]>summary .chev{transform:rotate(180deg)}
+.acc .body{padding:2px 16px 14px}
+
+/* ========== 结论 / 数字 ========== */
+.summary{position:sticky;top:52px;z-index:15}
+.verdict-card{border-radius:16px;padding:16px;border:1px solid var(--line);background:var(--card);box-shadow:var(--sh)}
+.vlamp{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:.02em}
+.dot{width:13px;height:13px;border-radius:50%;flex:none}
+.dot.g{background:var(--green)} .dot.y{background:var(--amber)} .dot.r{background:var(--red)}
+.dot.n{background:var(--faint)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:12px;overflow:hidden;margin-top:13px}
+.kpi{background:var(--card);padding:11px 12px}
+.kpi .k{font-size:11px;color:var(--faint);letter-spacing:.05em}
+.kpi .v{font-family:var(--mono);font-size:20px;font-weight:700;margin-top:2px;line-height:1.15}
+.kpi .v small{font-size:11px;color:var(--mute);font-weight:400}
+.vtext{font-size:13.5px;line-height:1.7;margin-top:12px;color:#CDD6D4}
+:root[data-theme="light"] .vtext{color:#3A443F}
+.vtext b{color:var(--red)} .vtext .ok{color:var(--green)}
+.flags{list-style:none;margin-top:10px}
+.flags li{position:relative;padding-left:20px;font-size:13px;line-height:1.6;color:var(--mute);margin-bottom:5px}
+.flags li::before{content:"⚑";position:absolute;left:0;color:var(--amber)}
+.flags li.red::before{content:"⛔";color:var(--red)}
+.flags li.good::before{content:"✓";color:var(--green)}
+.flags li b{color:var(--ink)}
+
+/* 现金流条 */
+.ramp{display:flex;gap:3px;align-items:flex-end;height:56px;margin:8px 0 4px}
+.ramp .bar{flex:1;background:var(--brand);border-radius:3px 3px 0 0;min-height:3px;position:relative;opacity:.85}
+.ramp .bar.low{background:var(--red)}
+.ramp-x{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint);font-family:var(--mono)}
+
+/* 账本 */
+.ledger{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.ledger td{padding:7px 2px;border-bottom:1px dotted var(--line);font-family:var(--mono)}
+.ledger td:first-child{font-family:var(--sans);color:var(--mute);text-align:left}
+.ledger td:last-child{text-align:right}
+.ledger tr.sum td{border-top:1px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700;color:var(--ink)}
+.neg{color:var(--red)}
+
+/* 按钮 */
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:13px;background:var(--brand);
+  color:#08130E;font-family:var(--sans);font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;transition:.15s}
+.btn:active{transform:scale(.98)} .btn:disabled{opacity:.5}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mute);font-weight:600}
+.btn.sm{padding:11px;font-size:14px;margin-top:0}
+.btnrow{display:flex;gap:9px}.btnrow .btn{margin-top:14px}
+
+/* 底部导航 */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
+.nav a{flex:1;text-align:center;color:var(--faint);text-decoration:none;font-size:10.5px;padding:5px 0;cursor:pointer}
+.nav a.on{color:var(--brand)}
+.nav a i{display:block;font-size:19px;font-style:normal;line-height:1.2;margin-bottom:1px}
+
+/* 记录 */
+.rec{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px;background:var(--card)}
+.rec .lamp{width:11px;height:11px;border-radius:50%;flex:none}
+.rec .info{flex:1;min-width:0}
+.rec .info b{font-size:14.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .info span{font-size:11.5px;color:var(--faint)}
+.rec .score{font-family:var(--mono);font-weight:700;font-size:17px}
+.pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--card2);color:var(--mute);border:1px solid var(--line);margin-left:6px}
+.empty{text-align:center;color:var(--faint);font-size:13.5px;padding:36px 20px}
+.note{background:var(--card2);border-left:2px solid var(--blue);border-radius:0 10px 10px 0;padding:11px 13px;font-size:12.5px;color:var(--mute);line-height:1.7;margin-top:12px}
+.note b{color:var(--ink)}
+.foot{text-align:center;font-size:11px;color:var(--faint);line-height:1.8;padding:26px 10px 10px}
+.steps{margin:14px 0}
+.step{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line)}
+.step .sn{font-family:var(--serif);font-size:20px;color:var(--brand);flex:none;width:24px}
+.step b{font-size:15px} .step p{font-size:13px;color:var(--mute);margin-top:2px}
+.cmp{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cmp table{border-collapse:collapse;width:100%;min-width:340px;font-size:13px}
+.cmp th,.cmp td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--mono);white-space:nowrap}
+.cmp th:first-child,.cmp td:first-child{text-align:left;font-family:var(--sans);color:var(--mute)}
+.cmp th{color:var(--faint);font-size:11px;font-weight:600}
+.win{color:var(--green);font-weight:700}
+
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .nav,.top,.btn,.btnrow,.acc>summary .chev{display:none!important}
+  .screen{display:none!important} #report.on{display:block!important}
+  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand"><i>筛</i>公司筛选器</div>
+  <div>
+    <button class="tbtn" id="themeBtn">🌓</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ===== 首页 ===== -->
+<section class="screen on" id="home">
+  <p class="eyebrow">销售 · 找 / 选 / 留</p>
+  <h1>HR 画的饼，<br>先冷静折成真数。</h1>
+  <p class="lead">输入几个数、点几下，把一份销售 offer 拆成：<b>冷静期望月收入、前半年现金流、七维体检、一票否决</b>——找工作、选公司、要不要留，不走弯路。</p>
+
+  <div class="card tight">
+    <div class="steps" style="margin:0">
+      <div class="step"><div class="sn">找</div><div><b>评一个 offer</b><p>它到底值多少、有没有坑</p></div></div>
+      <div class="step"><div class="sn">选</div><div><b>多个 offer 并排比</b><p>该去哪个，一眼看清</p></div></div>
+      <div class="step"><div class="sn">留</div><div><b>要不要走 / 下家行不行</b><p>算清空窗成本，别裸辞踩坑</p></div></div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="nav('find')">开始评一个 offer →</button>
+  <button class="btn ghost sm" style="margin-top:10px" onclick="nav('mine')">看我存过的评估</button>
+
+  <div class="field" style="margin-top:16px">
+    <label>报告署名（可选）</label>
+    <div class="hint">填你的名字，会印在报告页脚。</div>
+    <input type="text" id="buyerName" placeholder="例如：张三" oninput="saveMeta()">
+  </div>
+
+  <div class="note"><b>说明。</b>本工具是决策参考，不构成职业或法律意见，不承诺任何收入。所有数据只存在你自己的手机里，不上传任何服务器。涉及合同/竞业条款请咨询执业律师。</div>
+  <div class="foot">公司筛选器 · 纯离线单文件 · 数据只在你手机<br>基准月收入为行业参考值，可能与你所在行业有出入</div>
+</section>
+
+<!-- ===== 找 ===== -->
+<section class="screen" id="find">
+  <div class="summary"><div class="verdict-card" id="findSummary"></div></div>
+
+  <div class="card">
+    <div class="sec-h"><span class="n">1</span>基本盘（30 秒）</div>
+    <div class="field">
+      <label>城市</label>
+      <div class="segs" data-seg="city">
+        <div class="seg" data-v="tier1">一线</div>
+        <div class="seg" data-v="tier2">二线/新一线</div>
+        <div class="seg" data-v="tier34">三四线</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>岗位档位</label>
+      <div class="hint">用来取「该城市该档正常达标月收入」做对照。</div>
+      <div class="segs" data-seg="level">
+        <div class="seg" data-v="s1">销售·初级</div>
+        <div class="seg" data-v="s2">销售·中级</div>
+        <div class="seg" data-v="s3">销售·高级</div>
+        <div class="seg" data-v="m">销售主管</div>
+        <div class="seg" data-v="e">总监/高管</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>底薪（元/月）</label>
+      <input type="number" id="base" value="6000" min="0" oninput="recalc()">
+    </div>
+    <div class="field">
+      <label>底薪性质</label>
+      <div class="hint">「有责底薪」= 要完成任务才发；那它其实不是你的安全底。</div>
+      <div class="segs" data-seg="baseType">
+        <div class="seg" data-v="free">无责底薪</div>
+        <div class="seg" data-v="cond">有责底薪</div>
+        <div class="seg" data-v="zero">零底薪</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>HR 说「做得好月入」（元/月）</label>
+      <div class="hint">面试里给你画的那个饼。不确定就填他说的上限。</div>
+      <input type="number" id="promised" value="20000" min="0" oninput="recalc()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-h"><span class="n">2</span>七维体检 · 各点一下</div>
+    <div class="dim" style="font-size:12px;margin-bottom:6px">把「看不见的公司真相」换成「面试能问出来的」。答不上来的那档，本身就是答案。</div>
+    <div id="checkBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-h">一票否决 · 勾中任意一条，分数不作数</div>
+    <div id="vetoBox"></div>
+  </div>
+
+  <details class="acc">
+    <summary>③ 想要真数字？展开精算 <span class="chev">▾</span></summary>
+    <div class="body">
+      <div class="field">
+        <label>提成率（%）</label>
+        <input type="number" id="rate" value="10" min="0" step="0.1" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>提成基数</label>
+        <div class="hint">「按毛利提成」时，名义提成率会被毛利率打折——最大的坑。</div>
+        <div class="segs" data-seg="commBase">
+          <div class="seg" data-v="hk">按回款</div>
+          <div class="seg" data-v="ml">按毛利</div>
+          <div class="seg" data-v="bj">按标价/GMV</div>
+        </div>
+      </div>
+      <div class="field" id="marginField">
+        <label>综合毛利率（%）</label>
+        <div class="hint">按毛利提成时必填；不知道填 30。</div>
+        <input type="number" id="margin" value="30" min="1" max="95" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>平均单笔回款 · 客单价（元）</label>
+        <input type="number" id="aov" value="8000" min="0" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>公司给的月成交目标（单数）</label>
+        <input type="number" id="deals" value="4" min="0" step="0.5" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>成交周期</label>
+        <div class="hint">越长，前半年越只有底薪。</div>
+        <div class="segs" data-seg="cycle">
+          <div class="seg" data-v="short">快消(1-3月)</div>
+          <div class="seg" data-v="regular">普通(3-6月)</div>
+          <div class="seg" data-v="midLong">中长(6-9月)</div>
+          <div class="seg" data-v="long">大客户(9-15月)</div>
+          <div class="seg" data-v="ultraLong">项目制(15月+)</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>线索从哪来</label>
+        <div class="hint">纯冷启动 = 公司拿你的时间做市场测试，期望成交要打折。</div>
+        <div class="segs" data-seg="lead">
+          <div class="seg" data-v="1">公司给</div>
+          <div class="seg" data-v="0.5">一半一半</div>
+          <div class="seg" data-v="0">纯自己找</div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="sh"><span>提成兑现率 · 你估计能拿到几成</span><span class="sv" id="confV">60%</span></div>
+        <input type="range" id="conf" min="10" max="100" value="60" step="5" oninput="recalc()">
+        <div class="hint">offer 提成是「做到目标才有」的。面试问出「这岗位上一年实际达标几成」——问得到按它填，问不到就往下拉。</div>
+      </div>
+      <div class="field">
+        <label>试用期（月）</label>
+        <input type="number" id="prob" value="3" min="0" max="12" oninput="recalc()">
+      </div>
+    </div>
+  </details>
+
+  <details class="acc">
+    <summary>④ 想扣掉隐性成本？展开体感年包 <span class="chev">▾</span></summary>
+    <div class="body">
+      <div class="field">
+        <label>一年发几个月（含年终）</label>
+        <div class="hint">没有年终就填 12。</div>
+        <input type="number" id="months" value="12" min="12" max="16" step="0.5" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>排班/加班可预测性</label>
+        <div class="segs" data-seg="sched">
+          <div class="seg" data-v="0">固定可预测</div>
+          <div class="seg" data-v="0.5">偶尔临时</div>
+          <div class="seg" data-v="1">全凭临时通知</div>
+        </div>
+        <div class="hint">全凭临时通知，研究上值 20% 工资（Mas & Pallais 2017）。</div>
+      </div>
+      <div class="field">
+        <label>能不能远程/居家</label>
+        <div class="segs" data-seg="wfh">
+          <div class="seg" data-v="0">完全不能</div>
+          <div class="seg" data-v="0.5">偶尔</div>
+          <div class="seg" data-v="1">常态可以</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>社保公积金基数</label>
+        <div class="segs" data-seg="soc">
+          <div class="seg" data-v="0">按全额工资</div>
+          <div class="seg" data-v="1">按最低基数</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>单程通勤（分钟）</label>
+        <input type="number" id="commute" value="40" min="0" oninput="recalc()">
+      </div>
+      <div class="field">
+        <label>打算待几年 · 保守年涨幅（%）</label>
+        <div class="segs" data-seg="years">
+          <div class="seg" data-v="1">1年</div><div class="seg" data-v="3">3年</div><div class="seg" data-v="5">5年</div>
+        </div>
+        <input type="number" id="raise" value="5" min="0" max="50" oninput="recalc()" style="margin-top:8px" placeholder="年涨幅%">
+      </div>
+    </div>
+  </details>
+
+  <div class="field">
+    <label>给这家公司起个名（存档用）</label>
+    <input type="text" id="offerName" placeholder="例如：A公司-大客户销售" oninput="recalc()">
+  </div>
+
+  <div class="btnrow">
+    <button class="btn" onclick="saveOffer()">存这份评估</button>
+    <button class="btn ghost" onclick="openReport()">生成报告</button>
+  </div>
+  <button class="btn ghost sm" style="margin-top:10px" onclick="resetFind()">清空重填</button>
+  <div class="foot">数字只是把 HR 没说的成本摆到台面。它不替你决定，只让你看清自己在签什么。</div>
+</section>
+
+<!-- ===== 选 ===== -->
+<section class="screen" id="pick">
+  <h2>选 · 多个 offer 并排比</h2>
+  <p class="dim" style="margin-bottom:6px">先在「找」里评估并保存几家，这里勾选 2–3 家对比。看体感年包和体检分，别只看月薪。</p>
+  <div id="pickList"></div>
+  <div id="pickResult"></div>
+</section>
+
+<!-- ===== 留 ===== -->
+<section class="screen" id="stay">
+  <h2>留 · 要不要走</h2>
+  <p class="dim" style="margin-bottom:4px">很多人低估了空窗期的损失——它常常比继续留着更贵。先把它算出来。</p>
+
+  <div class="card">
+    <div class="sec-h"><span class="n">1</span>现在这家</div>
+    <div class="field">
+      <label>现在实发月收入（元）</label>
+      <input type="number" id="curPay" value="12000" min="0" oninput="calcStay()">
+    </div>
+    <div class="field">
+      <label>你觉得再留下来，能比外面多拿百分之几</label>
+      <div class="hint">凭感觉填。很多人会高估这个数。</div>
+      <input type="number" id="cuff" value="20" min="0" max="100" oninput="calcStay()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-h"><span class="n">2</span>下家</div>
+    <div class="field">
+      <label>有没有已经谈好的下家？</label>
+      <div class="segs" data-seg="hasNext">
+        <div class="seg" data-v="no">还没有</div>
+        <div class="seg" data-v="yes">有 offer</div>
+      </div>
+    </div>
+    <div id="nextBox"></div>
+  </div>
+
+  <div id="stayResult"></div>
+</section>
+
+<!-- ===== 我的 ===== -->
+<section class="screen" id="mine">
+  <h2>我的评估</h2>
+  <div id="mineList"></div>
+</section>
+
+<!-- ===== 报告（打印/分享） ===== -->
+<section class="screen" id="report"></section>
+
+</div>
+
+<!-- 底部导航 -->
+<nav class="nav" id="navbar">
+  <a data-t="home" class="on" onclick="nav('home')"><i>🏠</i>首页</a>
+  <a data-t="find" onclick="nav('find')"><i>🔍</i>找</a>
+  <a data-t="pick" onclick="nav('pick')"><i>⚖️</i>选</a>
+  <a data-t="stay" onclick="nav('stay')"><i>🚪</i>留</a>
+  <a data-t="mine" onclick="nav('mine')"><i>📁</i>我的</a>
+</nav>
+
+<script>
+'use strict';
+/* ======================================================================
+   公司筛选器 · 引擎 + UI  —— 纯前端 / 离线 / localStorage
+   金额单位：元（消费级近似，非会计口径）。除法走 safeDiv，缺数据显「—」。
+   基准来自企业版销冠算盘（达标月收入表 / 爬坡曲线 / 最低工资）。
+====================================================================== */
+
+/* ---------- 基准数据（企业版原始值） ---------- */
+var BENCH = {  // 达标月收入（元/月），idx=[预警,初级,中级,高级]
+  tier1:{sales:[25000,30000,35000,40000],manager:[33000,40000,47000,54000],executive:[45000,54000,63000,72000]},
+  tier2:{sales:[20000,24000,28000,32000],manager:[27000,32000,37000,43000],executive:[36000,43000,50000,57000]},
+  tier34:{sales:[15000,18000,21000,24000],manager:[20000,24000,28000,32000],executive:[27000,32000,38000,43000]}
+};
+var CITY_BASE={tier1:5000,tier2:4000,tier34:3000};
+var LV_MULT={sales:[1.0,1.5,1.8,2.0],manager:[2.0,2.5,3.0,3.5],executive:[3.0,4.0,4.5,5.0]};
+var CYCLE_F={short:1.0,regular:1.15,midLong:1.3225,long:1.5606,ultraLong:2.0};
+var MINWAGE={tier1:2420,tier2:2000,tier34:1700};
+var RAMP={
+  short:[0,12,25,42,60,73,85,93,100,100,100,100],
+  regular:[0,5,12,22,35,48,60,72,82,90,96,100],
+  midLong:[0,0,5,12,20,30,42,53,63,72,80,87],
+  long:[0,0,0,5,10,18,27,36,45,54,62,70],
+  ultraLong:[0,0,0,0,5,10,16,23,30,37,44,50]
+};
+var SOCIAL=0.30;
+// 体感折价系数
+var K_SCHED=0.20, K_WFH=0.08, K_SOC=0.06;
+// 档位 → [lvKey, gradeIdx]
+var LEVEL_MAP={s1:['sales',1],s2:['sales',2],s3:['sales',3],m:['manager',2],e:['executive',2]};
+var LEVEL_CN={s1:'销售·初级',s2:'销售·中级',s3:'销售·高级',m:'销售主管',e:'总监/高管'};
+var CITY_CN={tier1:'一线',tier2:'二线',tier34:'三四线'};
+
+/* ---------- 体检项（判据来自《选公司体检包》） ---------- */
+var ITEMS=[
+ {n:'钱是怎么算的',h:'底薪无责? 配额去年调过没? 上一年实际达标几成?',w:20,g:'无条件底薪+能给达标率',y:'有条件/含糊',r:'零底薪或配额年调'},
+ {n:'考核你几项',h:'除了签单量还看什么(回款/留存/投诉)',w:15,g:'3项以上有权重',y:'1-2项能说清',r:'只考核单量'},
+ {n:'客户从哪来',h:'线索谁给? 老人离职客户归谁?',w:20,g:'有池子有规则',y:'自己找但有保护',r:'纯冷启动可被抢'},
+ {n:'谁带你',h:'主管怎么上来的? 还背指标吗? 带出过谁?',w:15,g:'有带教有案例',y:'背指标但有复盘',r:'重指标+人身评价'},
+ {n:'平台的底价',h:'行业位置? 团队是扩是缩? 前任去哪了?',w:15,g:'在扩+去向体面',y:'一般但稳定',r:'缩水/说不清'},
+ {n:'走的时候',h:'入职前给看待签协议吗? 竞业补偿? 提成尾款离职发吗?',w:10,g:'主动给看',y:'说得清但当天签',r:'到时候再说'},
+ {n:'会不会烧穿',h:'排班可预测吗? 去年走几个? 要演到什么程度?',w:5,g:'可预测不用演',y:'偶尔临时',r:'全凭通知+要演'}
+];
+var VETOS=[
+ ['零底薪，或底薪要达标才发','公司一分风险都不担 — 信号理论'],
+ ['达标率问不出来，或只讲某个销冠的故事','他知道，只是不说 — 柠檬市场'],
+ ['入职前不给看要签的协议','等你没筹码了那张纸才递过来'],
+ ['面试全程漫无边际闲聊、凭感觉拍板','挑人都这么随意，管理多半也随意'],
+ ['要求你先交钱（培训费/押金/设备费）','这不是体检项，这是报警项']
+];
+
+/* ---------- 工具 ---------- */
+function safeDiv(a,b){ return (b===0||b==null||a==null)?null:a/b; }
+function num(id){ var e=document.getElementById(id); if(!e)return 0; var v=parseFloat(e.value); return isFinite(v)?v:0; }
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+function yuan(n){ if(n==null||!isFinite(n))return '—'; return '¥'+Math.round(n).toLocaleString('zh-CN'); }
+function wan(n){ if(n==null||!isFinite(n))return '—'; return (n/10000).toFixed(1)+'万'; }
+function rampPct(cycle,m,planningFallacy){ var c=RAMP[cycle]||RAMP.regular; var idx=planningFallacy?Math.round(m/1.5):m; idx=clamp(idx,1,12); return c[idx-1]; }
+
+/* ---------- 状态 ---------- */
+var SEG={city:'tier1',level:'s2',baseType:'free',commBase:'hk',cycle:'regular',lead:'0.5',
+  sched:'0.5',wfh:'0',soc:'1',years:'3',hasNext:'no',nextLead:'0.5',nextCycle:'regular'};
+var CHECK=[null,null,null,null,null,null,null];
+var VETO=[false,false,false,false,false];
+var DB={records:[], meta:{buyer:'', theme:'dark'}};
+
+function load(){ try{ var s=localStorage.getItem('filter_db'); if(s)DB=JSON.parse(s); }catch(e){}
+  if(!DB.records)DB.records=[]; if(!DB.meta)DB.meta={buyer:'',theme:'dark'}; }
+function save(){ try{ localStorage.setItem('filter_db',JSON.stringify(DB)); }catch(e){} }
+
+/* ---------- 核心计算 ---------- */
+function computeOffer(o){
+  var R={warn:[],good:[],redQuant:0};
+  var lm=LEVEL_MAP[o.level]||['sales',2];
+  var benchArr=BENCH[o.city][lm[0]];
+  R.bench=benchArr[lm[1]];               // 该城市该档 达标月收入基准
+  R.benchTop=benchArr[3];                // 顶尖达标线
+  R.benchFloor=benchArr[0];              // 预警下限
+  R.baseRef=Math.round(CITY_BASE[o.city]*LV_MULT[lm[0]][lm[1]]*(CYCLE_F[o.cycle]||1.15));
+  R.minWage=MINWAGE[o.city];
+
+  // 安全底
+  R.safeFloor = (o.baseType==='free') ? o.base : 0;
+
+  // 画饼月提成：始终以 HR 承诺(L0)为准——这才是被压力测试的对象
+  R.promisedComm = Math.max(0, o.promised - o.base);
+  // 精算(L1)独立算「理论满产提成」，只做打脸交叉核对，不替换头条数字
+  var perDeal=null, effRate=o.rate/100;
+  if(o.commBase==='ml') effRate=o.rate/100*(o.margin/100);
+  perDeal = o.aov*effRate;
+  R.theoryFullComm = (o.deals>0 && o.aov>0) ? o.deals*perDeal : null;
+  R.perDeal=perDeal;
+
+  // 现实满产月提成（兑现率 × 线索折减）
+  var leadFactor = 0.4 + 0.6*parseFloat(o.lead);
+  R.leadFactor=leadFactor;
+  R.realComm = R.promisedComm * (o.conf/100) * leadFactor;
+  R.expectMonthly = R.safeFloor + R.realComm;   // 冷静期望月收入
+
+  // 现金流（含计划谬误爬坡右移）
+  R.flow=[]; R.dryMonths=0;
+  for(var m=1;m<=12;m++){
+    var sf = (m<=o.prob) ? R.safeFloor*0.8 : R.safeFloor;   // 试用期底薪 8 折近似
+    var take = sf + R.realComm*rampPct(o.cycle,m,true)/100;
+    R.flow.push(take);
+    if(take < R.minWage) R.dryMonths++;
+  }
+
+  // 体感年包
+  var salary=o.base*o.months;
+  var commRealAnnual=R.promisedComm*12*(o.conf/100);
+  var cash=salary+commRealAnnual;
+  var dSched=-cash*K_SCHED*parseFloat(o.sched);
+  var dWfh=cash*K_WFH*parseFloat(o.wfh);
+  var dSoc=-cash*K_SOC*parseFloat(o.soc);
+  var hourly=safeDiv(cash,250*8)||0;
+  var dTime=-(o.commute*2/60*250)*hourly;
+  R.felt=cash+dSched+dWfh+dSoc+dTime;
+  R.nominal=o.base*o.months+R.promisedComm*12;
+  R.ledger={salary:salary,comm:commRealAnnual,dSched:dSched,dWfh:dWfh,dSoc:dSoc,dTime:dTime};
+  var yy=Math.max(1,parseFloat(o.years)), rr=o.raise/100, f=cash>0?R.felt/cash:1, cum=0;
+  for(var t=0;t<yy;t++) cum+=cash*Math.pow(1+rr,t);
+  R.cumFelt=cum*f; R.years=yy;
+
+  // 体检分
+  var PTS={g:3,y:1,r:0}; var sc=0, done=0;
+  for(var i=0;i<7;i++){ if(o.check[i]){ done++; sc+=PTS[o.check[i]]/3*ITEMS[i].w; } }
+  R.score=Math.round(sc); R.checkDone=done;
+  R.vetoHit=o.veto.filter(Boolean).length;
+
+  // 量化红线
+  if(o.baseType==='free' && o.base>0 && o.base<R.minWage){ R.warn.push(['red','<b>底薪疑似违法</b>：'+yuan(o.base)+' 低于你城市最低工资参考 '+yuan(R.minWage)+'。']); R.redQuant++; }
+  if(o.baseType!=='free'){ R.warn.push(['red','<b>底薪'+(o.baseType==='zero'?'为零':'有责')+'</b>：它不是你的安全底，签之前当它可能拿不到。']); R.redQuant++; }
+  if(o.baseType==='free' && o.base>=R.minWage && o.base<R.baseRef*0.7){ R.warn.push(['warn','<b>底薪偏低</b>：低于该城市该档参考底薪（约 '+yuan(R.baseRef)+'）的七成，前半年现金流会紧。']); }
+  if(o.promised>R.benchTop){ R.warn.push(['warn','<b>画饼超标</b>：HR 说的 '+yuan(o.promised)+' 已超过你城市该档「顶尖达标线」'+yuan(R.benchTop)+'——顶尖的人才拿这个数。']); }
+  if(o.conf<30){ R.warn.push(['warn','<b>达标存疑</b>：你只信这提成能拿到 '+o.conf+'%——这是这份 offer 最大的未知数。']); }
+  if(R.dryMonths>=3){ R.warn.push(['warn','<b>前 '+R.dryMonths+' 个月现金流吃紧</b>：到手接近只有底薪，成交周期长的岗位尤其熬。']); }
+  if(o.commBase==='ml' && o.margin<30){ R.warn.push(['warn','<b>提成基数=毛利</b>：名义提成率 '+o.rate+'%，按 '+o.margin+'% 毛利折算，实际相当于回款的 '+(o.rate*o.margin/100).toFixed(1)+'%。']); }
+  if(R.theoryFullComm!=null && R.promisedComm>0 && R.theoryFullComm < R.promisedComm*0.7){ R.warn.push(['warn','<b>饼撑不起来</b>：按你填的单量×客单，满产提成约 '+yuan(R.theoryFullComm)+'/月，而 HR 画的饼里提成部分要 '+yuan(R.promisedComm)+'——要么单量得翻倍，要么这饼是虚的。']); }
+  if(parseFloat(o.lead)<=0){ R.warn.push(['warn','<b>纯冷启动</b>：没有公司线索，期望成交已按 40% 折算——同样提成，池子不同收入差一个量级。']); }
+  if(R.expectMonthly>0 && R.promisedComm>0 && R.safeFloor>0 && R.realComm>R.safeFloor){ R.good.push('提成结构里，浮动部分大于固定部分——多劳多得，但风险也在你这边。'); }
+
+  // 综合判决
+  R.verdict=verdictOf(R);
+  return R;
+}
+
+function verdictOf(R){
+  if(R.vetoHit>0) return {lamp:'r',title:'一票否决',
+    text:'触发了 <b>'+R.vetoHit+' 条一票否决</b>——不是扣分，是「这份工作和你想的不是一回事」的证据。分数不再作数。'};
+  if(R.checkDone<7) return {lamp:'n',title:'体检未完成',
+    text:'还有 '+(7-R.checkDone)+' 项没点。答不上来的那几项，不是先跳过——是你还不该答复他。'};
+  var s=R.score, rq=R.redQuant;
+  if(rq>0 && s>=50) return {lamp:'r',title:'有硬红线',text:'体检 '+s+' 分本还行，但命中 '+rq+' 条硬红线（见下）。红线不谈拢，分数没意义。'};
+  if(s>=75) return {lamp:'g',title:'可以去',text:'<span class="ok">'+s+' 分</span>。剩下的用工资去谈，别再犹豫——非要挑「最好」那份的人薪水高 20%，却最后悔。'};
+  if(s>=50) return {lamp:'y',title:'有硬伤，不致命',text:s+' 分。先看硬伤在哪：<b>钱</b>和<b>客户从哪来</b>可以谈；<b>考核</b>和<b>谁带你</b>是「你会变成什么样的人」，谈不动。'};
+  if(s>=25) return {lamp:'r',title:'高风险',text:s+' 分。只有一种情况值得去：你已空窗很久，而这是眼下唯一的路。'};
+  return {lamp:'r',title:'别去',text:s+' 分。这不是一份工作，是一场你付学费的实验。'};
+}
+
+/* ---------- 读表单 ---------- */
+function readOffer(){
+  return {
+    city:SEG.city, level:SEG.level, base:num('base'), baseType:SEG.baseType, promised:num('promised'),
+    rate:num('rate'), commBase:SEG.commBase, margin:num('margin'), aov:num('aov'), deals:num('deals'),
+    cycle:SEG.cycle, lead:SEG.lead, conf:num('conf'), prob:num('prob'),
+    months:num('months'), sched:SEG.sched, wfh:SEG.wfh, soc:SEG.soc, commute:num('commute'),
+    years:SEG.years, raise:num('raise'),
+    check:CHECK.slice(), veto:VETO.slice(), name:(document.getElementById('offerName').value||'').trim()
+  };
+}
+
+/* ---------- 渲染：找 ---------- */
+function renderChecks(){
+  var h='';
+  for(var i=0;i<7;i++){ var it=ITEMS[i];
+    h+='<div class="chk"><div class="q">'+(i+1)+'. '+it.n+'</div><div class="qh">'+it.h+'</div><div class="opts3">'+
+       '<div class="o3 g" data-ci="'+i+'" data-k="g" aria-pressed="'+(CHECK[i]==='g')+'">'+it.g+'</div>'+
+       '<div class="o3 y" data-ci="'+i+'" data-k="y" aria-pressed="'+(CHECK[i]==='y')+'">'+it.y+'</div>'+
+       '<div class="o3 r" data-ci="'+i+'" data-k="r" aria-pressed="'+(CHECK[i]==='r')+'">'+it.r+'</div></div></div>';
+  }
+  document.getElementById('checkBox').innerHTML=h;
+  var v='';
+  for(var j=0;j<VETOS.length;j++){ v+='<label class="veto"><input type="checkbox" data-vi="'+j+'"'+(VETO[j]?' checked':'')+'><span>'+VETOS[j][0]+'<em>'+VETOS[j][1]+'</em></span></label>'; }
+  document.getElementById('vetoBox').innerHTML=v;
+}
+function paintSeg(){
+  document.querySelectorAll('[data-seg]').forEach(function(g){
+    var key=g.getAttribute('data-seg');
+    g.querySelectorAll('.seg').forEach(function(s){ s.setAttribute('aria-pressed', SEG[key]===s.getAttribute('data-v')); });
+  });
+  var mf=document.getElementById('marginField'); if(mf) mf.style.display=(SEG.commBase==='ml')?'block':'none';
+}
+function recalc(){
+  var o=readOffer(); var R=computeOffer(o);
+  var cv=document.getElementById('confV'); if(cv)cv.textContent=num('conf')+'%';
+  document.getElementById('findSummary').innerHTML=summaryHTML(R,o);
+  window._lastR=R; window._lastO=o;
+}
+function summaryHTML(R,o){
+  var v=R.verdict;
+  var flags='';
+  R.warn.forEach(function(w){ flags+='<li class="'+(w[0]==='red'?'red':'')+'">'+w[1]+'</li>'; });
+  R.good.forEach(function(g){ flags+='<li class="good">'+g+'</li>'; });
+  var rampBars=''; var mx=Math.max.apply(null,R.flow.concat([1]));
+  for(var i=0;i<12;i++){ var hpx=Math.max(3,R.flow[i]/mx*52); var low=R.flow[i]<R.minWage;
+    rampBars+='<div class="bar'+(low?' low':'')+'" style="height:'+hpx+'px" title="第'+(i+1)+'月 '+yuan(R.flow[i])+'"></div>'; }
+  return ''+
+  '<div class="vlamp"><span class="dot '+v.lamp+'"></span>'+v.title+'</div>'+
+  '<div class="kpis">'+
+    '<div class="kpi"><div class="k">冷静期望月收入</div><div class="v">'+yuan(R.expectMonthly)+'</div></div>'+
+    '<div class="kpi"><div class="k">该城市该档达标基准</div><div class="v">'+yuan(R.bench)+'</div></div>'+
+    '<div class="kpi"><div class="k">体检分 / 100</div><div class="v">'+(R.checkDone===7?R.score:'—')+' <small>'+R.checkDone+'/7</small></div></div>'+
+    '<div class="kpi"><div class="k">体感年包</div><div class="v">'+wan(R.felt)+' <small>名义'+wan(R.nominal)+'</small></div></div>'+
+  '</div>'+
+  '<div style="margin-top:12px"><div class="dim" style="font-size:11px;margin-bottom:2px">前 12 个月到手（红=低于当地最低工资）</div>'+
+    '<div class="ramp">'+rampBars+'</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div></div>'+
+  '<div class="vtext">'+v.text+'</div>'+
+  (flags?'<ul class="flags">'+flags+'</ul>':'');
+}
+function resetFind(){
+  ['base','promised','rate','margin','aov','deals','conf','prob','months','commute','raise','offerName'].forEach(function(id){var e=document.getElementById(id);});
+  CHECK=[null,null,null,null,null,null,null]; VETO=[false,false,false,false,false];
+  document.getElementById('offerName').value='';
+  renderChecks(); recalc();
+  window.scrollTo(0,0);
+}
+
+/* ---------- 事件委托 ---------- */
+document.addEventListener('click',function(e){
+  var seg=e.target.closest('.seg');
+  if(seg){ var key=seg.closest('[data-seg]').getAttribute('data-seg'); SEG[key]=seg.getAttribute('data-v'); paintSeg();
+    if(key==='hasNext'||key==='nextLead'||key==='nextCycle'){ renderNext(); calcStay(); } else { recalc(); } return; }
+  var o3=e.target.closest('.o3');
+  if(o3){ var ci=+o3.getAttribute('data-ci'); CHECK[ci]=o3.getAttribute('data-k'); renderChecks(); recalc(); return; }
+});
+document.addEventListener('change',function(e){
+  var vb=e.target.closest('input[data-vi]');
+  if(vb){ VETO[+vb.getAttribute('data-vi')]=vb.checked; recalc(); }
+});
+
+/* ---------- 存档 / 我的 ---------- */
+function saveOffer(){
+  var o=window._lastO||readOffer(); var R=window._lastR||computeOffer(o);
+  if(!o.name){ o.name=document.getElementById('offerName').value.trim()||('评估 '+(DB.records.length+1)); }
+  var rec={id:'r'+(DB.records.length+1)+'_'+DB.records.reduce(function(a,b){return a+1;},Date.parse('2026-01-01')%99999),
+    name:o.name, offer:o, score:R.checkDone===7?R.score:null, lamp:R.verdict.lamp,
+    expect:R.expectMonthly, felt:R.felt, redQuant:R.redQuant, vetoHit:R.vetoHit};
+  DB.records.push(rec); save();
+  toast('已存：'+o.name);
+}
+function renderMine(){
+  var el=document.getElementById('mineList');
+  if(!DB.records.length){ el.innerHTML='<div class="empty">还没有评估。去「找」评一个 offer，点「存这份评估」就会出现在这里。</div>'; return; }
+  var h='';
+  DB.records.forEach(function(r,i){
+    h+='<div class="rec"><span class="lamp" style="background:'+lampColor(r.lamp)+'"></span>'+
+       '<div class="info"><b>'+esc(r.name)+'</b><span>冷静期望 '+yuan(r.expect)+' · 体感年包 '+wan(r.felt)+
+       (r.redQuant?' <span class="pill">红线'+r.redQuant+'</span>':'')+(r.vetoHit?' <span class="pill">否决</span>':'')+'</span></div>'+
+       '<div class="score">'+(r.score==null?'—':r.score)+'</div>'+
+       '<button class="tbtn" onclick="loadRec('+i+')">改</button>'+
+       '<button class="tbtn" onclick="delRec('+i+')">删</button></div>';
+  });
+  el.innerHTML=h;
+}
+function lampColor(l){ return l==='g'?'#5BB98C':l==='y'?'#E0A63F':l==='n'?'#68767A':'#E06B6B'; }
+function loadRec(i){ var o=DB.records[i].offer;
+  SEG.city=o.city;SEG.level=o.level;SEG.baseType=o.baseType;SEG.commBase=o.commBase;SEG.cycle=o.cycle;
+  SEG.lead=o.lead;SEG.sched=o.sched;SEG.wfh=o.wfh;SEG.soc=o.soc;SEG.years=o.years;
+  ['base','promised','rate','margin','aov','deals','conf','prob','months','commute','raise'].forEach(function(id){var e=document.getElementById(id);if(e&&o[id]!=null)e.value=o[id];});
+  document.getElementById('offerName').value=o.name||'';
+  CHECK=o.check?o.check.slice():CHECK; VETO=o.veto?o.veto.slice():VETO;
+  renderChecks(); paintSeg(); recalc(); nav('find'); window.scrollTo(0,0);
+}
+function delRec(i){ if(!confirm('删除「'+DB.records[i].name+'」？'))return; DB.records.splice(i,1); save(); renderMine(); }
+
+/* ---------- 选 · 对比 ---------- */
+var PICKED=[];
+function renderPick(){
+  var el=document.getElementById('pickList');
+  if(DB.records.length<2){ el.innerHTML='<div class="empty">至少先在「找」里评估并保存 2 家，才能对比。</div>'; document.getElementById('pickResult').innerHTML=''; return; }
+  var h='<div class="dim" style="margin-bottom:8px">勾选 2–3 家：</div>';
+  DB.records.forEach(function(r,i){
+    var on=PICKED.indexOf(i)>=0;
+    h+='<label class="veto" style="border-color:'+(on?'var(--brand)':'var(--line)')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="togglePick('+i+')"><span>'+esc(r.name)+'<em>体检 '+(r.score==null?'—':r.score)+' · 期望 '+yuan(r.expect)+'</em></span></label>';
+  });
+  el.innerHTML=h;
+  renderPickResult();
+}
+function togglePick(i){ var p=PICKED.indexOf(i); if(p>=0)PICKED.splice(p,1); else{ if(PICKED.length>=3){toast('最多比 3 家');return;} PICKED.push(i);} renderPick(); }
+function renderPickResult(){
+  var el=document.getElementById('pickResult');
+  if(PICKED.length<2){ el.innerHTML=''; return; }
+  var recs=PICKED.map(function(i){return DB.records[i];});
+  var rows=[['',recs.map(function(r){return esc(r.name);})],
+    ['体检分',recs.map(function(r){return r.score==null?'—':r.score;})],
+    ['冷静期望月收入',recs.map(function(r){return yuan(r.expect);})],
+    ['体感年包',recs.map(function(r){return wan(r.felt);})],
+    ['硬红线',recs.map(function(r){return r.redQuant||0;})],
+    ['一票否决',recs.map(function(r){return r.vetoHit?'有':'无';})]];
+  // 找赢家：无否决、体检分最高
+  var best=-1,bestS=-1;
+  recs.forEach(function(r,i){ if(r.vetoHit)return; var s=(r.score||0)*1000-(r.redQuant||0)*100+r.expect/1000; if(s>bestS){bestS=s;best=i;} });
+  var th='<tr><th></th>'+recs.map(function(r,i){return '<th'+(i===best?' class="win"':'')+'>'+(i===best?'★ ':'')+esc(r.name).slice(0,6)+'</th>';}).join('')+'</tr>';
+  var body='';
+  rows.slice(1).forEach(function(row){ body+='<tr><td>'+row[0]+'</td>'+row[1].map(function(c,i){return '<td'+(i===best?' class="win"':'')+'>'+c+'</td>';}).join('')+'</tr>'; });
+  var tip = best<0 ? '几家都有一票否决——先别急着选，回面试把否决项问清楚。'
+    : '综合体检分与红线，<b>'+esc(recs[best].name)+'</b> 领先。但记住：钱能谈，「你会变成什么样的人」谈不动——对比时优先看体检里的考核和带教。';
+  el.innerHTML='<div class="card"><div class="cmp"><table><thead>'+th+'</thead><tbody>'+body+'</tbody></table></div><div class="note">'+tip+'</div></div>';
+}
+
+/* ---------- 留 ---------- */
+function renderNext(){
+  var box=document.getElementById('nextBox');
+  if(SEG.hasNext==='no'){ box.innerHTML='<div class="note">没有下家就裸辞，最大的隐形成本是<b>空窗期</b>——回电概率随空窗下降，大半伤害发生在头 8 个月。下面帮你把它算出来。</div>'; return; }
+  var opts='', defPay=15000;
+  if(DB.records.length){ defPay=Math.round(DB.records[0].expect)||15000;
+    opts='<div class="field"><label>下家用哪份评估（自动带入月收入）</label><select id="nextRec" onchange="pickNext()" style="width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:10px;font-size:15px">'+
+    DB.records.map(function(r,i){return '<option value="'+i+'">'+esc(r.name)+'（期望'+yuan(r.expect)+'）</option>';}).join('')+'</select><div class="hint">选一份会自动填下面的月收入；也可手动改。</div></div>'; }
+  box.innerHTML=opts+
+    '<div class="field"><label>下家稳定后月收入（元）</label><input type="number" id="nextPay" value="'+defPay+'" min="0" oninput="calcStay()"></div>'+
+    '<div class="field"><label>下家成交周期</label><div class="segs" data-seg="nextCycle">'+
+      ['short:快消','regular:普通','midLong:中长','long:大客户','ultraLong:项目制'].map(function(x){var p=x.split(':');return '<div class="seg" data-v="'+p[0]+'" aria-pressed="'+(SEG.nextCycle===p[0])+'">'+p[1]+'</div>';}).join('')+'</div></div>'+
+    '<div class="field"><label>预估空窗（月）· 从离职到到岗</label><input type="number" id="idle" value="2" min="0" step="0.5" oninput="calcStay()"></div>';
+  paintSeg();
+}
+function pickNext(){ var s=document.getElementById('nextRec'); var np=document.getElementById('nextPay');
+  if(s&&np&&DB.records[+s.value]){ np.value=Math.round(DB.records[+s.value].expect)||np.value; } calcStay(); }
+function calcStay(){
+  var cur=num('curPay'); var el=document.getElementById('stayResult');
+  if(SEG.hasNext==='no'){
+    var idleNo=2; var lossNo=cur*idleNo;
+    el.innerHTML='<div class="card"><div class="vlamp"><span class="dot r"></span>没下家 · 慎重裸辞</div>'+
+      '<div class="kpis"><div class="kpi"><div class="k">若空窗 2 个月直接损失</div><div class="v">'+yuan(lossNo)+'</div></div>'+
+      '<div class="kpi"><div class="k">空窗越久越难回</div><div class="v">头8月</div></div></div>'+
+      '<div class="vtext">先骑驴找马。裸辞省下的那点情绪成本，通常远低于空窗 + 重新爬坡的真金白银。</div></div>';
+    return;
+  }
+  var nextPay=num('nextPay'), idle=num('idle');
+  var cyc=SEG.nextCycle;
+  var idleLoss=cur*idle;                       // 空窗损失
+  // 爬坡缺口：爬坡期拿不到满产，缺口≈稳定月收入×Σ(1−ramp)（含计划谬误右移）
+  var rampGap=0; for(var k=1;k<=12;k++){ rampGap+=nextPay*(1-rampPct(cyc,k,true)/100); }
+  var switchCost=idleLoss+rampGap;
+  // 金手铐纠偏
+  var cuff=num('cuff'); var realCap=11;
+  var over = cuff>realCap;
+  var lamp = (nextPay>cur*1.15) ? 'g' : (nextPay>cur ? 'y':'r');
+  var advice;
+  if(nextPay<=cur) advice='下家稳定月收入不高于现在——<b>别急着走，下家未必更好</b>。先确认它到底强在哪。';
+  else advice='下家更高，但换工作总代价（空窗+爬坡）约 <b>'+yuan(switchCost)+'</b>。用「每月多拿 '+yuan(nextPay-cur)+'」去摊，约 <b>'+Math.ceil(switchCost/Math.max(1,nextPay-cur))+' 个月</b>回本。回本期越短越值得走。';
+  el.innerHTML='<div class="card"><div class="vlamp"><span class="dot '+lamp+'"></span>'+(lamp==='g'?'可以走':lamp==='y'?'算清再走':'先别走')+'</div>'+
+    '<div class="kpis">'+
+    '<div class="kpi"><div class="k">空窗损失</div><div class="v">'+yuan(idleLoss)+'</div></div>'+
+    '<div class="kpi"><div class="k">下家爬坡缺口</div><div class="v">'+yuan(rampGap)+'</div></div>'+
+    '<div class="kpi"><div class="k">换工作总代价</div><div class="v">'+yuan(switchCost)+'</div></div>'+
+    '<div class="kpi"><div class="k">下家月收入</div><div class="v">'+yuan(nextPay)+'</div></div>'+
+    '</div><div class="vtext">'+advice+'</div>'+
+    (over?'<div class="note"><b>提醒：</b>你觉得留下能多拿 '+cuff+'%，但「金手铐」的真实上限研究上大概只有 <b>7–11%</b>——那个「不敢走的亏」，很可能被你脑补大了。</div>':'')+
+    '<div class="note">建议把下家也用「找」完整评一遍，防止逃出狼窝进虎口。</div></div>';
+}
+
+/* ---------- 报告 ---------- */
+function openReport(){
+  var o=window._lastO||readOffer(); var R=window._lastR||computeOffer(o);
+  var v=R.verdict; var name=o.name||document.getElementById('offerName').value.trim()||'这家公司';
+  var flags=''; R.warn.forEach(function(w){flags+='<li class="'+(w[0]==='red'?'red':'')+'">'+w[1]+'</li>';});
+  var L=R.ledger;
+  var el=document.getElementById('report');
+  el.innerHTML='<button class="btn ghost sm" onclick="nav(\'find\')">← 返回</button>'+
+    '<div class="card"><div class="eyebrow">公司体检报告</div><h2 style="margin-top:6px">'+esc(name)+'</h2>'+
+    '<div class="dim">'+CITY_CN[o.city]+' · '+LEVEL_CN[o.level]+'</div>'+
+    '<div class="vlamp" style="margin-top:12px"><span class="dot '+v.lamp+'"></span>'+v.title+'</div>'+
+    '<div class="vtext">'+v.text+'</div>'+
+    '<table class="ledger" style="margin-top:14px">'+
+    '<tr><td>冷静期望月收入</td><td>'+yuan(R.expectMonthly)+'</td></tr>'+
+    '<tr><td>该城市该档达标基准</td><td>'+yuan(R.bench)+'</td></tr>'+
+    '<tr><td>体检分</td><td>'+(R.checkDone===7?R.score+' / 100':'未完成')+'</td></tr>'+
+    '<tr><td>固定工资（年·含年终）</td><td>'+yuan(L.salary)+'</td></tr>'+
+    '<tr><td>提成（年·按兑现率折后）</td><td>'+yuan(L.comm)+'</td></tr>'+
+    '<tr><td>排班不可预测</td><td class="neg">'+yuan(L.dSched)+'</td></tr>'+
+    '<tr><td>远程可行性</td><td>'+yuan(L.dWfh)+'</td></tr>'+
+    '<tr><td>社保基数</td><td class="neg">'+yuan(L.dSoc)+'</td></tr>'+
+    '<tr><td>通勤折现</td><td class="neg">'+yuan(L.dTime)+'</td></tr>'+
+    '<tr class="sum"><td>体感年包</td><td>'+yuan(R.felt)+'</td></tr>'+
+    '<tr><td>'+R.years+' 年累计（体感）</td><td>'+yuan(R.cumFelt)+'</td></tr>'+
+    '</table>'+
+    (flags?'<ul class="flags" style="margin-top:12px">'+flags+'</ul>':'')+
+    '<div class="foot" style="text-align:left;padding:16px 0 0">署名：'+esc(DB.meta.buyer||'—')+' · 公司筛选器<br>本报告为决策参考，不构成职业/法律意见，不承诺收入。数据仅存于本机。</div>'+
+    '</div>'+
+    '<button class="btn" onclick="window.print()">打印 / 存 PDF / 截图分享</button>';
+  showScreen('report'); window.scrollTo(0,0);
+}
+
+/* ---------- 导航 / 主题 / 杂项 ---------- */
+function showScreen(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id===id)}); }
+function nav(t){
+  showScreen(t);
+  document.querySelectorAll('.nav a').forEach(function(a){a.classList.toggle('on',a.getAttribute('data-t')===t)});
+  if(t==='mine')renderMine(); if(t==='pick')renderPick(); if(t==='stay'){renderNext();calcStay();}
+  if(t!=='report')window.scrollTo(0,0);
+}
+function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function saveMeta(){ DB.meta.buyer=document.getElementById('buyerName').value; save(); }
+var toastT;
+function toast(msg){ var t=document.getElementById('_toast'); if(!t){t=document.createElement('div');t.id='_toast';
+  t.style.cssText='position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:50;box-shadow:var(--sh)';document.body.appendChild(t);}
+  t.textContent=msg; t.style.opacity='1'; clearTimeout(toastT); toastT=setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .4s';},1600); }
+function applyTheme(){ document.documentElement.setAttribute('data-theme',DB.meta.theme==='light'?'light':'dark'); }
+document.getElementById('themeBtn').onclick=function(){ DB.meta.theme=(DB.meta.theme==='light')?'dark':'light'; applyTheme(); save(); };
+
+/* ---------- 启动 ---------- */
+load(); applyTheme();
+document.getElementById('buyerName').value=DB.meta.buyer||'';
+renderChecks(); paintSeg(); recalc();
+
+/* ---------- 自检（控制台可见，作回归 oracle） ---------- */
+(function selfTest(){
+  try{
+    var t={city:'tier1',level:'s2',base:6000,baseType:'free',promised:20000,rate:10,commBase:'hk',margin:30,
+      aov:8000,deals:4,cycle:'regular',lead:'0.5',conf:60,prob:3,months:12,sched:'0.5',wfh:'0',soc:'1',
+      commute:40,years:'3',raise:5,check:['g','g','g','g','g','g','g'],veto:[false,false,false,false,false]};
+    var R=computeOffer(t);
+    console.log('[自检] 达标基准(一线中级)=',R.bench,'应为35000', R.bench===35000?'✓':'✗');
+    console.log('[自检] 安全底(无责6000)=',R.safeFloor,'应为6000', R.safeFloor===6000?'✓':'✗');
+    console.log('[自检] 体检满分=',R.score,'应为100', R.score===100?'✓':'✗');
+    console.log('[自检] 冷静期望月收入=',Math.round(R.expectMonthly),'应为11880 (6000+(20000-6000)×0.6×0.7)', Math.round(R.expectMonthly)===11880?'✓':'✗');
+    var t2=Object.assign({},t,{baseType:'zero'}); var R2=computeOffer(t2);
+    console.log('[自检] 零底薪安全底=',R2.safeFloor,'应为0', R2.safeFloor===0?'✓':'✗','红线数',R2.redQuant);
+  }catch(e){ console.warn('自检异常',e); }
+})();
+</script>
+</body>
+</html>
