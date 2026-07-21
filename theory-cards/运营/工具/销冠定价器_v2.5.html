@@ -115,6 +115,13 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
 .hint{color:var(--ink3);font-size:12.5px;line-height:1.55}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
 .sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700;margin:0 0 12px}
+/* 折叠区（渐进展开）*/
+.collap{border:1px solid var(--line);border-radius:12px;margin:14px 0 0;overflow:hidden;background:var(--panel)}
+.collap-head{display:flex;align-items:center;gap:9px;padding:12px 14px;cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ink)}
+.collap-head:hover{background:var(--surface-2)}
+.collap-chev{display:inline-flex;transition:transform .16s ease;color:var(--ink3);font-size:12px}
+.collap.open .collap-chev{transform:rotate(90deg)}
+.collap-body{padding:0 14px 14px}
 .btn{padding:11px 20px;border-radius:10px;border:1px solid transparent;background:linear-gradient(135deg,#5b5bf0,#7c5cf6);
   color:#fff;font-size:14px;font-weight:650;transition:filter .12s,box-shadow .12s;box-shadow:0 2px 8px rgba(91,91,240,.28)}
 .btn:hover{filter:brightness(1.06)}
@@ -725,6 +732,7 @@ const REAL_TODAY = new Date().toISOString().slice(0,10); // 唯一一处取真�
 
 const app={
   page:'home',
+  ui:{collapsed:{}},   // 折叠区展开状态（key→bool），跨 render 保留
   inputs:{ cityTier:null,cycleTier:null,tierGrade:'effective',mgrGrade:'effective',
     targetPersonalMonthlyGrossAmt:null,nextYearTargetGrossAmt:null,lastYearPerCapitaGrossAmt:null,
     salesCount:null,managerCount:null,attritionRate:null,hiringCycleDays:null,blendedMarginRate:null,
@@ -839,6 +847,18 @@ function compute(today){
 const $=(s,r=document)=>r.querySelector(s);
 const el=(t,c,h)=>{ const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n; };
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1900); }
+// 可复用折叠区：主内容常展开，次要/参考/高级内容才折叠（世界级软件的渐进展开惯例）
+function collapsible(key, headerHTML, defaultOpen){
+  const open = app.ui.collapsed[key]!=null ? app.ui.collapsed[key] : defaultOpen;
+  const section=el('div','collap'+(open?' open':''));
+  const head=el('div','collap-head',headerHTML);
+  const body=el('div','collap-body'); if(!open) body.style.display='none';
+  head.onclick=()=>{ const willOpen=body.style.display==='none';
+    body.style.display=willOpen?'':'none'; section.classList.toggle('open',willOpen);
+    app.ui.collapsed[key]=willOpen; };
+  section.appendChild(head); section.appendChild(body);
+  return {section, body};
+}
 
 /* ---- 图标（内联 SVG，无 CDN）---- */
 const IC_RAW={
@@ -1070,26 +1090,30 @@ function tierTable(){
     tr.onclick=()=>{ app.inputs.tierGrade=g; app.gradeBaseInput=null; if(app.results)compute(REAL_TODAY); render(); };
     tbl.appendChild(tr); });
   wrap.appendChild(tbl);
-  wrap.appendChild(el('div','tier-label',`<span class="n">2</span>主管 / 高管档位 <span class="lh">（管理层单独定档，不随销售档变）</span>`));
-  const mgrCur=app.inputs.mgrGrade||'effective';
-  const mgrSeg=el('div','seg'); mgrSeg.style.marginBottom='10px';
-  [['effective','有效'],['efficient','高效'],['leading','领先']].forEach(([g,lab])=>{
-    const b=el('button',mgrCur===g?'on':'',lab);
-    b.onclick=()=>{ app.inputs.mgrGrade=g; if(app.results)compute(REAL_TODAY); render(); };
-    mgrSeg.appendChild(b); });
-  wrap.appendChild(mgrSeg);
-  const sub=el('table','grade-tbl');
-  sub.innerHTML=`<tr><th>层级</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>`;
-  ['manager','executive'].forEach(lv=>{ const tr=el('tr');
-    tr.innerHTML=`<td>${levelName(lv)}</td><td class="mono">${yuan(Bof(lv,gmi))}</td><td class="mono">${yuan(Tof(lv,gmi))}</td><td class="gd">${LEVEL_DESC[lv]}</td>`;
-    sub.appendChild(tr); });
-  wrap.appendChild(sub);
-  wrap.appendChild(el('div','hint','底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚）；达标月收入只随城市与档位变、不随周期变。'));
+  // 自定义（反查的是销售档）——紧跟销售档表底下
   const custom=el('div','grade-custom');
   custom.innerHTML=`<label>不确定选哪档？直接输入你现在给销售的月底薪，系统帮你反查</label>
     <div class="cbox"><span class="pre">¥</span><input type="number" id="gBaseIn" placeholder="如 8000" value="${app.gradeBaseInput!=null?app.gradeBaseInput/100:''}"><span class="suf">/月</span></div>
     <span id="gBaseOut"></span>`;
   wrap.appendChild(custom);
+  // 主管/高管——配套参考，做成可收可展（默认收起，密度更高）
+  const {section:mgrSec, body:mgrBody}=collapsible('tier.mgr',
+    `<span class="collap-chev">▸</span><span class="n">2</span> 主管 / 高管档位 <span class="lh">（管理层单独定档，点此展开 / 收起）</span>`, false);
+  const mgrCur=app.inputs.mgrGrade||'effective';
+  const mgrSeg=el('div','seg'); mgrSeg.style.margin='2px 0 10px';
+  [['effective','有效'],['efficient','高效'],['leading','领先']].forEach(([g,lab])=>{
+    const b=el('button',mgrCur===g?'on':'',lab);
+    b.onclick=()=>{ app.inputs.mgrGrade=g; if(app.results)compute(REAL_TODAY); render(); };
+    mgrSeg.appendChild(b); });
+  mgrBody.appendChild(mgrSeg);
+  const sub=el('table','grade-tbl');
+  sub.innerHTML=`<tr><th>层级</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>`;
+  ['manager','executive'].forEach(lv=>{ const tr=el('tr');
+    tr.innerHTML=`<td>${levelName(lv)}</td><td class="mono">${yuan(Bof(lv,gmi))}</td><td class="mono">${yuan(Tof(lv,gmi))}</td><td class="gd">${LEVEL_DESC[lv]}</td>`;
+    sub.appendChild(tr); });
+  mgrBody.appendChild(sub);
+  mgrBody.appendChild(el('div','hint','底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚）；达标月收入只随城市与档位变、不随周期变。'));
+  wrap.appendChild(mgrSec);
   setTimeout(()=>{ const inp=$('#gBaseIn'), out=$('#gBaseOut'); if(!inp)return;
     const cand=['effective','efficient','leading'].map(g=>({g,B:Bof('sales',gradeIndex(g))}));
     const nearest=fen=>{ let best=cand[0]; cand.forEach(x=>{ if(Math.abs(x.B-fen)<Math.abs(best.B-fen)) best=x; }); return best; };
