@@ -284,15 +284,50 @@ body.mode-free .fullonly{display:none!important}
   #tabbar a.on{color:var(--accent)}
   .topbar{padding:0 12px;gap:10px}
   .lic-chip-top{display:none}
-  .page{padding:16px 13px 26px}
+  /* —— 大留白 / 大字号 / 大按钮，向手机原生 App 看齐 —— */
+  .page{padding:20px 16px 26px}
   .page.wide{max-width:100%}
+  .hero{margin-bottom:14px}
+  .hero h1{font-size:27px;line-height:1.2}
+  .hero p{font-size:14.5px;margin-top:10px}
+  .step-label{font-size:16px;margin:28px 2px 14px}
+  .card{border-radius:16px}
+  .basis-head{padding:18px 18px 2px}
+  .basis-head h3{font-size:18px}
+  .basis-inputs{gap:14px;padding:14px 18px 4px}
+  .basis-inputs .fld{min-width:100%}
+  .grp{padding:16px 16px 6px}
+  .groups,.groups.three{grid-template-columns:1fr;gap:14px}
+  .inrow .fld{min-width:100%}
+  /* 输入 / 分段更大更好点（≥44px 触控）*/
+  .fld input[type=number]{padding:13px;font-size:16px;border-radius:11px}
+  .fld label{font-size:14px}
+  .seg{gap:8px}
+  .seg button{padding:11px 15px;font-size:14px;border-radius:10px}
+  /* 主按钮全宽 */
+  .actions{flex-direction:column;gap:10px;margin-top:22px}
+  .actions .btn{width:100%;padding:15px;font-size:16px;border-radius:12px}
+  /* 总账 hero 卡 + 账单卡 */
+  .total-bar{padding:20px 18px;border-radius:18px}
+  .total-bar .big{font-size:34px}
+  .dcard .head{padding:16px}
+  .dcard .head .tt .nm{font-size:16px}
+  .dcard .head .res .v{font-size:19px}
+  /* 底部条 + 标签栏 */
   .lb-cta{padding:9px 11px;font-size:12px}
   .lb-cell{min-width:100px;padding:0 13px}
-  /* 手机上表格更紧凑，长说明自动换行、不外溢 */
+  /* 表格紧凑不外溢 */
   .grade-tbl{font-size:12.5px}
   .grade-tbl th,.grade-tbl td{padding:8px 7px}
   .grade-tbl .gd,.grade-tbl .gt{font-size:11px}
   .basis-body{padding:8px 12px 18px}
+}
+/* ===== 平板端（761–1024）：保留左栏，内容更从容 ===== */
+@media(min-width:761px) and (max-width:1024px){
+  #rail{width:208px;flex-basis:208px}
+  .page{padding:24px 26px 40px}
+  .groups.three{grid-template-columns:1fr 1fr}
+  .hero h1{font-size:26px}
 }
 .step-label{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--ink);margin:26px 2px 12px}
 .step-label:first-of-type{margin-top:6px}
