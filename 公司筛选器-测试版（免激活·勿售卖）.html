@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
-<title>公司筛选器 · 销售找选留</title>
+<title>公司筛选器（测试版·免激活）</title>
 <style>
 /* ========== 设计令牌 · 移动优先 · 深浅双色 ========== */
 :root{
@@ -497,7 +497,7 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
 ====================================================================== */
 
 /* ====== 激活（离线·ECDSA 验签；文件内只有公钥，读了也伪造不出码） ====== */
-var REQUIRE_ACTIVATION = true;   // 自己测试想直接进，临时改成 false
+var REQUIRE_ACTIVATION = false;   // 测试版·免激活·勿售卖   // 自己测试想直接进，临时改成 false
 var ACT_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECrqVtyaGHI0Zr82oO3rCNArzkPOvziQ9tLLbX3YaUJ7pDLiAiSskz1plIM3t8eu9/dcUbQr5fH8pZSvxysDPlw==";
 function _b64ToBytes(s){ var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u; }
 function _b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return _b64ToBytes(s); }
