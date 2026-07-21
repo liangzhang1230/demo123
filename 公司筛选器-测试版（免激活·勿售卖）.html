@@ -496,59 +496,48 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
    基准来自企业版销冠算盘（达标月收入表 / 爬坡曲线 / 最低工资）。
 ====================================================================== */
 
-/* ====== 激活（离线·ECDSA 验签；文件内只有公钥，读了也伪造不出码） ====== */
+/* ====== 激活（纯JS·HMAC-SHA256；不依赖 https/加密接口，http 也能用） ====== */
 var REQUIRE_ACTIVATION = false;   // 测试版·免激活·勿售卖   // 自己测试想直接进，临时改成 false
-var ACT_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECrqVtyaGHI0Zr82oO3rCNArzkPOvziQ9tLLbX3YaUJ7pDLiAiSskz1plIM3t8eu9/dcUbQr5fH8pZSvxysDPlw==";
-function _b64ToBytes(s){ var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u; }
-function _b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return _b64ToBytes(s); }
-async function _sha256hex(str){ var d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str)); return Array.from(new Uint8Array(d)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }
-async function deviceFP(){
-  var cv=''; try{ var c=document.createElement('canvas'),g=c.getContext('2d'); g.textBaseline='top'; g.font='14px sans-serif'; g.fillText('公司筛选器·FP',2,2); cv=c.toDataURL().slice(-32); }catch(e){}
-  var parts=[navigator.userAgent,screen.width+'x'+screen.height,screen.colorDepth,
-    (window.Intl&&Intl.DateTimeFormat().resolvedOptions().timeZone)||'',navigator.language,
-    navigator.hardwareConcurrency||0,navigator.platform||'',cv];
-  return (await _sha256hex(parts.join('|'))).slice(0,12);
+var ACT_SECRET = "bcd5fb4b44ce2db5b5eceacf244d78f05a0405780ecd74b0"; // 暗号：必须和「发码器」里的一致
+function _u8(s){return unescape(encodeURIComponent(s));}
+function _sha256(ascii){function rr(v,a){return(v>>>a)|(v<<(32-a));}var mp=Math.pow,mw=mp(2,32),i,j,result='';var words=[],L=ascii.length*8;var hash=_sha256.h=_sha256.h||[],k=_sha256.k=_sha256.k||[],pc=k.length,comp={};for(var cand=2;pc<64;cand++){if(!comp[cand]){for(i=0;i<313;i+=cand)comp[i]=cand;hash[pc]=(mp(cand,.5)*mw)|0;k[pc++]=(mp(cand,1/3)*mw)|0;}}ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}words[words.length]=((L/mw)|0);words[words.length]=(L);for(j=0;j<words.length;){var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0;}for(i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0;}for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;result+=((b<16)?0:'')+b.toString(16);}return result;}
+function _hb(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.substr(i,2),16));return s;}
+function _hmac(key,msg){key=_u8(key);msg=_u8(msg);if(key.length>64)key=_hb(_sha256(key));while(key.length<64)key+='\x00';var ok='',ik='';for(var i=0;i<64;i++){var c=key.charCodeAt(i);ok+=String.fromCharCode(c^0x5c);ik+=String.fromCharCode(c^0x36);}return _sha256(ok+_hb(_sha256(ik+msg)));}
+function _unhex(h){try{var b='';for(var i=0;i<h.length;i+=2)b+=String.fromCharCode(parseInt(h.substr(i,2),16));return decodeURIComponent(escape(b));}catch(e){return '';}}
+function deviceFP(){
+  var cv=''; try{var c=document.createElement('canvas'),g=c.getContext('2d');g.textBaseline='top';g.font='14px sans-serif';g.fillText('公司筛选器·FP',2,2);cv=c.toDataURL().slice(-32);}catch(e){}
+  var parts=[navigator.userAgent,screen.width+'x'+screen.height,screen.colorDepth,(window.Intl&&Intl.DateTimeFormat().resolvedOptions().timeZone)||'',navigator.language,navigator.hardwareConcurrency||0,navigator.platform||'',cv];
+  return _sha256(_u8(parts.join('|'))).slice(0,12);
 }
-var _pub=null;
-async function _getPub(){ if(_pub)return _pub; _pub=await crypto.subtle.importKey('spki',_b64ToBytes(ACT_PUB),{name:'ECDSA',namedCurve:'P-256'},false,['verify']); return _pub; }
-async function verifyCode(code){
+function verifyCode(code){
   try{
     code=(code||'').trim().replace(/\s+/g,'');
-    var m=code.split('.'); if(m.length!==3||m[0]!=='XZ') return {ok:false,reason:'格式不对，请检查激活码'};
-    var pb=_b64urlToBytes(m[1]), sig=_b64urlToBytes(m[2]);
-    var ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},await _getPub(),sig,pb);
-    if(!ok) return {ok:false,reason:'无效激活码（验签失败）'};
-    var p=JSON.parse(new TextDecoder().decode(pb));
-    if(p.t==='d'){ var fp=await deviceFP(); if(p.dev!==fp) return {ok:false,reason:'这个码绑定的是另一台设备'}; }
-    return {ok:true,payload:p};
+    var p=code.split('-');
+    if(p[0]!=='XZ'||p.length<4) return {ok:false,reason:'格式不对，请检查激活码'};
+    if(p[1]==='G'){ var id=_unhex(p[2]); return _hmac(ACT_SECRET,'G|'+id).slice(0,20)===p[3]?{ok:true}:{ok:false,reason:'无效激活码（验签失败）'}; }
+    if(p[1]==='D'){ var dfp=p[2]; if(_hmac(ACT_SECRET,'D|'+dfp).slice(0,20)!==p[3]) return {ok:false,reason:'无效激活码（验签失败）'}; if(dfp!==deviceFP()) return {ok:false,reason:'这个码绑定的是另一台设备'}; return {ok:true}; }
+    return {ok:false,reason:'格式不对'};
   }catch(e){ return {ok:false,reason:'激活码损坏'}; }
 }
-async function checkActivated(){
+function checkActivated(){
   if(!REQUIRE_ACTIVATION) return true;
-  if(!(window.crypto&&crypto.subtle)) return 'nocrypto';
-  var raw; try{ raw=localStorage.getItem('filter_act'); }catch(e){}
+  var raw; try{raw=localStorage.getItem('filter_act');}catch(e){}
   if(!raw) return false;
-  try{ var a=JSON.parse(raw); return (await verifyCode(a.code)).ok; }catch(e){ return false; }
+  try{ return verifyCode(JSON.parse(raw).code).ok; }catch(e){ return false; }
 }
-async function doActivate(){
-  var inp=document.getElementById('actCode'), msg=document.getElementById('actMsg');
-  if(!(window.crypto&&crypto.subtle)){ msg.style.color='var(--amber)';
-    msg.textContent='当前网址是 http，激活需要 https（地址栏应有🔒）。请给网站开启 SSL 后再激活。'; return; }
-  msg.style.color='var(--mute)'; msg.textContent='验证中…';
-  var r=await verifyCode(inp.value);
-  if(r.ok){ try{ localStorage.setItem('filter_act',JSON.stringify({code:inp.value.trim()})); }catch(e){}
+function doActivate(){
+  var inp=document.getElementById('actCode'),msg=document.getElementById('actMsg');
+  var r=verifyCode(inp.value);
+  if(r.ok){ try{localStorage.setItem('filter_act',JSON.stringify({code:inp.value.trim()}));}catch(e){}
     msg.style.color='var(--green)'; msg.textContent='✓ 激活成功';
     document.getElementById('gate').style.display='none'; bootApp(); }
   else { msg.style.color='var(--red)'; msg.textContent='✗ '+r.reason; }
 }
-async function showGate(nocrypto){
-  var g=document.getElementById('gate');
-  try{ document.getElementById('actDev').textContent=(window.crypto&&crypto.subtle)?await deviceFP():'—'; }catch(e){}
-  if(nocrypto){ var m=document.getElementById('actMsg');
-    m.style.color='var(--amber)'; m.textContent='此网址是 http，激活功能需要 https。请开启 SSL 后再用。';
-    var inp=document.getElementById('actCode'); if(inp){inp.disabled=true;inp.placeholder='需 https 才能激活';} }
-  g.style.display='flex';
+function showGate(){
+  try{document.getElementById('actDev').textContent=deviceFP();}catch(e){document.getElementById('actDev').textContent='—';}
+  document.getElementById('gate').style.display='flex';
 }
+
 
 /* ---------- 基准数据（企业版原始值） ---------- */
 var BENCH = {  // 达标月收入（元/月），idx=[预警,初级,中级,高级]
@@ -957,9 +946,7 @@ document.getElementById('themeBtn').onclick=function(){ DB.meta.theme=(DB.meta.t
 function bootApp(){ renderChecks(); paintSeg(); recalc(); }
 load(); applyTheme();
 document.getElementById('buyerName').value=DB.meta.buyer||'';
-(async function(){ var s=await checkActivated();
-  if(s===true){ bootApp(); } else { showGate(s==='nocrypto'); }
-})();
+(function(){ if(checkActivated()){ bootApp(); } else { showGate(); } })();
 
 /* ---------- 自检（控制台可见，作回归 oracle） ---------- */
 (function selfTest(){

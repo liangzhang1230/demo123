@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>发码器 · 卖家专用</title>
 <style>
-:root{--bg:#12181A;--card:#1B2327;--line:rgba(255,255,255,.12);--ink:#EAF0EE;--mute:#93A0A2;--brand:#5BB98C;--red:#E06B6B;--amber:#E0A63F;
+:root{--bg:#12181A;--card:#1B2327;--line:rgba(255,255,255,.12);--ink:#EAF0EE;--mute:#93A0A2;--brand:#5BB98C;--red:#E06B6B;
   --sans:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;padding:20px 14px 60px}
@@ -16,33 +16,33 @@ h1{font-size:22px;margin-bottom:4px}
 .card h2{font-size:16px;margin-bottom:4px}
 .dim{color:var(--mute);font-size:12.5px;line-height:1.7}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
-input,textarea{width:100%;background:#0E1315;border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:var(--mono);font-size:14px;padding:9px 11px}
-input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+input{width:100%;background:#0E1315;border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:var(--mono);font-size:14px;padding:9px 11px}
+input:focus{outline:none;border-color:var(--brand)}
 button{width:100%;padding:13px;border:none;border-radius:11px;background:var(--brand);color:#08130E;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--mute);font-weight:600}
 button:active{transform:scale(.98)}
-.out{background:#0E1315;border:1px dashed var(--brand);border-radius:9px;padding:11px;margin-top:10px;font-family:var(--mono);font-size:12.5px;word-break:break-all;color:var(--brand);min-height:20px}
+.out{background:#0E1315;border:1px dashed var(--brand);border-radius:9px;padding:11px;margin-top:10px;font-family:var(--mono);font-size:13px;word-break:break-all;color:var(--brand);min-height:20px}
 .seg{display:flex;gap:8px;margin-top:6px}
 .seg div{flex:1;text-align:center;padding:9px;border:1px solid var(--line);border-radius:9px;background:#0E1315;color:var(--mute);cursor:pointer;font-size:13px}
 .seg div[aria-pressed="true"]{background:var(--brand);color:#08130E;border-color:var(--brand);font-weight:700}
 .log{font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:8px;margin-top:12px}
 .log div{padding:4px 0;border-bottom:1px dotted var(--line);word-break:break-all;font-family:var(--mono)}
-.k{font-family:var(--mono);font-size:11px;color:var(--mute);word-break:break-all;background:#0E1315;border-radius:8px;padding:9px;margin-top:6px}
+.k{font-family:var(--mono);font-size:12px;color:var(--mute);word-break:break-all;background:#0E1315;border-radius:8px;padding:9px;margin-top:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🔑 发码器</h1>
-<div class="dim">给「公司筛选器」生成激活码。此文件含<b>私钥</b>，只在你自己电脑上用。</div>
-<div class="warn">⚠️ 这个文件千万别发给任何人（含买家）。发出去 = 别人能自己造码，防盗版就废了。</div>
+<div class="dim">给「公司筛选器」生成激活码。纯离线，http 也能用。</div>
+<div class="warn">⚠️ 这个文件千万别发给任何人（含买家）。它含「暗号」，发出去别人就能自己造码。</div>
 
 <div class="card">
   <h2>① 出码</h2>
   <div class="seg" id="modeSeg">
-    <div data-m="g" aria-pressed="true">通用码（图快）</div>
-    <div data-m="d" aria-pressed="false">锁机码（真单设备）</div>
+    <div data-m="G" aria-pressed="true">通用码（图快）</div>
+    <div data-m="D" aria-pressed="false">锁机码（真单设备）</div>
   </div>
-  <div class="dim" id="modeHint" style="margin-top:8px">通用码：任何设备输入即可用。挡住"只转文件不给码"的人，但买家把文件+码一起发，朋友那台也能用。</div>
+  <div class="dim" id="modeHint" style="margin-top:8px">通用码：任何设备输入即可用。挡住"只转文件不给码"的人。</div>
 
   <label>买家标识（备注用，如微信名/订单号）</label>
   <input id="buyer" placeholder="例如：小红书-张三-0721">
@@ -65,67 +65,49 @@ button:active{transform:scale(.98)}
 </div>
 
 <div class="card">
-  <h2>③ 密钥（正式卖之前做一次）</h2>
-  <div class="dim">你现在用的是<b>示例密钥</b>——我给的文件里默认就有，任何拿到我这套文件的人都能造码。<b>正式卖之前点下面重新生成</b>，然后把新公钥粘进「公司筛选器」文件里 <code>ACT_PUB</code> 那一行。</div>
-  <button class="ghost" onclick="regen()">重新生成一对新密钥</button>
-  <label>当前公钥（粘到产品文件的 ACT_PUB）</label>
-  <div class="k" id="pubOut">—</div>
-  <button class="ghost" onclick="copyPub()">复制公钥</button>
+  <h2>③ 暗号（进阶·一般不用动）</h2>
+  <div class="dim">发码器和筛选器靠同一个「暗号」对上。我给的两个文件里默认已内置<b>同一个暗号</b>，开箱即用、不用你设置。<br>只有想更保险时才改：把下面这串换成你自己的，然后<b>同一串</b>同时填进筛选器文件的 <code>ACT_SECRET</code>（两处必须一模一样）。</div>
+  <label>当前暗号 ACT_SECRET</label>
+  <input id="secret" value="">
+  <div class="dim" style="margin-top:6px">改了记得同步到筛选器，否则新码验不过。</div>
 </div>
 </div>
 
 <script>
 'use strict';
-var DEF_PRIV="MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgd4co/1BtC0HWyZOEVNq7vyr5Sx1Qo4In3ZrTQIu8OtqhRANCAAQKupW3JoYcjRmvzag7esI0CvOQ86/OJD20sttfdhpQnukMuICJKyTPWmUgze3x67391xRtCvl8fyllK/HKwM+X";
-var DEF_PUB="MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECrqVtyaGHI0Zr82oO3rCNArzkPOvziQ9tLLbX3YaUJ7pDLiAiSskz1plIM3t8eu9/dcUbQr5fH8pZSvxysDPlw==";
-var MODE='g';
-function getPriv(){ return localStorage.getItem('xz_priv')||DEF_PRIV; }
-function getPub(){ return localStorage.getItem('xz_pub')||DEF_PUB; }
-function b64ToBytes(s){ var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u; }
-function bytesToB64(u){ var s='';for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s); }
-function b64url(u){ return bytesToB64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
-async function importPriv(){ return crypto.subtle.importKey('pkcs8',b64ToBytes(getPriv()),{name:'ECDSA',namedCurve:'P-256'},false,['sign']); }
-async function makeCode(payload){
-  var key=await importPriv();
-  var pb=new TextEncoder().encode(JSON.stringify(payload));
-  var sig=await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,pb);
-  return 'XZ.'+b64url(pb)+'.'+b64url(new Uint8Array(sig));
-}
+var DEF_SECRET="bcd5fb4b44ce2db5b5eceacf244d78f05a0405780ecd74b0";
+var MODE='G';
+function getSecret(){ return (document.getElementById('secret').value||'').trim()||DEF_SECRET; }
+/* 纯JS SHA-256 / HMAC（与筛选器完全一致） */
+function _u8(s){return unescape(encodeURIComponent(s));}
+function _sha256(ascii){function rr(v,a){return(v>>>a)|(v<<(32-a));}var mp=Math.pow,mw=mp(2,32),i,j,result='';var words=[],L=ascii.length*8;var hash=_sha256.h=_sha256.h||[],k=_sha256.k=_sha256.k||[],pc=k.length,comp={};for(var cand=2;pc<64;cand++){if(!comp[cand]){for(i=0;i<313;i+=cand)comp[i]=cand;hash[pc]=(mp(cand,.5)*mw)|0;k[pc++]=(mp(cand,1/3)*mw)|0;}}ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}words[words.length]=((L/mw)|0);words[words.length]=(L);for(j=0;j<words.length;){var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0;}for(i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0;}for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;result+=((b<16)?0:'')+b.toString(16);}return result;}
+function _hb(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.substr(i,2),16));return s;}
+function _hmac(key,msg){key=_u8(key);msg=_u8(msg);if(key.length>64)key=_hb(_sha256(key));while(key.length<64)key+='\x00';var ok='',ik='';for(var i=0;i<64;i++){var c=key.charCodeAt(i);ok+=String.fromCharCode(c^0x5c);ik+=String.fromCharCode(c^0x36);}return _sha256(ok+_hb(_sha256(ik+msg)));}
+function _hex(s){s=_u8(s);var o='';for(var i=0;i<s.length;i++){var h=s.charCodeAt(i).toString(16);o+=(h.length<2?'0':'')+h;}return o;}
+
 document.getElementById('modeSeg').addEventListener('click',function(e){
   var d=e.target.closest('[data-m]'); if(!d)return; MODE=d.getAttribute('data-m');
   document.querySelectorAll('#modeSeg div').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-m')===MODE)});
-  document.getElementById('devWrap').style.display=MODE==='d'?'block':'none';
-  document.getElementById('modeHint').textContent = MODE==='d'
+  document.getElementById('devWrap').style.display=MODE==='D'?'block':'none';
+  document.getElementById('modeHint').textContent = MODE==='D'
     ? '锁机码：绑死买家这台设备，换手机/发给朋友都作废。买家要先把「设备码」发你。'
-    : '通用码：任何设备输入即可用。挡住"只转文件不给码"的人，但买家把文件+码一起发，朋友那台也能用。';
+    : '通用码：任何设备输入即可用。挡住"只转文件不给码"的人。';
 });
-async function gen(){
-  var buyer=(document.getElementById('buyer').value||'').trim()||'匿名';
-  var payload={t:MODE,id:buyer,iat:'2026'};
-  if(MODE==='d'){ var dev=(document.getElementById('dev').value||'').trim();
+function gen(){
+  var s=getSecret(), code, buyer=(document.getElementById('buyer').value||'').trim()||'匿名';
+  if(MODE==='D'){ var dev=(document.getElementById('dev').value||'').trim();
     if(!/^[0-9a-f]{12}$/.test(dev)){ alert('请填买家发来的 12 位设备码（数字+a-f）'); return; }
-    payload.dev=dev; }
-  var code=await makeCode(payload);
+    code='XZ-D-'+dev+'-'+_hmac(s,'D|'+dev).slice(0,20); }
+  else { code='XZ-G-'+_hex(buyer)+'-'+_hmac(s,'G|'+buyer).slice(0,20); }
   document.getElementById('codeOut').textContent=code;
   var logs=JSON.parse(localStorage.getItem('xz_log')||'[]');
-  logs.unshift({buyer:buyer,t:MODE,dev:payload.dev||'',code:code});
-  localStorage.setItem('xz_log',JSON.stringify(logs.slice(0,200))); renderLog();
+  logs.unshift({buyer:buyer,t:MODE,code:code}); localStorage.setItem('xz_log',JSON.stringify(logs.slice(0,200))); renderLog();
 }
 function copyCode(){ var t=document.getElementById('codeOut').textContent; if(t&&t!=='—'){navigator.clipboard.writeText(t);alert('激活码已复制');} }
-function copyPub(){ navigator.clipboard.writeText(getPub());alert('公钥已复制，粘到产品文件 ACT_PUB');}
 function renderLog(){ var logs=JSON.parse(localStorage.getItem('xz_log')||'[]');
-  document.getElementById('logBox').innerHTML=logs.length?logs.map(function(l){return '<div>'+(l.t==='d'?'🔒':'🌐')+' '+l.buyer+(l.dev?'·'+l.dev:'')+' → '+l.code.slice(0,22)+'…</div>';}).join(''):'<div style="border:none;color:#666">还没出过码</div>'; }
+  document.getElementById('logBox').innerHTML=logs.length?logs.map(function(l){return '<div>'+(l.t==='D'?'🔒':'🌐')+' '+l.buyer+' → '+l.code+'</div>';}).join(''):'<div style="border:none;color:#666">还没出过码</div>'; }
 function clearLog(){ if(confirm('清空出货记录？')){localStorage.removeItem('xz_log');renderLog();} }
-async function regen(){
-  if(!confirm('重新生成密钥后，旧密钥发出去的码全部作废、且要把新公钥粘进产品文件。确定？'))return;
-  var kp=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
-  var priv=await crypto.subtle.exportKey('pkcs8',kp.privateKey);
-  var pub=await crypto.subtle.exportKey('spki',kp.publicKey);
-  localStorage.setItem('xz_priv',bytesToB64(new Uint8Array(priv)));
-  localStorage.setItem('xz_pub',bytesToB64(new Uint8Array(pub)));
-  document.getElementById('pubOut').textContent=getPub(); alert('已生成新密钥。记得复制公钥粘进产品文件！');
-}
-document.getElementById('pubOut').textContent=getPub();
+document.getElementById('secret').value=DEF_SECRET;
 renderLog();
 </script>
 </body>
