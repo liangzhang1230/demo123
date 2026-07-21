@@ -575,7 +575,7 @@ function calcCardD(inp,totalHeadTarget){
 function calcCardA(inp,managerNeeded,totalHeadTarget){
   const I1=inp.cityTier,I2=inp.cycleTier,grade=inp.tierGrade,I4=inp.targetPersonalMonthlyGrossAmt,
         I5=inp.nextYearTargetGrossAmt,I11=inp.blendedMarginRate;
-  const gi=gradeIndex(grade),cityB=getCoef('cityBase.'+I1),cf=getCoef('cycleFactor.'+I2),
+  const gi=gradeIndex(grade),gmi=gradeIndex(inp.mgrGrade),cityB=getCoef('cityBase.'+I1),cf=getCoef('cycleFactor.'+I2),
         social=getCoef('socialCostRate'),ltr=getCoef('longTermRate'),minW=getCoef('minWageTable.'+I1);
   const Bof=(lv,idx)=>roundYuanFen(cityB*getCoef('levelMultiplier.'+lv)[idx]*cf);
   const Tof=(lv,idx)=>getCoef('thresholdTTable.'+I1+'.'+lv)[idx]*100; // 元→分
@@ -583,7 +583,7 @@ function calcCardA(inp,managerNeeded,totalHeadTarget){
   const layers=['sales','manager','executive'];
   const count={sales:totalHeadTarget,manager:managerNeeded,executive:1};
   const rows=layers.map(lv=>{
-    const B=Bof(lv,gi),T=Tof(lv,gi),G=Gof(lv);
+    const idx=lv==='sales'?gi:gmi, B=Bof(lv,idx),T=Tof(lv,idx),G=Gof(lv);
     const longAmt=Math.round(T*ltr), gapAmt=Math.round(T*(1-ltr))-B;
     const blocked=B>=T*(1-ltr), r=blocked?null:safeDiv(gapAmt,G);
     const belowMinWage=B<minW, floatShare=safeDiv(gapAmt,T);
@@ -690,7 +690,7 @@ function leakSandbox(measures){ return measures.filter(m=>LEAK_MAP[m]).map(m=>({
    4. 应用状态与持久化
    ========================================================================== */
 const LABELS={
-  cityTier:'城市线级',cycleTier:'成交周期档',tierGrade:'定价档位',
+  cityTier:'城市线级',cycleTier:'成交周期档',tierGrade:'定价档位',mgrGrade:'主管/高管档位',
   targetPersonalMonthlyGrossAmt:'达标销售的月回款目标',nextYearTargetGrossAmt:'明年公司回款目标（年）',
   lastYearPerCapitaGrossAmt:'去年人均回款（年·真值）',salesCount:'现有销售人数',managerCount:'现有销售主管人数',
   attritionRate:'年流失率',hiringCycleDays:'招聘周期（天）',blendedMarginRate:'综合毛利率',
@@ -700,6 +700,7 @@ const ENUMS={
   cityTier:[['tier1','一线'],['tier2','二线'],['tier34','三四线']],
   cycleTier:[['short','短期≤30天'],['regular','常规1–3月'],['midLong','中长4–6月'],['long','长期7–12月'],['ultraLong','超长>12月']],
   tierGrade:[['effective','初级（有效）'],['efficient','中级（高效）'],['leading','高级（领先）']],
+  mgrGrade:[['effective','有效'],['efficient','高效'],['leading','领先']],
   complementLevel:[['solo','各干各的'],['partial','部分协作'],['chained','环环相扣']],
   attributableLevel:[['no','说不清谁干的'],['partial','部分能分清'],['yes','能精确到人头']],
   positionType:[['pure_sales','纯销售'],['advisory','顾问建议岗'],['aftersales','售后服务岗']],
@@ -724,7 +725,7 @@ const REAL_TODAY = new Date().toISOString().slice(0,10); // 唯一一处取真�
 
 const app={
   page:'home',
-  inputs:{ cityTier:null,cycleTier:null,tierGrade:'effective',
+  inputs:{ cityTier:null,cycleTier:null,tierGrade:'effective',mgrGrade:'effective',
     targetPersonalMonthlyGrossAmt:null,nextYearTargetGrossAmt:null,lastYearPerCapitaGrossAmt:null,
     salesCount:null,managerCount:null,attritionRate:null,hiringCycleDays:null,blendedMarginRate:null,
     complementLevel:null,attributableLevel:null },
@@ -1058,7 +1059,7 @@ function tierTable(){
   const Bof=(lv,idx)=>roundYuanFen(cityB*getCoef('levelMultiplier.'+lv)[idx]*cf);
   const Tof=(lv,idx)=>getCoef('thresholdTTable.'+I1+'.'+lv)[idx]*100;
   const cityLab=ENUMS.cityTier.find(x=>x[0]===I1)[1], cycLab=ENUMS.cycleTier.find(x=>x[0]===I2)[1];
-  const gi=gradeIndex(app.inputs.tierGrade);
+  const gmi=gradeIndex(app.inputs.mgrGrade||'effective');
   wrap.appendChild(el('div','tier-label',`<span class="n">1</span>选销售档 <span class="lh">（${cityLab} · ${cycLab} 实算 · 点一行选定）</span>`));
   const tbl=el('table','grade-tbl');
   tbl.innerHTML=`<tr><th>销售档位</th><th>底薪/月</th><th>达标月收入</th><th>这是什么人</th></tr>`;
@@ -1069,11 +1070,18 @@ function tierTable(){
     tr.onclick=()=>{ app.inputs.tierGrade=g; app.gradeBaseInput=null; if(app.results)compute(REAL_TODAY); render(); };
     tbl.appendChild(tr); });
   wrap.appendChild(tbl);
-  wrap.appendChild(el('div','tier-label',`<span class="n">2</span>配套主管 / 高管 <span class="lh">（随所选「${GRADE_SHORT[app.inputs.tierGrade]}」档联动）</span>`));
+  wrap.appendChild(el('div','tier-label',`<span class="n">2</span>主管 / 高管档位 <span class="lh">（管理层单独定档，不随销售档变）</span>`));
+  const mgrCur=app.inputs.mgrGrade||'effective';
+  const mgrSeg=el('div','seg'); mgrSeg.style.marginBottom='10px';
+  [['effective','有效'],['efficient','高效'],['leading','领先']].forEach(([g,lab])=>{
+    const b=el('button',mgrCur===g?'on':'',lab);
+    b.onclick=()=>{ app.inputs.mgrGrade=g; if(app.results)compute(REAL_TODAY); render(); };
+    mgrSeg.appendChild(b); });
+  wrap.appendChild(mgrSeg);
   const sub=el('table','grade-tbl');
   sub.innerHTML=`<tr><th>层级</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>`;
   ['manager','executive'].forEach(lv=>{ const tr=el('tr');
-    tr.innerHTML=`<td>${levelName(lv)}</td><td class="mono">${yuan(Bof(lv,gi))}</td><td class="mono">${yuan(Tof(lv,gi))}</td><td class="gd">${LEVEL_DESC[lv]}</td>`;
+    tr.innerHTML=`<td>${levelName(lv)}</td><td class="mono">${yuan(Bof(lv,gmi))}</td><td class="mono">${yuan(Tof(lv,gmi))}</td><td class="gd">${LEVEL_DESC[lv]}</td>`;
     sub.appendChild(tr); });
   wrap.appendChild(sub);
   wrap.appendChild(el('div','hint','底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚）；达标月收入只随城市与档位变、不随周期变。'));
@@ -1132,7 +1140,7 @@ function fieldFor(f){
   return wrap;
 }
 function fillDemo(){
-  app.inputs={ cityTier:'tier1',cycleTier:'regular',tierGrade:'effective',
+  app.inputs={ cityTier:'tier1',cycleTier:'regular',tierGrade:'effective',mgrGrade:'effective',
     targetPersonalMonthlyGrossAmt:30*1e6, nextYearTargetGrossAmt:3000*1e6, lastYearPerCapitaGrossAmt:300*1e6,
     salesCount:5,managerCount:1,attritionRate:0.35,hiringCycleDays:45,blendedMarginRate:0.30,
     complementLevel:'partial',attributableLevel:'partial' };
@@ -1620,7 +1628,7 @@ function printPlan(){
     <p style="text-align:center;color:#666">${'方案 '+REAL_TODAY}</p>
     <div style="text-align:center;margin:24px 0;padding:20px;background:#f8f8fb;border-radius:10px">
       <div style="color:#888">今年已注定漏损 ≈</div><div style="font-size:32px;font-weight:800">${wan(R.total.total)}</div></div>
-    <h3 style="margin-top:20px">输入回执（13 项）</h3>
+    <h3 style="margin-top:20px">输入回执（14 项）</h3>
     <table class="grid" style="width:100%">${inputRows}</table>
     <h3 style="margin-top:20px">五张账单摘要</h3>
     <table class="grid" style="width:100%">
