@@ -183,6 +183,16 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
 .cmp th{color:var(--faint);font-size:11px;font-weight:600}
 .win{color:var(--green);font-weight:700}
 
+/* 激活闸 */
+#gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;align-items:center;justify-content:center;padding:22px}
+.gate-card{max-width:400px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px;box-shadow:var(--sh)}
+.gate-card h2{font-size:20px;margin:14px 0 6px}
+.gate-card p{font-size:13px;color:var(--mute);line-height:1.7;margin-bottom:14px}
+.gate-card input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:11px;color:var(--ink);font-family:var(--mono);font-size:15px;padding:12px;text-align:center}
+.gate-card input:focus{outline:none;border-color:var(--brand)}
+#actMsg{font-size:13px;margin-top:10px;min-height:18px;text-align:center}
+.gate-card .dev{font-size:12px;color:var(--faint);margin-top:16px;text-align:center;line-height:1.7;border-top:1px solid var(--line);padding-top:14px}
+.gate-card .dev b{color:var(--brand);font-family:var(--mono);font-size:14px;letter-spacing:.05em}
 @media print{
   body{background:#fff;color:#000;padding:0}
   .nav,.top,.btn,.btnrow,.acc>summary .chev{display:none!important}
@@ -192,6 +202,18 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
 </style>
 </head>
 <body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="brand" style="font-size:17px"><i style="width:28px;height:28px">筛</i>公司筛选器</div>
+    <h2>输入激活码</h2>
+    <p>本工具需激活后使用。激活信息只存在你本机、不联网。购买后卖家会把激活码发给你。</p>
+    <input id="actCode" placeholder="粘贴激活码 XZ.…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn" onclick="doActivate()" style="margin-top:12px">激 活</button>
+    <div id="actMsg"></div>
+    <div class="dev">本机设备码 <b id="actDev">…</b><br>（购买「锁机码」时，把这串发给卖家）</div>
+  </div>
+</div>
 
 <div class="top">
   <div class="brand"><i>筛</i>公司筛选器</div>
@@ -473,6 +495,57 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
    金额单位：元（消费级近似，非会计口径）。除法走 safeDiv，缺数据显「—」。
    基准来自企业版销冠算盘（达标月收入表 / 爬坡曲线 / 最低工资）。
 ====================================================================== */
+
+/* ====== 激活（离线·ECDSA 验签；文件内只有公钥，读了也伪造不出码） ====== */
+var REQUIRE_ACTIVATION = true;   // 自己测试想直接进，临时改成 false
+var ACT_PUB = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECrqVtyaGHI0Zr82oO3rCNArzkPOvziQ9tLLbX3YaUJ7pDLiAiSskz1plIM3t8eu9/dcUbQr5fH8pZSvxysDPlw==";
+function _b64ToBytes(s){ var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u; }
+function _b64urlToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return _b64ToBytes(s); }
+async function _sha256hex(str){ var d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str)); return Array.from(new Uint8Array(d)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }
+async function deviceFP(){
+  var cv=''; try{ var c=document.createElement('canvas'),g=c.getContext('2d'); g.textBaseline='top'; g.font='14px sans-serif'; g.fillText('公司筛选器·FP',2,2); cv=c.toDataURL().slice(-32); }catch(e){}
+  var parts=[navigator.userAgent,screen.width+'x'+screen.height,screen.colorDepth,
+    (window.Intl&&Intl.DateTimeFormat().resolvedOptions().timeZone)||'',navigator.language,
+    navigator.hardwareConcurrency||0,navigator.platform||'',cv];
+  return (await _sha256hex(parts.join('|'))).slice(0,12);
+}
+var _pub=null;
+async function _getPub(){ if(_pub)return _pub; _pub=await crypto.subtle.importKey('spki',_b64ToBytes(ACT_PUB),{name:'ECDSA',namedCurve:'P-256'},false,['verify']); return _pub; }
+async function verifyCode(code){
+  try{
+    code=(code||'').trim().replace(/\s+/g,'');
+    var m=code.split('.'); if(m.length!==3||m[0]!=='XZ') return {ok:false,reason:'格式不对，请检查激活码'};
+    var pb=_b64urlToBytes(m[1]), sig=_b64urlToBytes(m[2]);
+    var ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},await _getPub(),sig,pb);
+    if(!ok) return {ok:false,reason:'无效激活码（验签失败）'};
+    var p=JSON.parse(new TextDecoder().decode(pb));
+    if(p.t==='d'){ var fp=await deviceFP(); if(p.dev!==fp) return {ok:false,reason:'这个码绑定的是另一台设备'}; }
+    return {ok:true,payload:p};
+  }catch(e){ return {ok:false,reason:'激活码损坏'}; }
+}
+async function checkActivated(){
+  if(!REQUIRE_ACTIVATION) return true;
+  if(!(window.crypto&&crypto.subtle)) return 'nocrypto';
+  var raw; try{ raw=localStorage.getItem('filter_act'); }catch(e){}
+  if(!raw) return false;
+  try{ var a=JSON.parse(raw); return (await verifyCode(a.code)).ok; }catch(e){ return false; }
+}
+async function doActivate(){
+  var inp=document.getElementById('actCode'), msg=document.getElementById('actMsg');
+  msg.style.color='var(--mute)'; msg.textContent='验证中…';
+  var r=await verifyCode(inp.value);
+  if(r.ok){ try{ localStorage.setItem('filter_act',JSON.stringify({code:inp.value.trim()})); }catch(e){}
+    msg.style.color='var(--green)'; msg.textContent='✓ 激活成功';
+    document.getElementById('gate').style.display='none'; bootApp(); }
+  else { msg.style.color='var(--red)'; msg.textContent='✗ '+r.reason; }
+}
+async function showGate(nocrypto){
+  var g=document.getElementById('gate');
+  try{ document.getElementById('actDev').textContent=(window.crypto&&crypto.subtle)?await deviceFP():'—'; }catch(e){}
+  if(nocrypto){ document.getElementById('actMsg').style.color='var(--amber)';
+    document.getElementById('actMsg').textContent='请通过网址(https)打开以启用激活'; }
+  g.style.display='flex';
+}
 
 /* ---------- 基准数据（企业版原始值） ---------- */
 var BENCH = {  // 达标月收入（元/月），idx=[预警,初级,中级,高级]
@@ -878,9 +951,12 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',DB.met
 document.getElementById('themeBtn').onclick=function(){ DB.meta.theme=(DB.meta.theme==='light')?'dark':'light'; applyTheme(); save(); };
 
 /* ---------- 启动 ---------- */
+function bootApp(){ renderChecks(); paintSeg(); recalc(); }
 load(); applyTheme();
 document.getElementById('buyerName').value=DB.meta.buyer||'';
-renderChecks(); paintSeg(); recalc();
+(async function(){ var s=await checkActivated();
+  if(s===true){ bootApp(); } else { showGate(s==='nocrypto'); }
+})();
 
 /* ---------- 自检（控制台可见，作回归 oracle） ---------- */
 (function selfTest(){

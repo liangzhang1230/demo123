@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>发码器 · 卖家专用</title>
+<style>
+:root{--bg:#12181A;--card:#1B2327;--line:rgba(255,255,255,.12);--ink:#EAF0EE;--mute:#93A0A2;--brand:#5BB98C;--red:#E06B6B;--amber:#E0A63F;
+  --sans:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;padding:20px 14px 60px}
+.wrap{max-width:560px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px}
+.warn{background:rgba(224,107,107,.12);border:1px solid var(--red);color:#F0B4B4;border-radius:10px;padding:10px 12px;font-size:12.5px;margin:12px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.card h2{font-size:16px;margin-bottom:4px}
+.dim{color:var(--mute);font-size:12.5px;line-height:1.7}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+input,textarea{width:100%;background:#0E1315;border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:var(--mono);font-size:14px;padding:9px 11px}
+input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+button{width:100%;padding:13px;border:none;border-radius:11px;background:var(--brand);color:#08130E;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--mute);font-weight:600}
+button:active{transform:scale(.98)}
+.out{background:#0E1315;border:1px dashed var(--brand);border-radius:9px;padding:11px;margin-top:10px;font-family:var(--mono);font-size:12.5px;word-break:break-all;color:var(--brand);min-height:20px}
+.seg{display:flex;gap:8px;margin-top:6px}
+.seg div{flex:1;text-align:center;padding:9px;border:1px solid var(--line);border-radius:9px;background:#0E1315;color:var(--mute);cursor:pointer;font-size:13px}
+.seg div[aria-pressed="true"]{background:var(--brand);color:#08130E;border-color:var(--brand);font-weight:700}
+.log{font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:8px;margin-top:12px}
+.log div{padding:4px 0;border-bottom:1px dotted var(--line);word-break:break-all;font-family:var(--mono)}
+.k{font-family:var(--mono);font-size:11px;color:var(--mute);word-break:break-all;background:#0E1315;border-radius:8px;padding:9px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🔑 发码器</h1>
+<div class="dim">给「公司筛选器」生成激活码。此文件含<b>私钥</b>，只在你自己电脑上用。</div>
+<div class="warn">⚠️ 这个文件千万别发给任何人（含买家）。发出去 = 别人能自己造码，防盗版就废了。</div>
+
+<div class="card">
+  <h2>① 出码</h2>
+  <div class="seg" id="modeSeg">
+    <div data-m="g" aria-pressed="true">通用码（图快）</div>
+    <div data-m="d" aria-pressed="false">锁机码（真单设备）</div>
+  </div>
+  <div class="dim" id="modeHint" style="margin-top:8px">通用码：任何设备输入即可用。挡住"只转文件不给码"的人，但买家把文件+码一起发，朋友那台也能用。</div>
+
+  <label>买家标识（备注用，如微信名/订单号）</label>
+  <input id="buyer" placeholder="例如：小红书-张三-0721">
+
+  <div id="devWrap" style="display:none">
+    <label>买家的「设备码」（让买家先打开工具，把激活页显示的 12 位设备码发你）</label>
+    <input id="dev" placeholder="例如：a1b2c3d4e5f6">
+  </div>
+
+  <button onclick="gen()">生成激活码</button>
+  <div class="out" id="codeOut">—</div>
+  <button class="ghost" onclick="copyCode()">复制激活码</button>
+</div>
+
+<div class="card">
+  <h2>② 出货记录（存在本机）</h2>
+  <div class="dim">谁买了、发的什么码，都记在这台电脑，方便你对账。</div>
+  <div class="log" id="logBox"></div>
+  <button class="ghost" onclick="clearLog()">清空记录</button>
+</div>
+
+<div class="card">
+  <h2>③ 密钥（正式卖之前做一次）</h2>
+  <div class="dim">你现在用的是<b>示例密钥</b>——我给的文件里默认就有，任何拿到我这套文件的人都能造码。<b>正式卖之前点下面重新生成</b>，然后把新公钥粘进「公司筛选器」文件里 <code>ACT_PUB</code> 那一行。</div>
+  <button class="ghost" onclick="regen()">重新生成一对新密钥</button>
+  <label>当前公钥（粘到产品文件的 ACT_PUB）</label>
+  <div class="k" id="pubOut">—</div>
+  <button class="ghost" onclick="copyPub()">复制公钥</button>
+</div>
+</div>
+
+<script>
+'use strict';
+var DEF_PRIV="MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgd4co/1BtC0HWyZOEVNq7vyr5Sx1Qo4In3ZrTQIu8OtqhRANCAAQKupW3JoYcjRmvzag7esI0CvOQ86/OJD20sttfdhpQnukMuICJKyTPWmUgze3x67391xRtCvl8fyllK/HKwM+X";
+var DEF_PUB="MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECrqVtyaGHI0Zr82oO3rCNArzkPOvziQ9tLLbX3YaUJ7pDLiAiSskz1plIM3t8eu9/dcUbQr5fH8pZSvxysDPlw==";
+var MODE='g';
+function getPriv(){ return localStorage.getItem('xz_priv')||DEF_PRIV; }
+function getPub(){ return localStorage.getItem('xz_pub')||DEF_PUB; }
+function b64ToBytes(s){ var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u; }
+function bytesToB64(u){ var s='';for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s); }
+function b64url(u){ return bytesToB64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+async function importPriv(){ return crypto.subtle.importKey('pkcs8',b64ToBytes(getPriv()),{name:'ECDSA',namedCurve:'P-256'},false,['sign']); }
+async function makeCode(payload){
+  var key=await importPriv();
+  var pb=new TextEncoder().encode(JSON.stringify(payload));
+  var sig=await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,pb);
+  return 'XZ.'+b64url(pb)+'.'+b64url(new Uint8Array(sig));
+}
+document.getElementById('modeSeg').addEventListener('click',function(e){
+  var d=e.target.closest('[data-m]'); if(!d)return; MODE=d.getAttribute('data-m');
+  document.querySelectorAll('#modeSeg div').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-m')===MODE)});
+  document.getElementById('devWrap').style.display=MODE==='d'?'block':'none';
+  document.getElementById('modeHint').textContent = MODE==='d'
+    ? '锁机码：绑死买家这台设备，换手机/发给朋友都作废。买家要先把「设备码」发你。'
+    : '通用码：任何设备输入即可用。挡住"只转文件不给码"的人，但买家把文件+码一起发，朋友那台也能用。';
+});
+async function gen(){
+  var buyer=(document.getElementById('buyer').value||'').trim()||'匿名';
+  var payload={t:MODE,id:buyer,iat:'2026'};
+  if(MODE==='d'){ var dev=(document.getElementById('dev').value||'').trim();
+    if(!/^[0-9a-f]{12}$/.test(dev)){ alert('请填买家发来的 12 位设备码（数字+a-f）'); return; }
+    payload.dev=dev; }
+  var code=await makeCode(payload);
+  document.getElementById('codeOut').textContent=code;
+  var logs=JSON.parse(localStorage.getItem('xz_log')||'[]');
+  logs.unshift({buyer:buyer,t:MODE,dev:payload.dev||'',code:code});
+  localStorage.setItem('xz_log',JSON.stringify(logs.slice(0,200))); renderLog();
+}
+function copyCode(){ var t=document.getElementById('codeOut').textContent; if(t&&t!=='—'){navigator.clipboard.writeText(t);alert('激活码已复制');} }
+function copyPub(){ navigator.clipboard.writeText(getPub());alert('公钥已复制，粘到产品文件 ACT_PUB');}
+function renderLog(){ var logs=JSON.parse(localStorage.getItem('xz_log')||'[]');
+  document.getElementById('logBox').innerHTML=logs.length?logs.map(function(l){return '<div>'+(l.t==='d'?'🔒':'🌐')+' '+l.buyer+(l.dev?'·'+l.dev:'')+' → '+l.code.slice(0,22)+'…</div>';}).join(''):'<div style="border:none;color:#666">还没出过码</div>'; }
+function clearLog(){ if(confirm('清空出货记录？')){localStorage.removeItem('xz_log');renderLog();} }
+async function regen(){
+  if(!confirm('重新生成密钥后，旧密钥发出去的码全部作废、且要把新公钥粘进产品文件。确定？'))return;
+  var kp=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  var priv=await crypto.subtle.exportKey('pkcs8',kp.privateKey);
+  var pub=await crypto.subtle.exportKey('spki',kp.publicKey);
+  localStorage.setItem('xz_priv',bytesToB64(new Uint8Array(priv)));
+  localStorage.setItem('xz_pub',bytesToB64(new Uint8Array(pub)));
+  document.getElementById('pubOut').textContent=getPub(); alert('已生成新密钥。记得复制公钥粘进产品文件！');
+}
+document.getElementById('pubOut').textContent=getPub();
+renderLog();
+</script>
+</body>
+</html>
