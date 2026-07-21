@@ -282,8 +282,15 @@ body.mode-free .fullonly{display:none!important}
   #tabbar a .ico{display:inline-flex}
   #tabbar a .ico svg{width:21px;height:21px;display:block}
   #tabbar a.on{color:var(--accent)}
-  .topbar{padding:0 12px;gap:10px}
+  .topbar{padding:0 12px;gap:8px}
   .lic-chip-top{display:none}
+  /* 顶栏减负：藏掉桌面用的「Ctrl K 搜索」与段落跳转标签，导出键横向可滑、不折行 */
+  .topbar .kbd-hint{display:none}
+  .tabs{display:none}
+  .tb-title{flex:0 0 auto}
+  .tb-actions{overflow-x:auto;gap:6px}
+  .tb-actions::-webkit-scrollbar{height:0}
+  .tb-btn{white-space:nowrap;flex:0 0 auto;padding:6px 10px;font-size:12px}
   /* —— 大留白 / 大字号 / 大按钮，向手机原生 App 看齐 —— */
   .page{padding:20px 16px 26px}
   .page.wide{max-width:100%}
