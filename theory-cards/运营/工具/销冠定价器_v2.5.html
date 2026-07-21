@@ -271,6 +271,25 @@ body.mode-free .fullonly{display:none!important}
 /* 输入页信息架构：分步标签 + 三合一定薪基准卡 + 三列输入 */
 .groups.three{grid-template-columns:repeat(3,1fr)}
 @media(max-width:900px){.groups.three{grid-template-columns:1fr}}
+/* ===== 手机外壳：侧栏改抽屉 + 汉堡 ===== */
+.hamb{display:none;align-items:center;justify-content:center;width:38px;height:38px;flex:0 0 auto;
+  border:1px solid var(--line);background:var(--panel);border-radius:10px;color:var(--ink2);font-size:18px;line-height:1}
+.hamb:hover{border-color:var(--accent);color:var(--accent)}
+#backdrop{display:none}
+@media(max-width:760px){
+  #rail{position:fixed;left:0;top:0;bottom:0;z-index:60;transform:translateX(-100%);
+    transition:transform .22s ease;box-shadow:0 0 44px rgba(0,0,0,.5)}
+  #app.nav-open #rail{transform:translateX(0)}
+  #backdrop{display:block;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);
+    opacity:0;pointer-events:none;transition:opacity .2s}
+  #app.nav-open #backdrop{opacity:1;pointer-events:auto}
+  .hamb{display:inline-flex}
+  .topbar{padding:0 12px;gap:10px}
+  .page{padding:16px 13px 30px}
+  .page.wide{max-width:100%}
+  .lb-cta{padding:10px 12px;font-size:12px}
+  .lb-cell{min-width:104px;padding:0 14px}
+}
 .step-label{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--ink);margin:26px 2px 12px}
 .step-label:first-of-type{margin-top:6px}
 .step-label .s{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 9px;border-radius:20px;letter-spacing:.02em}
@@ -391,6 +410,7 @@ kbd{font-family:inherit;font-size:10.5px;font-weight:700;background:var(--panel)
 
   <main>
     <header class="topbar">
+      <button class="hamb" id="hambBtn" aria-label="菜单">☰</button>
       <div class="tb-title"><span class="tb-ico" id="tbIco"></span><span id="crumb">输入面板</span></div>
       <nav class="tabs" id="tabs"></nav>
       <div class="tb-actions" id="tbActions"></div>
@@ -403,6 +423,7 @@ kbd{font-family:inherit;font-size:10.5px;font-weight:700;background:var(--panel)
       <button class="lb-cta" id="lbCta" disabled>填数据即出结果</button>
     </footer>
   </main>
+  <div id="backdrop"></div>
 </div>
 
 <div id="printzone"></div>
@@ -1800,7 +1821,9 @@ function runSelfTests(){
    ========================================================================== */
 applyTheme(getTheme());
 fillIcons();
-document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>nav(a.dataset.pg));
+document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>{ nav(a.dataset.pg); $('#app').classList.remove('nav-open'); });
+$('#hambBtn').onclick=()=>$('#app').classList.toggle('nav-open');
+$('#backdrop').onclick=()=>$('#app').classList.remove('nav-open');
 $('#nudgeBtn').onclick=exportEnvelope;
 $('#lbCta').onclick=()=>{ app.results=liveResults(REAL_TODAY); nav('dash'); };
 $('#palInput').addEventListener('input',e=>palFilter(e.target.value));
