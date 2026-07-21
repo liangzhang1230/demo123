@@ -271,24 +271,28 @@ body.mode-free .fullonly{display:none!important}
 /* 输入页信息架构：分步标签 + 三合一定薪基准卡 + 三列输入 */
 .groups.three{grid-template-columns:repeat(3,1fr)}
 @media(max-width:900px){.groups.three{grid-template-columns:1fr}}
-/* ===== 手机外壳：侧栏改抽屉 + 汉堡 ===== */
-.hamb{display:none;align-items:center;justify-content:center;width:38px;height:38px;flex:0 0 auto;
-  border:1px solid var(--line);background:var(--panel);border-radius:10px;color:var(--ink2);font-size:18px;line-height:1}
-.hamb:hover{border-color:var(--accent);color:var(--accent)}
-#backdrop{display:none}
+/* ===== 手机外壳：桌面用左栏，手机用底部标签栏 ===== */
+#tabbar{display:none}
 @media(max-width:760px){
-  #rail{position:fixed;left:0;top:0;bottom:0;z-index:60;transform:translateX(-100%);
-    transition:transform .22s ease;box-shadow:0 0 44px rgba(0,0,0,.5)}
-  #app.nav-open #rail{transform:translateX(0)}
-  #backdrop{display:block;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.45);
-    opacity:0;pointer-events:none;transition:opacity .2s}
-  #app.nav-open #backdrop{opacity:1;pointer-events:auto}
-  .hamb{display:inline-flex}
+  #rail{display:none}
+  #tabbar{display:flex;flex:0 0 auto;background:var(--topbar-bg);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  #tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;
+    color:var(--ink3);font-size:10.5px;font-weight:600;cursor:pointer;transition:color .12s}
+  #tabbar a .ico{display:inline-flex}
+  #tabbar a .ico svg{width:21px;height:21px;display:block}
+  #tabbar a.on{color:var(--accent)}
   .topbar{padding:0 12px;gap:10px}
-  .page{padding:16px 13px 30px}
+  .lic-chip-top{display:none}
+  .page{padding:16px 13px 26px}
   .page.wide{max-width:100%}
-  .lb-cta{padding:10px 12px;font-size:12px}
-  .lb-cell{min-width:104px;padding:0 14px}
+  .lb-cta{padding:9px 11px;font-size:12px}
+  .lb-cell{min-width:100px;padding:0 13px}
+  /* 手机上表格更紧凑，长说明自动换行、不外溢 */
+  .grade-tbl{font-size:12.5px}
+  .grade-tbl th,.grade-tbl td{padding:8px 7px}
+  .grade-tbl .gd,.grade-tbl .gt{font-size:11px}
+  .basis-body{padding:8px 12px 18px}
 }
 .step-label{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--ink);margin:26px 2px 12px}
 .step-label:first-of-type{margin-top:6px}
@@ -410,7 +414,6 @@ kbd{font-family:inherit;font-size:10.5px;font-weight:700;background:var(--panel)
 
   <main>
     <header class="topbar">
-      <button class="hamb" id="hambBtn" aria-label="菜单">☰</button>
       <div class="tb-title"><span class="tb-ico" id="tbIco"></span><span id="crumb">输入面板</span></div>
       <nav class="tabs" id="tabs"></nav>
       <div class="tb-actions" id="tbActions"></div>
@@ -422,8 +425,14 @@ kbd{font-family:inherit;font-size:10.5px;font-weight:700;background:var(--panel)
       <div class="lb-cells" id="lbCells"></div>
       <button class="lb-cta" id="lbCta" disabled>填数据即出结果</button>
     </footer>
+    <nav id="tabbar">
+      <a data-pg="home"><span class="ico" data-ic="input"></span><span>输入</span></a>
+      <a data-pg="dash"><span class="ico" data-ic="dash"></span><span>账单</span></a>
+      <a data-pg="wt"><span class="ico" data-ic="wt"></span><span>风洞</span></a>
+      <a data-pg="data"><span class="ico" data-ic="data"></span><span>场景</span></a>
+      <a data-pg="settings"><span class="ico" data-ic="settings"></span><span>矩阵</span></a>
+    </nav>
   </main>
-  <div id="backdrop"></div>
 </div>
 
 <div id="printzone"></div>
@@ -908,7 +917,7 @@ const TABS={
 
 function nav(pg){ app.page=pg; render(); const s=$('.scroll'); if(s)s.scrollTop=0; }
 function render(){
-  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.pg===app.page));
+  document.querySelectorAll('#nav a, #tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.pg===app.page));
   $('#railLic').textContent=AUTHORIZED_CLIENT;
   const root=$('#pages'); root.innerHTML='';
   root.appendChild(({home:pgHome,dash:pgDash,wt:pgWT,data:pgData,settings:pgSettings})[app.page]());
@@ -1821,9 +1830,7 @@ function runSelfTests(){
    ========================================================================== */
 applyTheme(getTheme());
 fillIcons();
-document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>{ nav(a.dataset.pg); $('#app').classList.remove('nav-open'); });
-$('#hambBtn').onclick=()=>$('#app').classList.toggle('nav-open');
-$('#backdrop').onclick=()=>$('#app').classList.remove('nav-open');
+document.querySelectorAll('#nav a, #tabbar a').forEach(a=>a.onclick=()=>nav(a.dataset.pg));
 $('#nudgeBtn').onclick=exportEnvelope;
 $('#lbCta').onclick=()=>{ app.results=liveResults(REAL_TODAY); nav('dash'); };
 $('#palInput').addEventListener('input',e=>palFilter(e.target.value));
