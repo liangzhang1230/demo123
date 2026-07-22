@@ -763,7 +763,8 @@ function summaryHTML(R,o){
   '<div style="margin-top:12px"><div class="dim" style="font-size:11px;margin-bottom:2px">前 12 个月到手（红=低于当地最低工资）</div>'+
     '<div class="ramp">'+rampBars+'</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div></div>'+
   '<div class="vtext">'+v.text+'</div>'+
-  (flags?'<ul class="flags">'+flags+'</ul>':'');
+  (flags?'<ul class="flags">'+flags+'</ul>':'')+
+  '<div style="font-size:11px;color:var(--faint);text-align:center;line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">本工具仅供求职决策参考，不构成职业建议，不承诺任何收入</div>';
 }
 function resetFind(){
   ['base','promised','rate','margin','aov','deals','conf','prob','months','commute','raise','offerName'].forEach(function(id){var e=document.getElementById(id);});
@@ -853,7 +854,7 @@ function renderPickResult(){
   rows.slice(1).forEach(function(row){ body+='<tr><td>'+row[0]+'</td>'+row[1].map(function(c,i){return '<td'+(i===best?' class="win"':'')+'>'+c+'</td>';}).join('')+'</tr>'; });
   var tip = best<0 ? '几家都有一票否决——先别急着选，回面试把否决项问清楚。'
     : '综合体检分与红线，<b>'+esc(recs[best].name)+'</b> 领先。但记住：钱能谈，「你会变成什么样的人」谈不动——对比时优先看体检里的考核和带教。';
-  el.innerHTML='<div class="card"><div class="cmp"><table><thead>'+th+'</thead><tbody>'+body+'</tbody></table></div><div class="note">'+tip+'</div></div>';
+  el.innerHTML='<div class="card"><div class="cmp"><table><thead>'+th+'</thead><tbody>'+body+'</tbody></table></div><div class="note">'+tip+'</div><div style="font-size:11px;color:var(--faint);text-align:center;line-height:1.6;margin-top:10px">仅供求职决策参考，不构成职业建议，不承诺任何收入</div></div>';
 }
 
 /* ---------- 留 ---------- */
