@@ -207,11 +207,19 @@ p.lead{color:#CDD6D4;font-size:15px;margin:0 0 14px}
   <div class="gate-card">
     <div class="brand" style="font-size:17px"><i style="width:28px;height:28px">筛</i>公司筛选器</div>
     <h2>输入激活码</h2>
-    <p>本工具需激活后使用。激活信息只存在你本机、不联网。购买后卖家会把激活码发给你。</p>
-    <input id="actCode" placeholder="粘贴激活码 XZ.…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div style="background:rgba(224,107,107,.14);border:1px solid var(--red);color:#F0B4B4;border-radius:11px;padding:11px 13px;font-size:13.5px;line-height:1.7;margin:6px 0 14px;font-weight:600">
+      🚫 <b style="color:#ff8a8a">别在微信里打开！</b><br>
+      复制整条网址 → 粘到手机浏览器（苹果Safari／安卓自带浏览器）→ 再打开激活。<br>
+      微信里打不开、激活码也会失效。有任何问题微信找我。
+    </div>
+    <p>激活信息只存在你本机、不联网。首次激活按下面提示操作。</p>
+    <div class="dev" style="margin:0 0 14px;border:none;padding:0;text-align:left;color:var(--ink);font-size:13.5px">
+      👉 <b style="color:var(--brand)">首次激活</b>：把下面这串「设备码」发给卖家，换你的专属激活码 ——<br>
+      本机设备码 <b id="actDev" style="font-size:16px">…</b>
+    </div>
+    <input id="actCode" placeholder="粘贴卖家发的激活码 XZ-…" autocomplete="off" autocapitalize="off" spellcheck="false">
     <button class="btn" onclick="doActivate()" style="margin-top:12px">激 活</button>
     <div id="actMsg"></div>
-    <div class="dev">本机设备码 <b id="actDev">…</b><br>（购买「锁机码」时，把这串发给卖家）</div>
   </div>
 </div>
 
@@ -505,9 +513,15 @@ function _hb(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(pars
 function _hmac(key,msg){key=_u8(key);msg=_u8(msg);if(key.length>64)key=_hb(_sha256(key));while(key.length<64)key+='\x00';var ok='',ik='';for(var i=0;i<64;i++){var c=key.charCodeAt(i);ok+=String.fromCharCode(c^0x5c);ik+=String.fromCharCode(c^0x36);}return _sha256(ok+_hb(_sha256(ik+msg)));}
 function _unhex(h){try{var b='';for(var i=0;i<h.length;i+=2)b+=String.fromCharCode(parseInt(h.substr(i,2),16));return decodeURIComponent(escape(b));}catch(e){return '';}}
 function deviceFP(){
-  var cv=''; try{var c=document.createElement('canvas'),g=c.getContext('2d');g.textBaseline='top';g.font='14px sans-serif';g.fillText('公司筛选器·FP',2,2);cv=c.toDataURL().slice(-32);}catch(e){}
-  var parts=[navigator.userAgent,screen.width+'x'+screen.height,screen.colorDepth,(window.Intl&&Intl.DateTimeFormat().resolvedOptions().timeZone)||'',navigator.language,navigator.hardwareConcurrency||0,navigator.platform||'',cv];
-  return _sha256(_u8(parts.join('|'))).slice(0,12);
+  // 固定随机设备ID（存本机；浏览器更新/系统更新都不变，只有清数据/换设备才变）
+  var id; try{ id=localStorage.getItem('filter_devid'); }catch(e){}
+  if(!id || !/^[0-9a-f]{12}$/.test(id)){
+    var bytes=new Uint8Array(6);
+    try{ crypto.getRandomValues(bytes); }catch(e){ for(var i=0;i<6;i++) bytes[i]=Math.floor(Math.random()*256); }
+    id=''; for(var j=0;j<6;j++){ var h=bytes[j].toString(16); id+=(h.length<2?'0':'')+h; }
+    try{ localStorage.setItem('filter_devid',id); }catch(e){}
+  }
+  return id;
 }
 function verifyCode(code){
   try{
