@@ -347,7 +347,7 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
     <section class="screen on" id="pg-input">
       <p class="eyebrow">HR · 销售岗定薪</p>
       <h1>这个销售岗，<br>底薪提成到底怎么定？</h1>
-      <p class="lead">填 6 个数，30 秒出：<b>建议底薪、提成率、达标月收入</b>，外加合规红线、给老板看的成本账、可发候选人的 Offer 说明书。</p>
+      <p class="lead">填几个数，30 秒出：<b>建议底薪、提成占收入比、达标月收入</b>，外加合规红线、给老板看的成本账、可发候选人的 Offer 说明书。</p>
 
       <div class="summary" id="miniSum"></div>
 
@@ -695,7 +695,7 @@ function computePost(o){
     var annual=base*12*(1+SOCIAL)+(commT+longAmt)*12*ATTAIN_MID;
     var annualHi=base*12*(1+SOCIAL)+(commT+longAmt)*12;      // 满产上限
     return {key:key,cn:cn,base:base,commT:commT,longAmt:longAmt,perDeal:perDeal,rate:rate,rateShow:rateShow,
-      fixShare:base/R.ote*100,floatShare:(commT+longAmt)/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
+      fixShare:base/R.ote*100,commShare:commT/R.ote*100,floatShare:(commT+longAmt)/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
   }
   R.plans={
     cons:  mkPlan('cons','稳健型', R.baseRef*1.15,'成交周期长 / 想留住人 / 候选人看重安全感'),
@@ -743,17 +743,24 @@ function computePost(o){
   if(o.margin>0&&o.margin<20) G.push(['red','⛔','<b>毛利率过低</b>：综合毛利 '+o.margin+'% 低于 20% 警戒线——提成没肉、养销售队伍大概率亏钱。先解决定价/成本，再谈定薪。']);
   if(blocked) G.push(['red','⛔','<b>底薪挤死浮动空间</b>：底薪 ≥ 达标收入的 90%，提成无从谈起，这不是销售岗的结构。']);
   if(P.base<Bwarn) G.push(['red','⛔','<b>底薪低于预警档</b>：该城市该层级预警档参考底薪约 '+yuan(Bwarn)+'，再往下招到的多半是「没得选的人」。']);
-  if(P.floatShare>=65) G.push(['amber','⚠️','<b>浮动占比过高</b>：浮动部分占达标收入 '+pctf(P.floatShare,0)+'（≥65%），饥饿游戏结构——短期冲单猛，人留不住、动作变形。']);
+  if(P.commShare>=65){
+    var moveAmt=Math.round((P.commShare-60)/100*R.ote);   // 压到 60% 需从纯提成挪出的月额
+    var kit=[];
+    kit.push('<b>门槛奖</b>：达标即发一笔固定奖，把收入托到目标阈值，降低"低于参照点"的损失感（前景理论·收入目标 Kahneman-Tversky / Camerer 1997）');
+    if(o.cycle==='long'||o.cycle==='ultraLong'||R.dryMonths>=4) kit.push('<b>爬坡保底</b>：前 3–6 个月给保护期补贴，扛过没开单的爬坡期');
+    kit.push('<b>团队奖 / 质量·留存·回款 KPI 奖</b>：把激励分摊到多个维度，避免只顾签单、荒废服务与协作（多任务模型 Holmström-Milgrom 1991）');
+    G.push(['amber','⚠️','<b>提成占收入比过高</b>：提成占达标收入 '+pctf(P.commShare,0)+'（≥65%），纯提成扛收入=把风险全甩给员工（最优风险分担 Holmström 1979），只招得到"赌徒"、且动作易变形。<br>两条路：① 提高客单价/目标单量（单大了、提成占比自然降）；② <b>用奖金组合把约 '+yuan(moveAmt)+'/月 从纯提成挪进底薪+以下奖金</b>，把提成占收入比压到 ~60%、同时把预期收入补齐到阈值：<br>· '+kit.join('<br>· ')+'']);
+  }
   if(P.base<R.baseRef*0.7) G.push(['amber','⚠️','<b>底薪偏低难招人</b>：低于该城市该档参考底薪（约 '+yuan(R.baseRef)+'）的七成，候选人大概率拿去比价后放弃。']);
   if(P.base>R.ote*0.7) G.push(['amber','⚠️','<b>固浮比失衡</b>：底薪占达标收入 '+pctf(P.fixShare,0)+'，超过 70% 容易养出「躺平单」，建议压回 40%–65%。']);
   if(!isMgr&&o.commBase==='ml'&&o.margin<30&&P.rate!=null) G.push(['amber','⚠️','<b>按毛利提成要讲清楚</b>：名义 '+P.rateShow+' 提成按 '+o.margin+'% 毛利折算，只相当于回款的 '+pctf(P.rate*o.margin/100,1)+'。入职前不说清，三个月后必闹矛盾。']);
   if(!isMgr){
     var rateHK=(o.commBase==='ml'&&P.rate!=null)?P.rate*o.margin/100:P.rate;
-    if(rateHK!=null&&rateHK>25) G.push(['red','⛔','<b>单量撑不起这档收入</b>：要让人达标拿 '+yuan(R.ote)+'，提成率得开到回款的 '+pctf(rateHK,1)+'（常规 3–15%）。说明「'+o.deals+' 单 × '+yuan(o.aov)+'」的盘子太小——要么提高目标单量/客单，要么把岗位降一档。']);
-    else if(rateHK!=null&&rateHK>15) G.push(['amber','⚠️','<b>提成率偏高</b>：反推出回款口径 '+pctf(rateHK,1)+'（常规 3–15%）。能给就是竞争力，给不了就调目标单量或降档，别发一个兑现不了的 offer。']);
+    if(rateHK!=null&&rateHK>25) G.push(['red','⛔','<b>单量撑不起这档收入</b>：要让人达标拿 '+yuan(R.ote)+'，业绩提成比率得开到回款的 '+pctf(rateHK,1)+'（常规 3–15%）。说明「'+o.deals+' 单 × '+yuan(o.aov)+'」的盘子太小——要么提高目标单量/客单，要么把岗位降一档。']);
+    else if(rateHK!=null&&rateHK>15) G.push(['amber','⚠️','<b>业绩提成比率偏高</b>：反推出回款口径 '+pctf(rateHK,1)+'（常规 3–15%）。能给就是竞争力，给不了就调目标单量或降档，别发一个兑现不了的 offer。']);
   } else {
     // 管理岗 override 合理性（团队回款的点数，常规 1–8%）
-    if(o.teamRev<=0) G.push(['amber','⚠️','<b>先填团队月回款目标</b>：管理岗的提成是团队回款的 override 点数，不填就没法反推提成率。']);
+    if(o.teamRev<=0) G.push(['amber','⚠️','<b>先填团队月回款目标</b>：管理岗的提成是团队回款的 override 点数，不填就没法反推 override。']);
     else if(P.rate!=null&&P.rate>8) G.push(['red','⛔','<b>团队盘子撑不起这档收入</b>：要让这个'+(o.level==='e'?'总监':'主管')+'达标拿 '+yuan(R.ote)+'，override 得开到团队回款的 '+P.rateShow+'（管理岗常规 1–8%）。团队月回款 '+yuan(o.teamRev)+' 太小——要么把团队盘子做大，要么降档。']);
     else if(P.rate!=null&&P.rate<0.5) G.push(['amber','⚠️','<b>override 偏低</b>：团队回款 '+yuan(o.teamRev)+' 很大，提成只占 '+P.rateShow+'。数字没错，但确认下这个团队盘子是不是这一个人背。']);
   }
@@ -829,7 +836,6 @@ function syncSegs(){
   var trl=document.getElementById('teamRevLab');
   if(trl) trl.textContent=(SEG.level==='e')?'公司月回款目标（元/月）':'团队月回款目标（元/月）';
 }
-function rateLabel(o,R){ return R&&R.isMgr ? (o.level==='e'?'团队/公司回款 override':'团队回款 override') : '按'+BASIS_CN[o.commBase]; }
 
 /* ---------- 渲染：迷你结论 + 实时条 ---------- */
 function recalc(){
@@ -845,13 +851,13 @@ function recalc(){
     '</div>'+
     '<div class="kpis k3">'+
     '<div class="kpi"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
-    '<div class="kpi"><div class="k">'+(R.isMgr?'团队回款 override':'建议提成率')+'<small>（'+esc(rateLabel(o,R))+'）</small></div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="kpi"><div class="k">提成占收入比</div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月收入</div><div class="v">'+yuan(R.ote)+'</div></div>'+
     '</div></div>';
   var lb=document.getElementById('lbCells');
   if(lb) lb.innerHTML=
     '<div class="lb-cell"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
-    '<div class="lb-cell"><div class="k">'+(R.isMgr?'override·'+(o.level==='e'?'公司回款':'团队回款'):'提成率·按'+esc(BASIS_CN[o.commBase]))+'</div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="lb-cell"><div class="k">提成占收入比</div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
     '<div class="lb-cell"><div class="k">达标月收入</div><div class="v green">'+yuan(R.ote)+'</div></div>'+
     '<div class="lb-cell"><div class="k">首年公司成本</div><div class="v">'+wan(R.ledger.total)+'</div></div>'+
     '<div class="lb-cell"><div class="k">红线</div><div class="v '+(R.redCount?'red':'green')+'">'+(R.redCount||'0')+' 条</div></div>';
@@ -868,15 +874,15 @@ function renderPlan(){
     '<div class="kpis">'+
     '<div class="kpi"><div class="k">建议底薪（'+esc(P.cn)+'）</div><div class="v">'+yuan(P.base)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月提成额</div><div class="v">'+yuan(P.commT)+'</div></div>'+
-    '<div class="kpi"><div class="k">'+(R.isMgr?(o.level==='e'?'公司回款 override':'团队回款 override'):'建议提成率 · 按'+esc(BASIS_CN[o.commBase]))+'</div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="kpi"><div class="k">提成占收入比<small>（风险指标·65%红线看它）</small></div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月收入 OTE</div><div class="v">'+yuan(R.ote)+'</div></div>'+
     '<div class="kpi"><div class="k">长期/年度激励（月折算）</div><div class="v">'+yuan(P.longAmt)+'</div></div>'+
-    '<div class="kpi"><div class="k">固浮比（底薪占比）</div><div class="v">'+pctf(P.fixShare,0)+'</div></div>'+
+    '<div class="kpi"><div class="k">底薪占收入比</div><div class="v">'+pctf(P.fixShare,0)+'</div></div>'+
     '</div>'+
     '<div class="note" style="margin-top:12px"><b>口径（对齐企业版定薪系统）。</b>达标月收入取自「城市×档位达标收入表」，其中 <b>90%</b> 由底薪+月度提成构成、<b>10%</b> 预留为长期/年度激励（留人钱，年度或季度兑付）；'+
     (R.isMgr
-      ? '<b>管理岗提成 = 团队/公司回款的 override 点数</b>（与企业版一致：主管按团队回款、总监按公司回款反推，非个人客单×单数）：（90%×达标收入−底薪）÷ '+(o.level==='e'?'公司':'团队')+'月回款 '+yuan(o.teamRev)+' = '+P.rateShow+'（管理岗常规 1–8%）。'
-      : '提成率由（90%×达标收入−底薪）÷ 月目标单量 ÷ 客单价反推，'+(o.commBase==='ml'?'已按 '+o.margin+'% 毛利折算；':'按'+BASIS_CN[o.commBase]+'计；')+'单笔达标提成约 '+yuan(P.perDeal)+'。')+
+      ? '<b>管理岗提成 = 团队/公司回款的 override 点数</b>（与企业版一致：主管按团队回款、总监按公司回款反推，非个人客单×单数）：写进合同的 override =（90%×达标收入−底薪）÷ '+(o.level==='e'?'公司':'团队')+'月回款 '+yuan(o.teamRev)+' = <b>'+P.rateShow+'</b>（管理岗常规 1–8%，见 Offer 说明书）。'
+      : '写进合同的<b>业绩提成比率</b>（按'+BASIS_CN[o.commBase]+'的点数，见 Offer 说明书）=（90%×达标收入−底薪）÷ 月目标单量 ÷ 客单价 = <b>'+P.rateShow+'</b>'+(o.commBase==='ml'?'（已按 '+o.margin+'% 毛利折算）':'')+'；单笔达标提成约 '+yuan(P.perDeal)+'。')+
     '底薪 = 城市底薪基数 × 档位倍数 × 周期系数（与企业版逐元一致）；社保负担只计在底薪上（约 '+Math.round(SOCIAL*100)+'%）；行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现。仅供参考。</div></div>';
 
   // B. 三档方案
@@ -886,8 +892,8 @@ function renderPlan(){
     h+='<div class="mc'+(o.pick===k?' on':'')+'" onclick="pickPlan(\''+k+'\')"><span class="pick">✓ 已选</span>'+
       '<div class="tier">'+p.cn+'</div>'+
       '<div class="big">'+yuan(p.base)+'<span style="font-size:12px;font-weight:400;color:var(--mute)"> 底薪</span></div>'+
-      '<div class="sub">'+(R.isMgr?'override ':'提成 ')+p.rateShow+' · 达标拿 '+yuan(R.ote)+'</div>'+
-      '<div class="meta">固浮比 '+pctf(p.fixShare,0)+'<br>公司年成本 '+wan(p.annual)+'（满产上限 '+wan(p.annualHi)+'）<br>适用：'+p.fit+'</div></div>';
+      '<div class="sub">提成占收入比 '+pctf(p.commShare,0)+' · 达标拿 '+yuan(R.ote)+'</div>'+
+      '<div class="meta">'+(R.isMgr?'团队回款 override '+p.rateShow:'业绩提成比率 '+p.rateShow)+'<br>公司年成本 '+wan(p.annual)+'（满产上限 '+wan(p.annualHi)+'）<br>适用：'+p.fit+'</div></div>';
   });
   h+='</div></div>';
 
@@ -947,8 +953,8 @@ function offerDocHTML(o,R,forPrint){
     (val('ofWho')?'<tr><th>致</th><td>'+esc(val('ofWho'))+'</td></tr>':'')+
     '<tr><th>底薪</th><td class="sc">'+yuan(P.base)+' / 月（无责）'+(o.prob>0?'；试用期 '+o.prob+' 个月，试用期工资 '+yuan(probBase)+'（不低于转正 80% 且不低于当地最低工资）':'')+'</td></tr>'+
     (R.isMgr
-      ? '<tr><th>提成</th><td class="sc">'+(o.level==='e'?'公司':'团队')+'回款 override '+P.rateShow+'（达标月提成约 '+yuan(P.commT)+'）；'+(o.level==='e'?'公司':'团队')+'月回款目标 '+yuan(o.teamRev)+'</td></tr>'
-      : '<tr><th>提成</th><td class="sc">按'+esc(BASIS_CN[o.commBase])+'的 '+P.rateShow+
+      ? '<tr><th>团队提成</th><td class="sc">'+(o.level==='e'?'公司':'团队')+'回款 override '+P.rateShow+'（达标月提成约 '+yuan(P.commT)+'）；'+(o.level==='e'?'公司':'团队')+'月回款目标 '+yuan(o.teamRev)+'</td></tr>'
+      : '<tr><th>业绩提成比率</th><td class="sc">按'+esc(BASIS_CN[o.commBase])+'的 '+P.rateShow+
         (o.commBase==='ml'?'（即毛利提成；折算回款口径约 '+pctf((P.rate||0)*o.margin/100,1)+'）':'')+
         '；月目标 '+o.deals+' 单 × 客单 '+yuan(o.aov)+'</td></tr>')+
     '<tr><th>长期激励</th><td class="sc">达标另设长期/年度激励约 '+yuan(P.longAmt*12)+' / 年（≈达标收入的 '+Math.round(LTR*100)+'%，兑付节奏与条件以合同为准）</td></tr>'+
@@ -974,7 +980,7 @@ function savePost(){
   var o=readPost(), R=computePost(o);
   var name=o.name||(CITY_CN[o.city]+'-'+levelLabel(o));
   DB.records.unshift({ id:Date.now(), name:name, o:o,
-    base:R.P.base, rateShow:R.P.rateShow, ote:R.ote, annual:R.ledger.total, red:R.redCount, plan:R.P.cn });
+    base:R.P.base, rateShow:R.P.rateShow, commShare:R.P.commShare, ote:R.ote, annual:R.ledger.total, red:R.redCount, plan:R.P.cn });
   DB.records=DB.records.slice(0,50); save();
   toast('已保存「'+name+'」'); renderMine();
 }
@@ -997,7 +1003,7 @@ function renderCmp(){
   var rs=DB.records.filter(function(r){return ids.indexOf(r.id)>=0;});
   var rows=[
     ['底薪', rs.map(function(r){return r.base;}), function(v){return yuan(v);}, 'max'],
-    ['提成率', rs.map(function(r){return r.rateShow;}), function(v){return esc(v);}, null],
+    ['提成占收入比', rs.map(function(r){return r.commShare;}), function(v){return v==null?'—':pctf(v,0);}, 'min'],
     ['达标月收入', rs.map(function(r){return r.ote;}), function(v){return yuan(v);}, 'max'],
     ['首年公司成本', rs.map(function(r){return r.annual;}), function(v){return wan(v);}, 'min'],
     ['红线数', rs.map(function(r){return r.red;}), function(v){return v+' 条';}, 'min']
