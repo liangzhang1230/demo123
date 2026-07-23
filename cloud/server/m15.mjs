@@ -22,6 +22,7 @@ import { getCoef, addDays, diffDays } from '../domain/shared.mjs';
 import { logEvent } from './writes.mjs';
 import { requireM21 } from './m21.mjs';
 import { buildDomainDb, latestM21Month } from './m12.mjs';
+import { insertCard } from './cardbus.mjs';
 
 /**
  * 新人筛选看板：司龄 ≤30 天者 7 天窗红绿灯（阈值=首N天基准×0.80、日红线 0.60、
@@ -33,21 +34,14 @@ export async function newbieBoard(db, ctx, { gc = getCoef } = {}) {
   return domainNewbieBoard(ddb, ctx.today, gc);
 }
 
-/* ---------- action_card 本地双写（action_cards 属 C0 底座表，无 created_by 列，
-   无法走 writes.put——与 calibrate.mjs insertCard 同法：表行+事件同一事务） ---------- */
+/* ---------- action_card 插卡：C10 收口到 cardBus.insertCard（唯一插卡入口）；
+   建议载体 = action_card(kind='eliminate') 预警级，事件类型保持 eliminate_card_created ---------- */
 async function insertEliminateCard(db, ctx, payload) {
-  let cardId = null;
-  await db.transaction(async tx => {
-    const r = await tx.query(
-      `insert into action_cards(tenant_id, kind, state, target_id, payload)
-       values ($1,'eliminate','pending',$2,$3) returning card_id`,
-      [ctx.tenantId, payload.spId, JSON.stringify(payload)]);
-    cardId = Number(r.rows[0].card_id);
-    await tx.query(
-      `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
-      [ctx.tenantId, 'eliminate_card_created', ctx.actorId, String(cardId), JSON.stringify({ cardId, ...payload })]);
+  const r = await insertCard(db, ctx, {
+    kind: 'eliminate', level: 'alert', targetId: payload.spId, payload,
+    eventType: 'eliminate_card_created',
   });
-  return cardId;
+  return r.cardId;
 }
 
 /**

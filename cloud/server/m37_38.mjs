@@ -14,8 +14,9 @@
        对拍 T14：11单96万→38.4万/19.2万/11张。
        🔴 L-D12：handover_cards 无删除路径（schema-c2 G4 触发器）。
    计算一律调 domain：payoutPrecheck / aftershockRank / handoverSummary。
-   - action_cards 无 created_by 列（C0 底座表）——同 calibrate.mjs 先例，
-     本地双写事务（表行+事件同一事务）落卡，语义与 writes 一致
+   - C10 改线：talk 卡插卡收口到 cardBus.insertCard（唯一插卡入口）；
+     dedupKey = spId（同人已有未完成 talk 卡 → 不重复插）、
+     cooldownDays = aftershockTalkDays（一周窗内不重复出卡）
    - 时钟注入（公约 C-14）：零真实时钟调用；今天 = ctx.today
    ============================================================ */
 import {
@@ -24,6 +25,7 @@ import {
 import { getCoef } from '../domain/shared.mjs';
 import { put, patch } from './writes.mjs';
 import { scissorsBoard } from './m9.mjs';
+import { insertCard } from './cardbus.mjs';
 
 /* ---------- M37 发放预检（选员工 + 拟发金额 → 三态；纯读 L-D11） ---------- */
 export async function payoutPrecheckFor(db, ctx, { spId, plannedAmt, gc = getCoef }) {
@@ -43,22 +45,6 @@ export async function payoutPrecheckFor(db, ctx, { spId, plannedAmt, gc = getCoe
   return { spId, ...r,
     note: r.hist == null ? '—（首年无参照）' : null,
     ironRule: '公开"规则"（怎么算的公式），永不公开"数字"（别人拿多少）——L-10d' };
-}
-
-/* ---------- action_cards 本地双写（calibrate.mjs 同法：该表无 created_by/updated_by 列） ---------- */
-async function insertCard(db, ctx, { kind, targetId, payload, eventType }) {
-  let cardId = null;
-  await db.transaction(async tx => {
-    const r = await tx.query(
-      `insert into action_cards(tenant_id, kind, state, target_id, payload)
-       values ($1,$2,'pending',$3,$4) returning card_id`,
-      [ctx.tenantId, kind, targetId, JSON.stringify(payload)]);
-    cardId = Number(r.rows[0].card_id);
-    await tx.query(
-      `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
-      [ctx.tenantId, eventType, ctx.actorId, String(cardId), JSON.stringify({ cardId, kind, targetId, ...payload })]);
-  });
-  return cardId;
 }
 
 /* 余震名单组装：三信号计分（剪刀差>0 / 市价差>0 / 同辖区或同批次）→ domain Top3 */
@@ -90,12 +76,14 @@ export async function offboard(db, ctx, { spId, leaveDate, leaveReason, gc = get
   const top3 = await aftershockFor(db, ctx, spId, gc);
   const cardIds = [];
   for (const r of top3) {
-    cardIds.push(await insertCard(db, ctx, {
-      kind: 'talk', targetId: r.spId,
+    const res = await insertCard(db, ctx, {                            // C10：唯一插卡入口
+      kind: 'talk', level: 'alert', targetId: r.spId,
+      dedupKey: r.spId, cooldownDays: gc('liuren.aftershockTalkDays'),
       payload: { source: 'aftershock', leaverId: spId, signals: r.sig, score: r.score,
         withinDays: gc('liuren.aftershockTalkDays'), talk: 'L-11' },
       eventType: 'talk_card_created',
-    }));
+    });
+    if (!res.skipped) cardIds.push(res.cardId);
   }
   return { ok: true, spId, leaveDate, leaveReason, aftershock: top3, cardIds };
 }

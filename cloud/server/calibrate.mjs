@@ -14,8 +14,11 @@
      市价 median 高出当前版本矩阵 B_sales ≥20% → 红；≥10% → 黄。
    矩阵 B 从当期版本 inputs 经 domain.calcCardA 现算（服务层零公式重写）。
    - 时钟注入（公约 C-14）：本模块零真实时钟调用；业务日期一律 ctx.today
-   - action_cards 无 created_by/updated_by 列（C0 底座表），无法走 writes.put/patch——
-     本模块以同构的本地双写事务（表行+事件同一事务）落卡，语义与 writes 一致
+   - C10 改线：插卡收口到 cardBus.insertCard（唯一插卡入口）。原"已有 pending
+     的 salary_review 卡不重复插"语义转译为 dedupKey='salary_review' +
+     cooldownDays=90（季度校准节奏：未完成卡恒去重；完成后 90 天内不再出卡）。
+     卡完成（confirmAnchor → done）仍走本地 cardToDone：老板一键确认是
+     pending→done 的确认流，不经 cardBus.transition 的逐态流转（见 C10 疑点注记）。
    ============================================================ */
 import { calcCardA } from '../domain/dingjia.mjs';
 import { safeDiv } from '../domain/shared.mjs';
@@ -23,11 +26,13 @@ import { marketPrice } from './m4.mjs';
 import { tempLights } from './m8.mjs';
 import { planVersionAt, incomeFor } from './m2.mjs';
 import { adoptPlan, saveScenario, tenantGetCoef } from './m7.mjs';
+import { insertCard } from './cardbus.mjs';
 
 /* 云端原创阈值（规格 gap：v5.1 §7 只说"市价偏离"，未给数值） */
 export const MARKET_DEV_RED = 0.20;      // 市价高出矩阵 B ≥20% → 红
 export const MARKET_DEV_YELLOW = 0.10;   // ≥10% → 黄
 export const GUARD_MONTHS = 2;           // 守护线连续月数（留人器 M16.2 逐字：≥2月）
+export const SALARY_REVIEW_COOLDOWN_DAYS = 90;   // 季度校准节奏（C10 防疲劳转译，可覆盖）
 
 /* 近第 n 个完整月（today 所在月不完整不计入）："2026-07-13",1 → "2026-06" */
 const prevMonth = (today, n) => {
@@ -104,20 +109,7 @@ export async function sensors(db, ctx, { positionName = '销售', windowDays = 9
   return { market, fourLights, guard, planVersion: plan ? plan.version : null };
 }
 
-/* ---- action_cards 本地双写（表行+事件同一事务；该表无 created_by/updated_by 列） ---- */
-async function insertCard(db, ctx, { kind, payload, eventType }) {
-  let cardId = null;
-  await db.transaction(async tx => {
-    const r = await tx.query(
-      `insert into action_cards(tenant_id, kind, state, payload) values ($1,$2,'pending',$3) returning card_id`,
-      [ctx.tenantId, kind, JSON.stringify(payload)]);
-    cardId = Number(r.rows[0].card_id);
-    await tx.query(
-      `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
-      [ctx.tenantId, eventType, ctx.actorId, String(cardId), JSON.stringify({ cardId, kind, ...payload })]);
-  });
-  return cardId;
-}
+/* ---- 卡完成留痕（confirmAnchor 专用；插卡已收口 cardBus，本函数只做 done 流转+事件） ---- */
 async function cardToDone(db, ctx, cardId, trailEntry, eventType, eventPayload) {
   await db.transaction(async tx => {
     const r = await tx.query(
@@ -135,20 +127,14 @@ async function cardToDone(db, ctx, cardId, trailEntry, eventType, eventPayload) 
 /**
  * 任一传感器红 → 生成校准**草案**卡（kind='salary_review'，state='pending'）。
  * 🔴 只插卡，绝不写 comp_plan_versions（三权分立：新锚草案 ≠ 生效）。
- * 已有 pending 的 salary_review 卡 → 不重复插（返回 existingCardId）。
+ * 防疲劳在 cardBus（dedupKey='salary_review'）：已有未完成卡 → 不重复插
+ *   （返回 existingCardId——原"已有 pending 不重复"语义）；完成后 90 天冷却。
  * 全部非红 → 不出卡。
  */
 export async function proposeAnchor(db, ctx, opts = {}) {
   const s = await sensors(db, ctx, opts);
   const redSensors = ['market', 'fourLights', 'guard'].filter(k => s[k].light === 'red');
   if (!redSensors.length) return { created: false, redSensors, sensors: s };
-
-  const { rows: existing } = await db.query(
-    `select card_id from action_cards
-      where tenant_id = $1 and kind = 'salary_review' and state = 'pending'
-      order by card_id limit 1`, [ctx.tenantId]);
-  if (existing.length)
-    return { created: false, existingCardId: Number(existing[0].card_id), redSensors, sensors: s };
 
   /* 建议新锚方向：市价压过矩阵 B → 抬锚；守护线破 → 复核 T/G（M16.2"G 定错了"口径）；
      仅四灯红 → 复核矩阵。方向只是草案建议，数值由老板在定价器里试算后确认。 */
@@ -160,9 +146,14 @@ export async function proposeAnchor(db, ctx, opts = {}) {
     sensors: { market: s.market, fourLights: s.fourLights, guard: s.guard },
     suggestion: { direction },
   };
-  const cardId = await insertCard(db, ctx,
-    { kind: 'salary_review', payload, eventType: 'salary_review_card_created' });
-  return { created: true, cardId, redSensors, direction, sensors: s };
+  const r = await insertCard(db, ctx, {
+    kind: 'salary_review', level: 'alert', payload,
+    dedupKey: 'salary_review', cooldownDays: SALARY_REVIEW_COOLDOWN_DAYS,
+    eventType: 'salary_review_card_created',
+  });
+  if (r.skipped)
+    return { created: false, existingCardId: r.existingCardId, redSensors, sensors: s };
+  return { created: true, cardId: r.cardId, redSensors, direction, sensors: s };
 }
 
 /**

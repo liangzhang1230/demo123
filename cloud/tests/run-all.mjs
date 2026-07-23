@@ -21,10 +21,12 @@ const suites = [
   ['C7 育人层验收', 'c7.test.mjs'],
   ['C8 信用层验收', 'c8.test.mjs'],
   ['C9 罪证层验收', 'c9.test.mjs'],
+  ['C10 推送层验收', 'c10.test.mjs'],
 ];
 let bad = 0;
 for (const [name, file] of suites) {
-  const r = spawnSync('node', [join(here, file)], { encoding: 'utf8', timeout: 900000 });
+  // C9/C10 内嵌逐级回归（C10 ≈ 16min：自身 + c5/c8 改线回归 + c2–c9 全回归），timeout 放到 30min
+  const r = spawnSync('node', [join(here, file)], { encoding: 'utf8', timeout: 1800000 });
   const passed = r.status === 0;
   if (!passed) bad++;
   console.log(`${passed ? '✅' : '❌'} ${name}${passed ? '' : '\n' + (r.stdout + r.stderr).split('\n').filter(l => l.includes('✗')).slice(0, 10).join('\n')}`);
