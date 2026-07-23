@@ -641,7 +641,6 @@ function toast(t){ var e=document.getElementById('toast'); e.textContent=t; e.cl
 /* ---------- 状态 ---------- */
 var SEG={city:'tier1',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk',mgrGrade:'1'};
 var MGR_GRADE_CN={'1':'有效','2':'高效','3':'领先'};
-var PLAN_PICK='std';   // cons | std | sprint
 var DB={records:[], meta:{signer:'',theme:'dark'}};
 function load(){ try{ var s=localStorage.getItem('dx_db'); if(s)DB=JSON.parse(s); }catch(e){}
   if(!DB.records)DB.records=[]; if(!DB.meta)DB.meta={signer:'',theme:'dark'}; }
@@ -652,7 +651,7 @@ function saveMeta(){ DB.meta.signer=val('signer'); save(); renderOffer(); }
 function readPost(){
   return { city:SEG.city, level:SEG.level, cycle:SEG.cycle, lead:SEG.lead, commBase:SEG.commBase, mgrGrade:SEG.mgrGrade,
     aov:num('aov'), deals:num('deals'), teamRev:num('teamRev'), margin:num('margin'), prob:num('prob'), budget:num('budget'),
-    name:val('postName'), pick:PLAN_PICK };
+    name:val('postName') };
 }
 // 档位→[倍数表, 档位index]。管理岗的档位由 mgrGrade（有效1/高效2/领先3）决定，对齐企业版可选层级。
 function levelMap(o){
@@ -679,10 +678,11 @@ function computePost(o){
   R.leadFactor=0.4+0.6*parseFloat(o.lead);
 
   // 三档等价方案：同一 OTE，不同固浮比。
-  // 企业版口径：达标收入 T = 底薪 B + 月度提成 gap + 长期激励 long，其中 long = T×10%（longTermRate），
-  // 月度提成 gap = T×90% − B；社保负担只计在底薪上（fullNum = B×(1+social)+gap+long）。
-  function mkPlan(key,cn,base,fit){
-    base=Math.round(clamp(base, R.minWage, R.ote*0.85));   // 到元；std 传入 baseRef 时与企业版底薪逐元一致
+  // 企业版口径（唯一方案，不加任何自设系数）：底薪 B = 城市基数×档位倍数×周期系数；
+  // 达标收入 T = B + 月度提成 gap + 长期激励 long，long = T×10%（longTermRate），gap = T×90% − B；
+  // 社保负担只计在底薪上（fullNum = B×(1+social)+gap+long）。
+  var P=(function(){
+    var base=R.baseRef;                                      // 企业版底薪，逐元一致
     var longAmt=Math.round(R.ote*LTR);                       // 长期/年度激励（月折算）
     var commT=Math.max(0,Math.round(R.ote*(1-LTR))-base);    // 达标月提成额（企业版 gapAmt）
     var perDeal=isMgr?null:safeDiv(commT,o.deals);
@@ -699,15 +699,10 @@ function computePost(o){
     // 公司年成本：底薪全付含社保 + 浮动（提成+长期）按行业达标率中位兑付
     var annual=base*12*(1+SOCIAL)+(commT+longAmt)*12*ATTAIN_MID;
     var annualHi=base*12*(1+SOCIAL)+(commT+longAmt)*12;      // 满产上限
-    return {key:key,cn:cn,base:base,commT:commT,longAmt:longAmt,perDeal:perDeal,rate:rate,rateShow:rateShow,
-      fixShare:base/R.ote*100,commShare:commT/R.ote*100,floatShare:(commT+longAmt)/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
-  }
-  R.plans={
-    cons:  mkPlan('cons','稳健型', R.baseRef*1.15,'成交周期长 / 想留住人 / 候选人看重安全感'),
-    std:   mkPlan('std','标准型', R.baseRef,'大多数情况的默认选择'),
-    sprint:mkPlan('sprint','冲刺型', Math.max(R.minWage*1.1,R.baseRef*0.82),'快消短周期 / 线索充足 / 想强激励')
-  };
-  var P=R.plans[o.pick]||R.plans.std; R.P=P;
+    return {base:base,commT:commT,longAmt:longAmt,perDeal:perDeal,rate:rate,rateShow:rateShow,
+      fixShare:base/R.ote*100,commShare:commT/R.ote*100,annual:annual,annualHi:annualHi};
+  })();
+  R.P=P;
 
   // 对标位置（OTE 恒等于所选档位基准，重点看底薪竞争力）
   R.gradeIdx=lm[1];
@@ -749,12 +744,12 @@ function computePost(o){
   if(blocked) G.push(['red','⛔','<b>底薪挤死浮动空间</b>：底薪 ≥ 达标收入的 90%，提成无从谈起，这不是销售岗的结构。']);
   if(P.base<Bwarn) G.push(['red','⛔','<b>底薪低于预警档</b>：该城市该层级预警档参考底薪约 '+yuan(Bwarn)+'，再往下招到的多半是「没得选的人」。']);
   if(P.commShare>=65){
-    var moveAmt=Math.round((P.commShare-60)/100*R.ote);   // 压到 60% 需从纯提成挪出的月额
-    var kit=[];
-    kit.push('<b>门槛奖</b>：达标即发一笔固定奖，把收入托到目标阈值，降低"低于参照点"的损失感（前景理论·收入目标 Kahneman-Tversky / Camerer 1997）');
-    if(o.cycle==='long'||o.cycle==='ultraLong'||R.dryMonths>=4) kit.push('<b>爬坡保底</b>：前 3–6 个月给保护期补贴，扛过没开单的爬坡期');
-    kit.push('<b>团队奖 / 质量·留存·回款 KPI 奖</b>：把激励分摊到多个维度，避免只顾签单、荒废服务与协作（多任务模型 Holmström-Milgrom 1991）');
-    G.push(['amber','⚠️','<b>提成占收入比过高</b>：提成占达标收入 '+pctf(P.commShare,0)+'（≥65%），纯提成扛收入=把风险全甩给员工（最优风险分担 Holmström 1979），只招得到"赌徒"、且动作易变形。<br>两条路：① 提高客单价/目标单量（单大了、提成占比自然降）；② <b>用奖金组合把约 '+yuan(moveAmt)+'/月 从纯提成挪进底薪+以下奖金</b>，把提成占收入比压到 ~60%、同时把预期收入补齐到阈值：<br>· '+kit.join('<br>· ')+'']);
+    var moveAmt=Math.round((P.commShare-60)/100*R.ote);   // 压到 ~60% 需从纯提成挪出的月额
+    G.push(['amber','⚠️','<b>提成占收入比过高</b>：提成占达标收入 '+pctf(P.commShare,0)+'（≥65%），纯提成扛收入=把风险全甩给员工（Holmström 1979 风险分担），人留不住、动作易变形。<br>'+
+      '<b>处理办法：下调业绩提成比率，同时加短中长奖金组合</b>——达标收入不变，把约 <b>'+yuan(moveAmt)+'/月</b> 从纯提成挪进奖金：<br>'+
+      '· <b>短期</b>：爬坡保底 / 门槛奖（托住前几个月现金流和收入阈值 — 前景理论·收入目标）<br>'+
+      '· <b>中期</b>：季度达标奖 / 质量·回款 KPI 奖（对冲只冲单不服务 — Holmström-Milgrom 多任务）<br>'+
+      '· <b>长期</b>：年度留存激励（方案里已预留 10%，可适当加码留人）']);
   }
   if(P.base<R.baseRef*0.7) G.push(['amber','⚠️','<b>底薪偏低难招人</b>：低于该城市该档参考底薪（约 '+yuan(R.baseRef)+'）的七成，候选人大概率拿去比价后放弃。']);
   if(P.base>R.ote*0.7) G.push(['amber','⚠️','<b>固浮比失衡</b>：底薪占达标收入 '+pctf(P.fixShare,0)+'，超过 70% 容易养出「躺平单」，建议压回 40%–65%。']);
@@ -865,7 +860,7 @@ function renderPlan(){
   // A. 结论卡
   h+='<div class="card"><div class="sec-h"><span class="n">A</span>定薪结论 · '+esc(CITY_CN[o.city])+' · '+esc(levelLabel(o))+' · '+esc(CYCLE_CN[o.cycle])+'</div>'+
     '<div class="kpis">'+
-    '<div class="kpi"><div class="k">建议底薪（'+esc(P.cn)+'）</div><div class="v">'+yuan(P.base)+'</div></div>'+
+    '<div class="kpi"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月提成额</div><div class="v">'+yuan(P.commT)+'</div></div>'+
     '<div class="kpi"><div class="k">提成占收入比<small>（风险指标·65%红线看它）</small></div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月收入 OTE</div><div class="v">'+yuan(R.ote)+'</div></div>'+
@@ -878,33 +873,21 @@ function renderPlan(){
       : '写进合同的<b>业绩提成比率</b>（按'+BASIS_CN[o.commBase]+'的点数，见 Offer 说明书）=（90%×达标收入−底薪）÷ 月目标单量 ÷ 客单价 = <b>'+P.rateShow+'</b>'+(o.commBase==='ml'?'（已按 '+o.margin+'% 毛利折算）':'')+'；单笔达标提成约 '+yuan(P.perDeal)+'。')+
     '底薪 = 城市底薪基数 × 档位倍数 × 周期系数（与企业版逐元一致）；社保负担只计在底薪上（约 '+Math.round(SOCIAL*100)+'%）；行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现。仅供参考。</div></div>';
 
-  // B. 三档方案
-  h+='<div class="card"><div class="sec-h"><span class="n">B</span>三档等价方案 · 同一达标收入，不同风险分配 · 点选</div><div class="menu">';
-  ['cons','std','sprint'].forEach(function(k){
-    var p=R.plans[k];
-    h+='<div class="mc'+(o.pick===k?' on':'')+'" onclick="pickPlan(\''+k+'\')"><span class="pick">✓ 已选</span>'+
-      '<div class="tier">'+p.cn+'</div>'+
-      '<div class="big">'+yuan(p.base)+'<span style="font-size:12px;font-weight:400;color:var(--mute)"> 底薪</span></div>'+
-      '<div class="sub">提成占收入比 '+pctf(p.commShare,0)+' · 达标拿 '+yuan(R.ote)+'</div>'+
-      '<div class="meta">'+(R.isMgr?'团队回款 override '+p.rateShow:'业绩提成比率 '+p.rateShow)+'<br>公司年成本 '+wan(p.annual)+'（满产上限 '+wan(p.annualHi)+'）<br>适用：'+p.fit+'</div></div>';
-  });
-  h+='</div></div>';
-
-  // C. 红线
-  h+='<div class="card"><div class="sec-h"><span class="n">C</span>合规与风险红线</div>';
+  // B. 红线
+  h+='<div class="card"><div class="sec-h"><span class="n">B</span>合规与风险红线</div>';
   R.gates.forEach(function(g){ h+='<div class="gate '+g[0]+'"><i>'+g[1]+'</i><span>'+g[2]+'</span></div>'; });
   h+='</div>';
 
-  // D. 新人前 12 月到手（现金流）
+  // C. 新人前 12 月到手（现金流）
   var mx=Math.max.apply(null,R.flow.concat([1]));
-  h+='<div class="card"><div class="sec-h"><span class="n">D</span>新人前 12 个月到手（爬坡 × 线索折减）</div><div class="ramp">';
+  h+='<div class="card"><div class="sec-h"><span class="n">C</span>新人前 12 个月到手（爬坡 × 线索折减）</div><div class="ramp">';
   R.flow.forEach(function(v){ h+='<div class="bar'+(v<R.minWage*1.2?' low':'')+'" style="height:'+Math.max(4,v/mx*100)+'%" title="'+yuan(v)+'"></div>'; });
   h+='</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div>'+
     '<div class="dim" style="margin-top:8px">第 1 月 '+yuan(R.flow[0])+' → 第 6 月 '+yuan(R.flow[5])+' → 第 12 月 '+yuan(R.flow[11])+'。红色 = 到手贴近最低工资，'+(R.breakeven?'预计第 <b style="color:var(--ink)">'+R.breakeven+'</b> 个月毛利覆盖当月人力成本。':'12 个月内毛利尚难覆盖人力成本。')+'</div></div>';
 
   // E. 成本账
   var L=R.ledger;
-  h+='<div class="card"><div class="sec-h"><span class="n">E</span>成本账 · 拿去跟老板汇报</div><table class="ledger">'+
+  h+='<div class="card"><div class="sec-h"><span class="n">D</span>成本账 · 拿去跟老板汇报</div><table class="ledger">'+
     '<tr><td>底薪 × 12</td><td>'+yuan(L.base)+'</td></tr>'+
     '<tr><td>月度提成（按行业达标率 '+Math.round(ATTAIN_MID*100)+'% 折现）</td><td>'+yuan(L.comm)+'</td></tr>'+
     '<tr><td>长期/年度激励（同口径折现）</td><td>'+yuan(L.longPay)+'</td></tr>'+
@@ -916,7 +899,7 @@ function renderPlan(){
   // F. 对标
   var arr=R.benchArr;
   var pos=clamp((R.ote-arr[0])/(arr[3]-arr[0]),0,1)*100;
-  h+='<div class="card"><div class="sec-h"><span class="n">F</span>本地对标 · '+esc(CITY_CN[o.city])+'</div>'+
+  h+='<div class="card"><div class="sec-h"><span class="n">E</span>本地对标 · '+esc(CITY_CN[o.city])+'</div>'+
     '<div class="meter"><span class="mk" style="left:'+pos+'%"></span><span class="mklab" style="left:'+pos+'%">'+yuan(R.ote)+'</span></div>'+
     '<div class="meter-cap"><span>预警 '+wan(arr[0])+'</span><span>初级 '+wan(arr[1])+'</span><span>中级 '+wan(arr[2])+'</span><span>高级 '+wan(arr[3])+'</span></div>'+
     '<div class="dim" style="margin-top:10px">这份 offer 的达标收入落在「'+GRADE_CN[R.gradeIdx]+'」档。低于预警线的 offer 基本招不到能打的人；高于高级线要问自己是否真需要这个段位。</div></div>';
@@ -926,7 +909,6 @@ function renderPlan(){
      '<div class="foot">测算结果仅供参考，不构成薪酬/法律/用工建议</div>';
   document.getElementById('planBox').innerHTML=h;
 }
-function pickPlan(k){ PLAN_PICK=k; renderPlan(); recalc(); }
 
 /* ---------- Offer 说明书 ---------- */
 function offerDocHTML(o,R,forPrint){
@@ -973,7 +955,7 @@ function savePost(){
   var o=readPost(), R=computePost(o);
   var name=o.name||(CITY_CN[o.city]+'-'+levelLabel(o));
   DB.records.unshift({ id:Date.now(), name:name, o:o,
-    base:R.P.base, rateShow:R.P.rateShow, commShare:R.P.commShare, ote:R.ote, annual:R.ledger.total, red:R.redCount, plan:R.P.cn });
+    base:R.P.base, rateShow:R.P.rateShow, commShare:R.P.commShare, ote:R.ote, annual:R.ledger.total, red:R.redCount });
   DB.records=DB.records.slice(0,50); save();
   toast('已保存「'+name+'」'); renderMine();
 }
@@ -982,7 +964,7 @@ function renderMine(){
   if(!DB.records.length){ box.innerHTML='<div class="empty">还没有存过方案。<br>在「定薪」填好后，到「方案」页点「存这个方案」。</div>'; document.getElementById('cmpBox').innerHTML=''; return; }
   box.innerHTML=DB.records.map(function(r){
     return '<div class="rec"><input type="checkbox" data-cmp="'+r.id+'" onchange="renderCmp()">'+
-      '<div class="info"><b>'+esc(r.name)+'</b><span>'+esc(r.plan)+' · 底薪 '+yuan(r.base)+' · 提成 '+esc(r.rateShow)+(r.red?' · <span style="color:var(--red)">'+r.red+'条红线</span>':'')+'</span></div>'+
+      '<div class="info"><b>'+esc(r.name)+'</b><span>底薪 '+yuan(r.base)+' · 提成 '+esc(r.rateShow)+(r.red?' · <span style="color:var(--red)">'+r.red+'条红线</span>':'')+'</span></div>'+
       '<div class="score">'+wan(r.annual)+'<small>首年成本</small></div>'+
       '<button class="tbtn" onclick="loadRec('+r.id+')">载入</button>'+
       '<button class="tbtn" onclick="delRec('+r.id+')">删</button></div>';
@@ -1018,7 +1000,6 @@ function loadRec(id){
   var r=DB.records.filter(function(x){return x.id===id;})[0]; if(!r)return;
   var o=r.o;
   SEG.city=o.city; SEG.level=o.level; SEG.cycle=o.cycle; SEG.lead=o.lead; SEG.commBase=o.commBase; SEG.mgrGrade=o.mgrGrade||'1';
-  PLAN_PICK=o.pick||'std';
   document.getElementById('aov').value=o.aov; document.getElementById('deals').value=o.deals;
   if(o.teamRev) document.getElementById('teamRev').value=o.teamRev;
   document.getElementById('margin').value=o.margin; document.getElementById('prob').value=o.prob;
@@ -1064,7 +1045,6 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme', DB.me
 /* ---------- 示例数据 ---------- */
 function fillDemo(){
   SEG={city:'tier2',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk',mgrGrade:'1'};
-  PLAN_PICK='std';
   document.getElementById('aov').value=30000; document.getElementById('deals').value=5;
   document.getElementById('margin').value=30; document.getElementById('prob').value=3;
   document.getElementById('budget').value=''; document.getElementById('postName').value='示例-二线中级销售';
