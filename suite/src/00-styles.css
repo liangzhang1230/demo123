@@ -72,8 +72,13 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .lv-cell .v{font-size:14.5px;font-weight:700;white-space:nowrap;line-height:1.25}
 .lv-cell .v.red{color:var(--red-hero)} .lv-cell .v.green{color:var(--green)} .lv-cell .v.amber{color:var(--amber)} .lv-cell .v.dim{color:var(--ink3);font-weight:550}
 
-/* ---------- 子导航 ---------- */
-#subnav{display:flex;gap:4px;align-items:center;padding:10px 18px 0;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+/* ---------- 子导航（跟随吸顶：topnav 48 + livebar 45 = 93） ---------- */
+#subnav{position:sticky;top:93px;z-index:54;display:flex;gap:4px;align-items:center;
+  padding:10px 18px;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+#subnav::before{content:"";position:absolute;top:0;bottom:0;left:calc(-50vw + 50%);width:100vw;
+  background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(160%) blur(10px);
+  border-bottom:1px solid var(--line);z-index:-1}
+#subnav:empty{display:none}
 .sub-tab{padding:4px 11px;border-radius:99px;border:1px solid var(--line2);color:var(--ink2);font-size:12.5px;font-weight:550;background:var(--card)}
 .sub-tab:hover{color:var(--ink);border-color:var(--ink4)}
 .sub-tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
