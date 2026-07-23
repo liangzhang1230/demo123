@@ -848,7 +848,7 @@ const SK = (() => {
       ${SK.modules.map(m => {
         const alerts = m.alerts ? m.alerts() : 0;
         const on = route.board === m.id;
-        const hasDrop = m.id === 'dingjia' && m.subnav && m.subnav.length;   // 仅定价板块带下拉快速跳转
+        const hasDrop = m.subnav && m.subnav.length;   // 所有含子页的板块都带下拉快速跳转（驾驶舱/云端无子页不带）
         const tab = `<button class="nav-tab ${on ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">${m.icon} ${m.title}${hasDrop ? ' <span class="nav-caret">▾</span>' : ''}${alerts > 0 ? '<span class="dotwarn"></span>' : ''}</button>`;
         if (!hasDrop) return tab;
         const menu = m.subnav.map(s => `<button class="nav-menu-item ${on && route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
