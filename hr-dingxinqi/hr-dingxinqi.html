@@ -112,6 +112,30 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
   .wrap{max-width:880px;padding:28px 36px 56px}
 }
 
+/* ===== 吸附上下文条：重要选择跟随滚动，原地可改 ===== */
+.ctxbar{position:sticky;top:0;z-index:26;background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.ctx-in{max-width:600px;margin:0 auto;padding:9px 16px}
+@media(min-width:761px){.ctx-in{max-width:720px;padding:9px 28px}}
+@media(min-width:1100px){.ctx-in{max-width:880px;padding:9px 36px}}
+.ctx-chips{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ctx-chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border:1px solid var(--line);
+  border-radius:20px;background:var(--card);font-size:12.5px;color:var(--mute);cursor:pointer;
+  white-space:nowrap;flex:none;transition:.13s;font-weight:600}
+.chip b{color:var(--ink);font-weight:700}
+.chip i{font-style:normal;font-size:9px;color:var(--faint);transition:transform .15s}
+.chip:hover{border-color:var(--faint)}
+.chip.open{border-color:var(--brand);background:var(--brand-soft)}
+.chip.open b{color:var(--brand)}
+.chip.open i{transform:rotate(180deg)}
+.ctx-panel{display:flex;flex-wrap:wrap;gap:8px;padding:10px 2px 4px;animation:rise .18s ease both}
+.copt{padding:10px 15px;min-height:40px;border:1px solid var(--line);border-radius:11px;background:var(--card2);
+  color:var(--mute);font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+.copt:hover{border-color:var(--faint)}
+.copt.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:700}
+.copt:active{transform:scale(.97)}
+
 /* ===== 屏幕切换 ===== */
 .screen{display:none;animation:rise .26s ease both}
 .screen.on{display:block}
@@ -387,7 +411,9 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
       </div>
     </header>
 
-    <div class="scroll"><div class="wrap">
+    <div class="scroll">
+    <div class="ctxbar" id="ctxbar" style="display:none"><div class="ctx-in" id="ctxIn"></div></div>
+    <div class="wrap">
 
     <!-- ===== 定薪（输入） ===== -->
     <section class="screen on" id="pg-input">
@@ -886,8 +912,49 @@ function syncSegs(){
   if(trl) trl.textContent=(SEG.level==='e')?'公司月回款目标（元/月）':'团队月回款目标（元/月）';
 }
 
+/* ---------- 吸附上下文条：城市/周期/档位跟随滚动、原地切换 ---------- */
+var CTX_OPEN=null;
+function ctxChips(){
+  var chips=[
+    {k:'city',lab:'城市',val:CITY_CN[SEG.city],opts:[['tier1','一线'],['tier2','二线/新一线'],['tier34','三四线']]},
+    {k:'cycle',lab:'周期',val:CYCLE_CN[SEG.cycle],opts:[['short',CYCLE_CN.short],['regular',CYCLE_CN.regular],['midLong',CYCLE_CN.midLong],['long',CYCLE_CN.long],['ultraLong',CYCLE_CN.ultraLong]]},
+    {k:'level',lab:'档位',val:LEVEL_CN[SEG.level],opts:[['s1',LEVEL_CN.s1],['s2',LEVEL_CN.s2],['s3',LEVEL_CN.s3],['m',LEVEL_CN.m],['e',LEVEL_CN.e]]}
+  ];
+  if(isMgrLevel(SEG.level)) chips.push({k:'mgrGrade',lab:'薪资档',val:MGR_GRADE_CN[SEG.mgrGrade||'1'],opts:[['1','有效'],['2','高效'],['3','领先']]});
+  return chips;
+}
+function renderCtxbar(){
+  var bar=document.getElementById('ctxbar'), inn=document.getElementById('ctxIn');
+  if(!bar||!inn) return;
+  var show=document.getElementById('pg-input').classList.contains('on')||document.getElementById('pg-plan').classList.contains('on');
+  bar.style.display=show?'':'none';
+  if(!show){ CTX_OPEN=null; return; }
+  var chips=ctxChips();
+  if(CTX_OPEN && !chips.some(function(c){return c.k===CTX_OPEN;})) CTX_OPEN=null;
+  var h='<div class="ctx-chips">'+chips.map(function(c){
+    return '<button class="chip'+(CTX_OPEN===c.k?' open':'')+'" data-ck="'+c.k+'"><span>'+c.lab+'</span><b>'+esc(c.val)+'</b><i>▾</i></button>';
+  }).join('')+'</div>';
+  if(CTX_OPEN){
+    var cur=chips.filter(function(c){return c.k===CTX_OPEN;})[0];
+    h+='<div class="ctx-panel">'+cur.opts.map(function(o){
+      return '<button class="copt'+(String(SEG[CTX_OPEN])===String(o[0])?' on':'')+'" data-cv="'+o[0]+'">'+esc(o[1])+'</button>';
+    }).join('')+'</div>';
+  }
+  inn.innerHTML=h;
+}
+function bindCtxbar(){
+  var inn=document.getElementById('ctxIn'); if(!inn) return;
+  inn.addEventListener('click',function(e){
+    var chip=e.target.closest('.chip');
+    if(chip){ var k=chip.getAttribute('data-ck'); CTX_OPEN=(CTX_OPEN===k)?null:k; renderCtxbar(); return; }
+    var opt=e.target.closest('.copt');
+    if(opt&&CTX_OPEN){ SEG[CTX_OPEN]=opt.getAttribute('data-cv'); CTX_OPEN=null; syncSegs(); recalc(); }
+  });
+}
+
 /* ---------- 实时重算：档位表是唯一数据源；顶部/底部不再显示会漂移的数值 ---------- */
 function recalc(){
+  renderCtxbar();
   renderGradeTables();
   var acc=document.getElementById('mgrAcc'); if(acc&&isMgrLevel(SEG.level)) acc.open=true;
   var lbh=document.getElementById('lbHint');
@@ -1076,6 +1143,7 @@ function importData(inp){
 function nav(t){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.id==='pg-'+t); });
   document.querySelectorAll('#tabbar a,#rail .nav a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-t')===t); });
+  renderCtxbar();
   if(t==='plan')renderPlan();
   if(t==='offer')renderOffer();
   if(t==='mine')renderMine();
@@ -1100,7 +1168,7 @@ function fillDemo(){
 function bootApp(){
   load(); applyTheme();
   document.getElementById('signer').value=DB.meta.signer||'';
-  bindSegs(); syncSegs(); recalc(); renderMine();
+  bindSegs(); bindCtxbar(); syncSegs(); recalc(); renderMine();
 }
 (function init(){
   if(inWeChat()){ document.getElementById('wxmask').style.display='flex'; return; }
