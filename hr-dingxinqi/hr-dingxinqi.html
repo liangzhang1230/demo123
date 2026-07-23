@@ -254,6 +254,18 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
 .ramp .bar{flex:1;background:var(--brand);border-radius:3px 3px 0 0;min-height:3px;opacity:.9}
 .ramp .bar.low{background:var(--red)}
 .ramp-x{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);font-family:var(--mono);margin-top:6px}
+.subh{font-size:12.5px;font-weight:700;color:var(--ink);margin:16px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.subh:first-child{margin-top:2px}
+.subh .tag{font-size:10px;font-weight:700;color:var(--brand);background:var(--brand-soft);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent);border-radius:7px;padding:2px 8px;letter-spacing:.02em}
+.rampcurve{display:flex;gap:3px;align-items:flex-end;height:66px;margin:24px 0 4px;border-bottom:1px solid var(--line);padding-bottom:1px}
+.rc{flex:1;border-radius:3px 3px 0 0;min-height:3px;position:relative;background:var(--brand)}
+.rc .rcl{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-family:var(--mono);
+  font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700;white-space:nowrap}
+.attn{display:flex;gap:14px;align-items:center;background:var(--card2);border:1px solid var(--line2);
+  border-left:3px solid var(--amber);border-radius:12px;padding:13px 15px;margin-top:13px}
+.attn .big{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:28px;font-weight:800;color:var(--amber);line-height:1;flex:none}
+.attn .txt{font-size:12px;color:var(--mute);line-height:1.65}
+.attn .txt b{color:var(--ink)}
 
 /* ===== 账本 ===== */
 .ledger{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
@@ -990,9 +1002,22 @@ function renderPlan(){
   R.gates.forEach(function(g){ h+='<div class="gate '+g[0]+'"><i>'+g[1]+'</i><span>'+g[2]+'</span></div>'; });
   h+='</div>';
 
-  // C. 新人前 12 月到手（现金流）
+  // C. 产能爬坡曲线（企业版独家基准数据，显性化）+ 前 12 月到手
+  var rampArr=RAMP[o.cycle]||RAMP.regular;
+  var fullM=null; for(var fi=0;fi<12;fi++){ if(rampArr[fi]>=100){ fullM=fi+1; break; } }
+  var sub50=rampArr.filter(function(x){return x<50;}).length;
+  h+='<div class="card"><div class="sec-h"><span class="n">C</span>产能爬坡曲线 · 前 12 个月到手</div>';
+  h+='<div class="subh">行业产能爬坡（'+esc(CYCLE_CN[o.cycle])+'）<span class="tag">企业版基准数据 · 你算不出来的</span></div>';
+  h+='<div class="rampcurve">';
+  rampArr.forEach(function(v,i){ var m=i+1;
+    var lab=(m===1||m===3||m===6||m===12||(fullM&&m===fullM))?v+'%':'';
+    h+='<div class="rc" style="height:'+Math.max(3,v)+'%;opacity:'+(0.30+0.70*v/100).toFixed(2)+'">'+(lab?'<span class="rcl">'+lab+'</span>':'')+'</div>';
+  });
+  h+='</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div>';
+  h+='<div class="dim" style="margin-top:10px">一个新人<b style="color:var(--ink)">每月能爬到几成产能</b>的行业基准——'+(fullM?'满产（100%）要到<b style="color:var(--ink)">第 '+fullM+' 个月</b>':'12 个月内爬不到满产')+'，前 <b style="color:var(--ink)">'+sub50+'</b> 个月产能不足一半。周期越长爬得越慢，这正是「底薪随周期加厚」的依据，也是老板拍脑袋算不出的地方。</div>';
+  // 到手现金流
   var mx=Math.max.apply(null,R.flow.concat([1]));
-  h+='<div class="card"><div class="sec-h"><span class="n">C</span>新人前 12 个月到手（爬坡 × 线索折减）</div><div class="ramp">';
+  h+='<div class="subh">新人前 12 个月到手（= 爬坡曲线 × 底薪提成 × 线索折减）</div><div class="ramp">';
   R.flow.forEach(function(v){ h+='<div class="bar'+(v<R.minWage*1.2?' low':'')+'" style="height:'+Math.max(4,v/mx*100)+'%" title="'+yuan(v)+'"></div>'; });
   h+='</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div>'+
     '<div class="dim" style="margin-top:8px">第 1 月 '+yuan(R.flow[0])+' → 第 6 月 '+yuan(R.flow[5])+' → 第 12 月 '+yuan(R.flow[11])+'。红色 = 到手贴近最低工资，'+(R.breakeven?'预计第 <b style="color:var(--ink)">'+R.breakeven+'</b> 个月毛利覆盖当月人力成本。':'12 个月内毛利尚难覆盖人力成本。')+'</div></div>';
@@ -1006,7 +1031,8 @@ function renderPlan(){
     '<tr><td>社保公积金等（只计底薪，约 '+Math.round(SOCIAL*100)+'%）</td><td>'+yuan(L.social)+'</td></tr>'+
     '<tr><td>招聘费（参考值）</td><td>'+yuan(L.recruit)+'</td></tr>'+
     '<tr class="sum"><td>首年总成本</td><td>'+yuan(L.total)+'</td></tr></table>'+
-    '<div class="dim" style="margin-top:9px">⚑ 招错人/干半年就走的代价（企业版口径）：约 <b style="color:var(--red)">'+wan(R.attritionCost[0])+' – '+wan(R.attritionCost[1])+'</b>（≈1.5–2 × 年度达标收入，含空窗期、爬坡期产能损失与重招费用）。定薪别只压成本，流失才是最贵的。</div></div>';
+    '<div class="attn"><div class="big">'+Math.round(ATTAIN_MID*100)+'%</div><div class="txt"><b>行业达标率</b>：100 个销售约 '+Math.round(ATTAIN_MID*100)+' 个能达标（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%）。上面成本账的提成按这个折现，<b>不是假设人人满产</b>——这是老板最容易高估的一笔钱。</div></div>'+
+    '<div class="dim" style="margin-top:11px">⚑ 招错人/干半年就走的代价（企业版口径）：约 <b style="color:var(--red)">'+wan(R.attritionCost[0])+' – '+wan(R.attritionCost[1])+'</b>（≈1.5–2 × 年度达标收入，含空窗期、爬坡期产能损失与重招费用）。定薪别只压成本，流失才是最贵的。</div></div>';
 
   // F. 对标
   var arr=R.benchArr;
