@@ -131,7 +131,8 @@
   function calcCardA(inp, managerNeeded, totalHeadTarget) {
     const I1 = inp.cityTier, I2 = inp.cycleTier, grade = inp.tierGrade, I4 = inp.targetPersonalMonthlyGrossAmt,
       I5 = inp.nextYearTargetGrossAmt, I11 = inp.blendedMarginRate;
-    const gi = gradeIndex(grade), cityB = SK.getCoef('dingjia.cityBase')[I1], cf = SK.getCoef('dingjia.cycleFactor')[I2],
+    // 🔴 v2.5：销售档 gi 与 主管/高管档 gmi 各自独立选择（idx 按层取）
+    const gi = gradeIndex(grade), gmi = gradeIndex(inp.mgrGrade), cityB = SK.getCoef('dingjia.cityBase')[I1], cf = SK.getCoef('dingjia.cycleFactor')[I2],
       social = SK.getCoef('shared.socialCostRate'), ltr = SK.getCoef('shared.longTermRate'), minW = SK.getCoef('shared.minWageTable')[I1],
       lm = SK.getCoef('dingjia.levelMultiplier'), tt = SK.getCoef('dingjia.thresholdTTable')[I1];
     const Bof = (lv, idx) => roundYuanFen(cityB * lm[lv][idx] * cf);
@@ -140,7 +141,8 @@
     const layers = ['sales', 'manager', 'executive'];
     const count = { sales: totalHeadTarget, manager: managerNeeded, executive: 1 };
     const rows = layers.map(lv => {
-      const B = Bof(lv, gi), T = Tof(lv, gi), G = Gof(lv);
+      const idx = lv === 'sales' ? gi : gmi;                    // 销售用销售档，主管+高管共用 mgrGrade 档
+      const B = Bof(lv, idx), T = Tof(lv, idx), G = Gof(lv);
       const longAmt = Math.round(T * ltr), gapAmt = Math.round(T * (1 - ltr)) - B;
       const blocked = B >= T * (1 - ltr), r = blocked ? null : safeDiv(gapAmt, G);
       const belowMinWage = B < minW, floatShare = safeDiv(gapAmt, T);
@@ -252,7 +254,7 @@
     const c = db.company || {};
     const wanAmt = v => v == null ? null : Math.round(v * WAN);
     return {
-      cityTier: c.cityTier, cycleTier: c.cycleTier, tierGrade: c.tierGrade || 'effective',
+      cityTier: c.cityTier, cycleTier: c.cycleTier, tierGrade: c.tierGrade || 'effective', mgrGrade: c.mgrGrade || 'effective',
       targetPersonalMonthlyGrossAmt: wanAmt(c.targetPersonalMonthlyGrossWan),
       nextYearTargetGrossAmt: wanAmt(c.targetYearGrossWan),
       lastYearPerCapitaGrossAmt: wanAmt(c.lastYearPerCapitaWan),
@@ -399,20 +401,28 @@
         <td class="num mono">${fmt.yuan(Bof('sales', idx))}</td><td class="num mono">${fmt.yuan(Tof('sales', idx))}</td>
         <td class="hint">${GRADE_DESC[g]}</td></tr>`;
     });
+    // 🔴 v2.5：主管/高管档位（mgrGrade）独立选择，与销售档解耦
+    const gmi = gradeIndex(c.mgrGrade), mgrCur = c.mgrGrade || 'effective';
     const subRows = ['manager', 'executive'].map(lv =>
-      `<tr><td>${levelName(lv)}</td><td class="num mono">${fmt.yuan(Bof(lv, gi))}</td><td class="num mono">${fmt.yuan(Tof(lv, gi))}</td><td class="hint">${LEVEL_DESC[lv]}</td></tr>`);
+      `<tr><td>${levelName(lv)}</td><td class="num mono">${fmt.yuan(Bof(lv, gmi))}</td><td class="num mono">${fmt.yuan(Tof(lv, gmi))}</td><td class="hint">${LEVEL_DESC[lv]}</td></tr>`);
+    const mgrSeg = h.seg('company.mgrGrade', [{ v: 'effective', t: '有效' }, { v: 'efficient', t: '高效' }, { v: 'leading', t: '领先' }], mgrCur);
     return `
       <div style="margin-top:8px"><b style="font-size:12.8px">① 选销售档</b> <span class="hint">（${cityLab} · ${cycLab} 实算 · 点一行选定）</span></div>
       ${h.tbl([{ t: '销售档位' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '这是什么人' }], gradeRows)}
-      <div style="margin-top:8px"><b style="font-size:12.8px">② 配套主管 / 高管</b> <span class="hint">（随所选「${GRADE_SHORT[c.tierGrade]}」档联动）</span></div>
-      ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
-      ${h.hint('底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚）；达标月收入只随城市与档位变、不随周期变。')}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
         <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？直接输入你现在给销售的月底薪，系统帮你反查</label>
         <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
         ${h.btn('反查匹配', 'dj.grade-match', { cls: 'sm' })}
         ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
-      </div>`;
+      </div>
+      <details class="acc" style="margin-top:10px">
+        <summary><b style="font-size:12.8px">② 主管 / 高管档位</b> <span class="hint">（管理层单独定档 · 当前「${GRADE_TECH[mgrCur]}」· 点此展开 / 收起）</span></summary>
+        <div class="acc-body">
+          <div style="margin:2px 0 10px">${mgrSeg}</div>
+          ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
+          ${h.hint('主管/高管档位与销售档相互独立；底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚），达标月收入只随城市与档位变、不随周期变。')}
+        </div>
+      </details>`;
   }
 
   /* ---- 五张账单 ---- */
@@ -423,7 +433,7 @@
         ${h.banner('还没有账单——在「输入面板」把共享字段填全，这里会实时展开明细。', 'n')}
         ${h.btn('去输入面板', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
     }
-    let out = `<div class="sect"><h2>五张账单</h2><span class="sub">规划年份 ${R.targetYear} · 销售按${gradeFull(R.inp.tierGrade)}档 · 全部数字实时换算</span>
+    let out = `<div class="sect"><h2>五张账单</h2><span class="sub">规划年份 ${R.targetYear} · 销售按${gradeFull(R.inp.tierGrade)}档 · 管理层按${GRADE_TECH[R.inp.mgrGrade]}档 · 全部数字实时换算</span>
       <span style="margin-left:auto;display:flex;gap:6px">${h.btn('保存场景', 'dj.scn-save', { cls: 'sm' })}${h.btn('签发信用书', 'dj.cov-issue', { cls: 'sm' })}</span></div>`;
     // 总漏损条
     if (R.total) {
@@ -470,7 +480,7 @@
     if (A.fullBurden != null) body += h.banner(`ℹ️ 全口径人力负担（含底薪/社保/长期分红池）≈ <b>${fmt.pct(A.fullBurden)}</b>；按毛利率折营收 ≈ <b>${fmt.pct(A.fullRev)}</b>，对标 CCOS 健康带 8–15% 营收。`, 'n');
     body += killer('这不是工资单，是一张「普通人干出头部水平」压强表——r 越高、底薪越低，越像鱼饵。');
     body += h.src('📎 三层定薪回算：B=城市基数×层级倍数×周期因子；T 查阈值矩阵；r=(T×90%−B)÷月毛利目标 G');
-    return dcard('A', '账单A · 定薪回算', `好招指数 ${A.goodHire.toFixed(2)} · 销售按${gradeFull(R.inp.tierGrade)}档`, s.r != null ? fmt.pct(s.r) : DASH, '销售提成率 r', body);
+    return dcard('A', '账单A · 定薪回算', `好招指数 ${A.goodHire.toFixed(2)} · 销售${GRADE_TECH[R.inp.tierGrade]}·管理层${GRADE_TECH[R.inp.mgrGrade]}档`, s.r != null ? fmt.pct(s.r) : DASH, '销售提成率 r', body);
   }
   function cardBHtml(R) {
     const B = R.B;
@@ -644,7 +654,7 @@
   }
 
   /* ---- 场景与信用书 ---- */
-  const SNAP_FIELDS = ['cityTier', 'cycleTier', 'tierGrade', 'complementLevel', 'attributableLevel', 'targetYearMode',
+  const SNAP_FIELDS = ['cityTier', 'cycleTier', 'tierGrade', 'mgrGrade', 'complementLevel', 'attributableLevel', 'targetYearMode',
     'targetYearGrossWan', 'lastYearPerCapitaWan', 'targetPersonalMonthlyGrossWan', 'attritionRate', 'hiringCycleDays', 'blendedMarginRate', 'fullLoadWan'];
   function snapCompany() {
     const c = SK.DB.company, s = {};
@@ -861,6 +871,27 @@
       const got = { r: A.rows[0].r, burden: A.burdenRate };
       const pass = got.r != null && Math.abs(got.r - 0.195) <= 0.005 && got.burden != null && Math.abs(got.burden - 0.271) <= 0.005;
       return { pass, got: { r: (got.r * 100).toFixed(1) + '%', burden: (got.burden * 100).toFixed(1) + '%' }, want: { r: '19.5%', burden: '27.1%' } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-A-mgr', name: '定价·主管高管档独立联动（v2.5）',
+    fn: () => withCleanCoef(() => {
+      const base = { cityTier: 'tier1', cycleTier: 'short', targetPersonalMonthlyGrossAmt: 100000 * 100, nextYearTargetGrossAmt: TW(1200), blendedMarginRate: 0.30, salesCount: 10 };
+      // 双档 effective：销售19.5% / 主管4.7% / 高管2.9%（旧口径不变）
+      const A0 = calcCardA({ ...base, tierGrade: 'effective', mgrGrade: 'effective' }, 2, 10);
+      // 销售 effective 不动，仅把管理层升到 leading：销售 r 恒 19.5%，主管↑6.2%，高管↑4.0%
+      const A1 = calcCardA({ ...base, tierGrade: 'effective', mgrGrade: 'leading' }, 2, 10);
+      const p = (x) => (x * 100).toFixed(1);
+      const salesUnchanged = A1.rows[0].r === A0.rows[0].r && A1.rows[0].B === A0.rows[0].B;          // 解耦：改管理层档，销售层零变化
+      const mgrShifted = A1.rows[1].B === 1750000 && A1.rows[2].B === 2500000                          // 管理层 B 按 leading 倍数（3.5/5.0）
+        && A0.rows[1].B === 1250000 && A0.rows[2].B === 2000000;                                       // effective 倍数（2.5/4.0）
+      const rOk = p(A0.rows[1].r) === '4.7' && p(A0.rows[2].r) === '2.9'
+        && p(A1.rows[0].r) === '19.5' && p(A1.rows[1].r) === '6.2' && p(A1.rows[2].r) === '4.0';
+      return {
+        pass: salesUnchanged && mgrShifted && rOk,
+        got: { effEff: `销${p(A0.rows[0].r)}/主${p(A0.rows[1].r)}/高${p(A0.rows[2].r)}`, effLead: `销${p(A1.rows[0].r)}/主${p(A1.rows[1].r)}/高${p(A1.rows[2].r)}`, 解耦: salesUnchanged },
+        want: { effEff: '销19.5/主4.7/高2.9', effLead: '销19.5/主6.2/高4.0', 解耦: true },
+      };
     }),
   });
   SK.tests.push({

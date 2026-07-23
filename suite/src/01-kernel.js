@@ -173,7 +173,7 @@ const SK = (() => {
       meta: { createdAt: today(), dataVersion: 1, seeded: false },
       ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false } },
       company: {
-        name: '我的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective',
+        name: '我的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
         complementLevel: 'partial', attributableLevel: 'partial', targetYearMode: 'next',
         targetYearGrossWan: 1000, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
         attritionRate: 0.35, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
@@ -233,7 +233,7 @@ const SK = (() => {
     const D0 = emptyDB(); Object.assign(DB, D0, { coefOverrides: DB.coefOverrides || {} });
     DB.meta.seeded = true;
     DB.company = Object.assign(DB.company, {
-      name: '示例 · 王总的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective',
+      name: '示例 · 王总的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
       targetYearGrossWan: 1800, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
       attritionRate: 0.30, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
     });
