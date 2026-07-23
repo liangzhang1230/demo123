@@ -74,6 +74,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
 .lb-cell .k{font-size:10px;letter-spacing:.06em;color:var(--faint);font-weight:600}
 .lb-cell .v{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:2px;letter-spacing:-.01em}
 .lb-cell .v.red{color:var(--red)}.lb-cell .v.amber{color:var(--amber)}.lb-cell .v.green{color:var(--green)}
+.lb-hint{flex:1;display:flex;align-items:center;padding:0 18px;color:var(--mute);font-size:12.5px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .lb-cta{align-self:center;margin:0 16px;padding:10px 18px;background:var(--brand);color:#08130E;border:none;
   border-radius:10px;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer}
 .lb-cta:active{transform:scale(.97)}
@@ -220,6 +221,12 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
 .gtbl .grow .gt{color:var(--faint);font-weight:400;font-size:11.5px;margin-left:2px}
 .gtbl .grow .gd{color:var(--mute);font-size:11.5px;max-width:230px;line-height:1.45;font-weight:400}
 .gtbl .grow.on td:first-child::after{content:"✓ 已选";color:var(--brand);font-size:11px;font-weight:700;margin-left:7px;white-space:nowrap}
+@media(max-width:760px){
+  .gtbl th:last-child,.gtbl td:last-child{display:none}   /* 手机上藏"说明"列，四个数值列更从容 */
+  .gtbl table{min-width:0}
+  .gtbl th,.gtbl td{padding:11px 6px}
+  .gtbl .grow td:first-child b{font-size:14px}
+}
 
 /* 折叠 */
 .acc{border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;background:var(--card)}
@@ -347,9 +354,7 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
     <section class="screen on" id="pg-input">
       <p class="eyebrow">HR · 销售岗定薪</p>
       <h1>这个销售岗，<br>底薪提成到底怎么定？</h1>
-      <p class="lead">填几个数，30 秒出：<b>建议底薪、提成占收入比、达标月收入</b>，外加合规红线、给老板看的成本账、可发候选人的 Offer 说明书。</p>
-
-      <div class="summary" id="miniSum"></div>
+      <p class="lead">选城市周期、点档位，档位表里直接给<b>底薪、达标月收入、提成占收入比</b>；再填岗位盘子，点右下角看完整方案（红线、成本账、Offer 说明书）。</p>
 
       <!-- 第一步：城市 + 成交周期（用户看得懂的两个输入） -->
       <div class="card">
@@ -518,7 +523,7 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
     <!-- 桌面实时结果条 -->
     <footer id="livebar">
       <div class="lb-status"><span class="pulse"></span><span>实时测算</span></div>
-      <div class="lb-cells" id="lbCells"></div>
+      <div class="lb-hint" id="lbHint"></div>
       <button class="lb-cta" onclick="nav('plan')">看方案 →</button>
     </footer>
 
@@ -798,26 +803,30 @@ function gradeBaseOTE(city,cycle,layer,idx){
 }
 var SALES_DESC={s1:'能独立签单、稳定达标的常规销售——多数团队按这档定薪',s2:'持续超额、能自己带节奏的骨干',s3:'团队头部标杆，产出明显高于均值'};
 var MGR_DESC={m:'带 5–8 人的一线主管，约三成时间用于管人',e:'定战略、背全盘目标，按 1 人计'};
+function gradeCommShare(v){ // 标准档：提成占收入比 = (round(0.9×达标)−底薪) ÷ 达标（与引擎逐字一致）
+  var commT=Math.max(0,Math.round(v.ote*(1-LTR))-v.base);
+  return v.ote>0? commT/v.ote*100 : null;
+}
 function renderGradeTables(){
   var city=SEG.city, cyc=SEG.cycle;
   var cc=document.getElementById('basisCityCyc'); if(cc) cc.textContent=CITY_CN[city]+' · '+CYCLE_CN[cyc]+' 实算';
   // 销售三档
   var rows=[['s1','初级','有效'],['s2','中级','高效'],['s3','高级','领先']];
-  var h='<table><tr><th>销售档位</th><th>底薪/月</th><th>达标月收入</th><th>这是什么人</th></tr>';
+  var h='<table><tr><th>销售档位</th><th>底薪/月</th><th>达标月收入</th><th>提成占收入比</th><th>这是什么人</th></tr>';
   rows.forEach(function(r){
     var idx=LEVEL_MAP[r[0]][1], v=gradeBaseOTE(city,cyc,'sales',idx);
     h+='<tr class="grow'+(SEG.level===r[0]?' on':'')+'" data-lvl="'+r[0]+'"><td><b>销售·'+r[1]+'</b><span class="gt">（'+r[2]+'）</span></td>'+
-       '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="gd">'+SALES_DESC[r[0]]+'</td></tr>';
+       '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="mono">'+pctf(gradeCommShare(v),0)+'</td><td class="gd">'+SALES_DESC[r[0]]+'</td></tr>';
   });
   h+='</table>';
   var st=document.getElementById('salesGradeTbl'); if(st) st.innerHTML=h;
   // 主管/高管：按选定薪资档（mgrGrade）显示两行
   var gi=parseInt(SEG.mgrGrade||'1',10);
-  var mh='<table><tr><th>层级（'+MGR_GRADE_CN[SEG.mgrGrade||'1']+'档薪资）</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>';
+  var mh='<table><tr><th>层级（'+MGR_GRADE_CN[SEG.mgrGrade||'1']+'档薪资）</th><th>底薪/月</th><th>达标月收入</th><th>提成占收入比</th><th>说明</th></tr>';
   [['m','manager','销售主管'],['e','executive','总监/高管']].forEach(function(r){
     var v=gradeBaseOTE(city,cyc,r[1],gi);
     mh+='<tr class="grow'+(SEG.level===r[0]?' on':'')+'" data-lvl="'+r[0]+'"><td><b>'+r[2]+'</b></td>'+
-        '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="gd">'+MGR_DESC[r[0]]+'</td></tr>';
+        '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="mono">'+pctf(gradeCommShare(v),0)+'</td><td class="gd">'+MGR_DESC[r[0]]+'</td></tr>';
   });
   mh+='</table>';
   var mt=document.getElementById('mgrGradeTbl'); if(mt) mt.innerHTML=mh;
@@ -837,30 +846,14 @@ function syncSegs(){
   if(trl) trl.textContent=(SEG.level==='e')?'公司月回款目标（元/月）':'团队月回款目标（元/月）';
 }
 
-/* ---------- 渲染：迷你结论 + 实时条 ---------- */
+/* ---------- 实时重算：档位表是唯一数据源；顶部/底部不再显示会漂移的数值 ---------- */
 function recalc(){
   renderGradeTables();
   var acc=document.getElementById('mgrAcc'); if(acc&&isMgrLevel(SEG.level)) acc.open=true;
-  var o=readPost(), R=computePost(o);
-  var P=R.P;
-  document.getElementById('miniSum').innerHTML=
-    '<div class="verdict-card">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
-    '<span class="badge b-gold"><span class="dot"></span>'+esc(CITY_CN[o.city])+' · '+esc(levelLabel(o))+'</span>'+
-    (R.redCount?'<span class="badge b-r"><span class="dot"></span>'+R.redCount+' 条红线</span>':'<span class="badge b-g"><span class="dot"></span>暂无硬红线</span>')+
-    '</div>'+
-    '<div class="kpis k3">'+
-    '<div class="kpi"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
-    '<div class="kpi"><div class="k">提成占收入比</div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">达标月收入</div><div class="v">'+yuan(R.ote)+'</div></div>'+
-    '</div></div>';
-  var lb=document.getElementById('lbCells');
-  if(lb) lb.innerHTML=
-    '<div class="lb-cell"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
-    '<div class="lb-cell"><div class="k">提成占收入比</div><div class="v">'+pctf(P.commShare,0)+'</div></div>'+
-    '<div class="lb-cell"><div class="k">达标月收入</div><div class="v green">'+yuan(R.ote)+'</div></div>'+
-    '<div class="lb-cell"><div class="k">首年公司成本</div><div class="v">'+wan(R.ledger.total)+'</div></div>'+
-    '<div class="lb-cell"><div class="k">红线</div><div class="v '+(R.redCount?'red':'green')+'">'+(R.redCount||'0')+' 条</div></div>';
+  var lbh=document.getElementById('lbHint');
+  if(lbh){ var o=readPost();
+    lbh.textContent='已选 '+CITY_CN[o.city]+' · '+levelLabel(o)+' · '+CYCLE_CN[o.cycle]+' — 完整方案、红线与成本账见右侧';
+  }
   if(document.getElementById('pg-plan').classList.contains('on')) renderPlan();
   if(document.getElementById('pg-offer').classList.contains('on')) renderOffer();
 }
