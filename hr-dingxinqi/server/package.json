@@ -1,0 +1,11 @@
+{
+  "name": "dx-famaqi-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "销售定薪器 发码/激活云函数（零依赖，仅用 Node 内置模块）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

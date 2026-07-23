@@ -1,0 +1,4 @@
+# 运行期数据（订单），不进仓库；用后台/scp 备份
+orders.jsonl
+*.log
+node_modules/

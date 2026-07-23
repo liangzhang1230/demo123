@@ -627,7 +627,9 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
 
 /* ====== 激活（纯 JS HMAC-SHA256；http 也能用）====== */
 var REQUIRE_ACTIVATION = true;   // 自己测试想直接进，临时改成 false
-var ACT_SECRET = "9c2f7e14ab5d380c6f1e9b4a2d7c5f80e3a1b6d94c8f2e70"; // 暗号：必须和「定薪器发码器」一致
+// 暗号列表：可放多个。轮换时把「新暗号」加到最前、老暗号留在后面 —— 新老激活码都认，老客户升级新版也不断码。
+// 必须和「发码器 / 云函数」用的暗号一致。
+var ACT_SECRETS = ["9c2f7e14ab5d380c6f1e9b4a2d7c5f80e3a1b6d94c8f2e70"];
 function _u8(s){return unescape(encodeURIComponent(s));}
 function _sha256(ascii){function rr(v,a){return(v>>>a)|(v<<(32-a));}var mp=Math.pow,mw=mp(2,32),i,j,result='';var words=[],L=ascii.length*8;var hash=_sha256.h=_sha256.h||[],k=_sha256.k=_sha256.k||[],pc=k.length,comp={};for(var cand=2;pc<64;cand++){if(!comp[cand]){for(i=0;i<313;i+=cand)comp[i]=cand;hash[pc]=(mp(cand,.5)*mw)|0;k[pc++]=(mp(cand,1/3)*mw)|0;}}ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}words[words.length]=((L/mw)|0);words[words.length]=(L);for(j=0;j<words.length;){var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0;}for(i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0;}for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;result+=((b<16)?0:'')+b.toString(16);}return result;}
 function _hb(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.substr(i,2),16));return s;}
@@ -643,13 +645,14 @@ function deviceFP(){
   }
   return id;
 }
+function _sigOK(msg,sig){ for(var i=0;i<ACT_SECRETS.length;i++){ if(_hmac(ACT_SECRETS[i],msg).slice(0,20)===sig) return true; } return false; }
 function verifyCode(code){
   try{
     code=(code||'').trim().replace(/\s+/g,'');
     var p=code.split('-');
     if(p[0]!=='DX'||p.length<4) return {ok:false,reason:'格式不对，请检查激活码'};
-    if(p[1]==='G'){ var id=_unhex(p[2]); return _hmac(ACT_SECRET,'G|'+id).slice(0,20)===p[3]?{ok:true}:{ok:false,reason:'无效激活码（验签失败）'}; }
-    if(p[1]==='D'){ var dfp=p[2]; if(_hmac(ACT_SECRET,'D|'+dfp).slice(0,20)!==p[3]) return {ok:false,reason:'无效激活码（验签失败）'}; if(dfp!==deviceFP()) return {ok:false,reason:'这个码绑定的是另一台设备'}; return {ok:true}; }
+    if(p[1]==='G'){ var id=_unhex(p[2]); return _sigOK('G|'+id,p[3])?{ok:true}:{ok:false,reason:'无效激活码（验签失败）'}; }
+    if(p[1]==='D'){ var dfp=p[2]; if(!_sigOK('D|'+dfp,p[3])) return {ok:false,reason:'无效激活码（验签失败）'}; if(dfp!==deviceFP()) return {ok:false,reason:'这个码绑定的是另一台设备'}; return {ok:true}; }
     return {ok:false,reason:'格式不对'};
   }catch(e){ return {ok:false,reason:'激活码损坏'}; }
 }
