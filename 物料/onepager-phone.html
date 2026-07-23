@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: 120mm 560mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: #f6f4ef; }
+  html, body { width: 120mm; }
+  body {
+    font-family: "Noto Sans CJK SC", sans-serif;
+    color: #2b3138;
+    background: #ffffff;
+  }
+  .serif { font-family: "Noto Serif CJK SC", serif; }
+
+  /* ===== 顶部名片带 ===== */
+  .top {
+    background: #1b2b3d;
+    color: #fff;
+    padding: 8mm 7mm 7mm;
+  }
+  .top .name { font-size: 34px; font-weight: 900; letter-spacing: 3px; }
+  .top .role {
+    display: inline-block;
+    font-size: 19px; font-weight: 700; letter-spacing: 1px;
+    color: #d9b878;
+    margin-left: 10px;
+    vertical-align: 4px;
+  }
+  .top .exp { margin-top: 2.5mm; font-size: 13.5px; color: #aebacb; letter-spacing: 1px; }
+  .top .contact {
+    margin-top: 3.5mm;
+    background: #24374d;
+    border-radius: 1.5mm;
+    padding: 2.2mm 4mm;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .top .contact .label { font-size: 12px; color: #aebacb; letter-spacing: 1px; }
+  .top .contact .num { font-size: 19px; font-weight: 800; letter-spacing: 1px; color: #fff; }
+
+  /* ===== 主张区 ===== */
+  .hero {
+    padding: 6.5mm 7mm 6mm;
+    border-bottom: 0.7mm solid #e8e2d5;
+  }
+  .hero h1 {
+    font-size: 25px; font-weight: 900; color: #1b2b3d;
+    line-height: 1.5;
+  }
+  .hero h1 .gold { color: #b08d45; }
+  .hero p {
+    margin-top: 3mm; font-size: 16px; color: #4a5460; line-height: 1.7;
+  }
+  .hero p b { color: #1b2b3d; }
+
+  /* ===== 通用区块 ===== */
+  .section { padding: 6mm 7mm 0; }
+  .sec-title {
+    display: flex; align-items: center; gap: 3mm;
+    margin-bottom: 3.5mm;
+  }
+  .sec-title .bar { width: 5mm; height: 5mm; background: #b08d45; border-radius: 1px; flex: none; }
+  .sec-title h2 { font-size: 20px; font-weight: 800; color: #1b2b3d; letter-spacing: 1px; }
+  .sec-hint { font-size: 13px; color: #8a93a0; margin: -2mm 0 3mm 8mm; }
+
+  /* 三个问题 */
+  .qs { display: flex; flex-direction: column; gap: 2.5mm; }
+  .q {
+    display: flex; align-items: center; gap: 4mm;
+    background: #f6f4ef;
+    border-left: 1.2mm solid #b08d45;
+    padding: 3.2mm 4.5mm;
+    border-radius: 0 1.5mm 1.5mm 0;
+  }
+  .q .no { font-family: "Noto Serif CJK SC", serif; font-size: 21px; font-weight: 700; color: #b08d45; flex: none; }
+  .q .t { font-size: 16px; color: #2b3138; line-height: 1.55; }
+  .q .t b { color: #1b2b3d; }
+
+  /* 干的活 */
+  .cards { display: flex; flex-direction: column; gap: 2.5mm; }
+  .card {
+    border: 0.4mm solid #e2e6eb;
+    border-radius: 1.5mm;
+    padding: 3.2mm 4.5mm;
+  }
+  .card .k { font-size: 17px; font-weight: 800; color: #1b2b3d; margin-bottom: 1mm; }
+  .card .k span { color: #b08d45; margin-right: 2mm; }
+  .card .d { font-size: 14.5px; color: #5a6472; line-height: 1.6; }
+
+  /* 案例 */
+  .case {
+    padding: 3mm 0;
+    border-bottom: 0.35mm dashed #dfe3e8;
+  }
+  .case:last-child { border-bottom: none; }
+  .case .ind { font-size: 14px; font-weight: 800; color: #b08d45; margin-bottom: 0.8mm; letter-spacing: 1px; }
+  .case .res { font-size: 16px; color: #3c4550; line-height: 1.6; }
+  .case .res b { color: #1b2b3d; font-size: 17px; }
+
+  /* 合作方式 */
+  .offers { display: flex; flex-direction: column; gap: 2.5mm; }
+  .offer {
+    background: #1b2b3d;
+    border-radius: 1.5mm;
+    padding: 3.6mm 5mm 4mm;
+    color: #fff;
+  }
+  .offer.alt { background: #24374d; }
+  .offer .head { display: flex; align-items: center; gap: 3mm; margin-bottom: 1.5mm; }
+  .offer .tag {
+    font-size: 12px; letter-spacing: 1px;
+    color: #d9b878; border: 0.35mm solid #7d6a41;
+    padding: 0.6mm 2.5mm; border-radius: 10mm;
+  }
+  .offer .k { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+  .offer .d { font-size: 14.5px; color: #c3cddb; line-height: 1.65; }
+  .offer .d b { color: #f0d9a8; }
+
+  /* 底部 */
+  .foot {
+    margin-top: 6mm;
+    background: #f6f4ef;
+    padding: 5mm 7mm;
+    text-align: center;
+  }
+  .foot .say { font-size: 19px; color: #1b2b3d; font-weight: 800; margin-bottom: 2mm; }
+  .foot .say span { color: #b08d45; }
+  .foot .num { font-size: 20px; font-weight: 800; color: #1b2b3d; letter-spacing: 1px; }
+  .foot .num small { font-size: 13px; font-weight: 400; color: #8a93a0; margin-right: 2mm; }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <div><span class="name serif">张 良</span><span class="role">销售业绩操盘手</span></div>
+    <div class="exp">20 年销售团队实战操盘 · 跨行业验证</div>
+    <div class="contact">
+      <span class="label">电话 / 微信（同号）</span>
+      <span class="num">135 5272 5767</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1 class="serif">只干一件事：<span class="gold">90 天</span>，把你销售团队的业绩提起来。</h1>
+    <p>不碰产品、不碰营销——那是你们自己的强项。<b>我只管让卖的人变强</b>：人怎么筛、提成怎么设、过程怎么管、销冠怎么留。</p>
+  </div>
+
+  <div class="section">
+    <div class="sec-title"><div class="bar"></div><h2>先问你三个问题</h2></div>
+    <div class="sec-hint">有两个答不上来或不满意，我们就有的聊</div>
+    <div class="qs">
+      <div class="q"><div class="no">壹</div><div class="t">你的销售<b>人均业绩</b>，比同行是高还是低？差多少？</div></div>
+      <div class="q"><div class="no">贰</div><div class="t"><b>销冠留得住吗？</b>还是业绩全靠一两个能人撑着？</div></div>
+      <div class="q"><div class="no">叁</div><div class="t">团队出单靠<b>机制</b>，还是靠你天天盯？你不盯就掉？</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title"><div class="bar"></div><h2>我干的活</h2></div>
+    <div class="sec-hint">这套打法，我叫它「销冠组织」</div>
+    <div class="cards">
+      <div class="card"><div class="k"><span>筛人</span>3–7 天筛人模型</div><div class="d">筛人周期从平均 3 个月压到一周内，庸才想混，门儿都没有。</div></div>
+      <div class="card"><div class="k"><span>机制</span>提成与激励重设</div><div class="d">让员工「为自己干」——机制立住了，不用你天天盯。</div></div>
+      <div class="card"><div class="k"><span>过程</span>销售 SOP 拆到动作</div><div class="d">从获客到成交逐个动作量化到人，业绩从过程里倒逼出来。</div></div>
+      <div class="card"><div class="k"><span>留人</span>销冠与高管利益捆绑</div><div class="d">能人留得住、水货卡得死，团队不再被离职带崩。</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title"><div class="bar"></div><h2>做过的事</h2></div>
+    <div class="sec-hint">细节与数据，见面拿给你看</div>
+    <div>
+      <div class="case"><div class="ind">培训行业</div><div class="res">2 年，销售团队从 0 建起，年业绩做到<b>过亿</b>，规模做到北京同行头部。</div></div>
+      <div class="case"><div class="ind">通信行业</div><div class="res"><b>4 个月扭亏为盈</b>，1 年业绩过 1000 万。</div></div>
+      <div class="case"><div class="ind">医药行业</div><div class="res">连亏 6 年的团队，<b>5 个月扭亏</b>，1 年招商业绩过 3000 万。</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title"><div class="bar"></div><h2>合作方式 · 三选一</h2></div>
+    <div class="sec-hint">风险都在我这边</div>
+    <div class="offers">
+      <div class="offer"><div class="head"><span class="tag">方式一</span><span class="k">入职操盘</span></div><div class="d">底薪按普通总监开，另定 90 天业绩目标——<b>超出才提成，不达标你不多付一分钱</b>。</div></div>
+      <div class="offer alt"><div class="head"><span class="tag">方式二</span><span class="k">按月顾问</span></div><div class="d">按月付费，随时可停，<b>不满意，当月不付</b>。</div></div>
+      <div class="offer"><div class="head"><span class="tag">方式三</span><span class="k">先试后谈</span></div><div class="d">免费给你出一份《销售团队人效诊断》，一页纸，<b>觉得准，再谈合作</b>。</div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="say serif">先给结果，<span>再谈钱。</span></div>
+    <div class="num"><small>电话 / 微信</small>135 5272 5767</div>
+  </div>
+
+</body>
+</html>
