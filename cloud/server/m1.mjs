@@ -41,8 +41,9 @@ export async function submitDailyReport(db, ctx, { employeeId, date, counts = {}
   return { mode: 'submitted', id, counts: clean };
 }
 
-/* ---------- 排班：员工专属 > '*' 兜底 > 默认周日休 ---------- */
-async function loadShift(db, tenantId) {
+/* ---------- 排班：员工专属 > '*' 兜底 > 默认周日休 ----------
+   🔴 export 供 C7（m12/m14/m15/m40plus）复用——Y-D8 休息日口径全系统唯一一份，禁止另写 ---------- */
+export async function loadShift(db, tenantId) {
   const { rows } = await db.query(
     `select employee_id, weekday, is_workday from shift_configs
       where tenant_id = $1 and deleted_at is null`, [tenantId]);
@@ -57,7 +58,7 @@ async function loadShift(db, tenantId) {
   }
   return { byEmp, wildcard };
 }
-function isWorkday(shift, employeeId, dateStr) {
+export function isWorkday(shift, employeeId, dateStr) {
   const wd = weekdayOf(dateStr);                       // 0 = 周日（shared.mjs 唯一口径）
   const own = shift.byEmp.get(employeeId)?.get(wd);
   if (own !== undefined) return own;                   // ① 员工专属排班优先
