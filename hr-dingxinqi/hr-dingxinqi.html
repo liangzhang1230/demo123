@@ -12,16 +12,16 @@
    深浅双主题同权重 · 触控 ≥44px · 引擎零改动（仅呈现层）
    ============================================================ */
 :root{
-  --bg:#0C1113; --card:#151C1F; --card2:#1C2528; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.05);
-  --ink:#EAF1EF; --mute:#93A2A2; --faint:#647376;
-  --brand:#54C392; --brand-d:#3B9B70; --brand-ink:#08130E; --brand-soft:rgba(84,195,146,.13);
-  --green:#54C392; --amber:#E3AA4B; --red:#E56E6E; --blue:#7FA8B8; --gold:#D4B45A;
+  --bg:#0F1416; --card:#1A2124; --card2:#212A2E; --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+  --ink:#ECF1F0; --mute:#93A0A2; --faint:#68767A;
+  --brand:#5BB98C; --brand-d:#3E8E6A; --brand-ink:#08130E; --brand-soft:rgba(91,185,140,.14);
+  --green:#5BB98C; --amber:#E0A63F; --red:#E06B6B; --blue:#7FA8B8; --gold:#D4B45A;
   --lead:#C7D2CF;
   --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
   --serif:"Songti SC","SimSun",serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --sh:0 1px 2px rgba(0,0,0,.25),0 8px 28px rgba(0,0,0,.28);
-  --sh-sm:0 1px 2px rgba(0,0,0,.22);
+  --sh:0 8px 30px rgba(0,0,0,.35);
+  --sh-sm:0 2px 8px rgba(0,0,0,.28);
 }
 :root[data-theme="light"]{
   --bg:#F1F4F2; --card:#FFFFFF; --card2:#F5F8F6; --line:rgba(16,28,24,.10); --line2:rgba(16,28,24,.06);
@@ -50,7 +50,8 @@ button{font-family:inherit}
 #rail .nav{padding:8px 12px;flex:1;display:flex;flex-direction:column;gap:2px}
 #rail .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
   color:var(--mute);font-size:14px;font-weight:600;cursor:pointer;transition:background .13s,color .13s}
-#rail .nav a i{font-style:normal;font-size:16px;width:22px;text-align:center;opacity:.9}
+#rail .nav a i.ico{display:flex;width:20px;height:20px;flex:none}
+#rail .nav a i.ico svg{width:19px;height:19px;display:block}
 #rail .nav a:hover{background:var(--card2);color:var(--ink)}
 #rail .nav a.on{background:var(--brand-soft);color:var(--brand)}
 #rail .foot{padding:14px 18px;border-top:1px solid var(--line);font-size:10.5px;color:var(--faint);line-height:1.7}
@@ -66,6 +67,8 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
   padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.12s;min-height:34px}
 .tbtn:hover{border-color:var(--faint);color:var(--ink)}
 .tbtn:active{transform:scale(.96)}
+.tbtn.icon{width:36px;padding:0;display:grid;place-items:center}
+.tbtn.icon svg{width:16px;height:16px}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .wrap{max-width:600px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
 
@@ -75,7 +78,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
 .lb-status{display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;color:var(--mute);
   font-size:12px;font-weight:600;white-space:nowrap}
 .pulse{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 2.2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(84,195,146,.45)}70%{box-shadow:0 0 0 7px rgba(84,195,146,0)}100%{box-shadow:0 0 0 0 rgba(84,195,146,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(91,185,140,.5)}70%{box-shadow:0 0 0 7px rgba(84,195,146,0)}100%{box-shadow:0 0 0 0 rgba(84,195,146,0)}}
 .lb-hint{flex:1;display:flex;align-items:center;padding:0 14px;color:var(--mute);font-size:12.5px;
   min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-left:1px solid var(--line)}
 .lb-cta{align-self:center;margin:0 10px;padding:11px 20px;background:var(--brand);color:var(--brand-ink);border:none;
@@ -89,7 +92,8 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
   padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:30}
 #tabbar a{flex:1;text-align:center;color:var(--faint);text-decoration:none;font-size:10.5px;font-weight:600;
   padding:6px 0 5px;cursor:pointer;border-radius:12px;transition:background .15s,color .15s}
-#tabbar a i{display:block;font-size:19px;font-style:normal;line-height:1.25;margin-bottom:2px}
+#tabbar a i.ico{display:block;width:22px;height:22px;margin:0 auto 3px}
+#tabbar a i.ico svg{width:22px;height:22px;display:block}
 #tabbar a.on{color:var(--brand);background:var(--brand-soft)}
 
 /* ≥761px：平板 —— 左栏出现、底栏隐藏、结果条出现 */
@@ -366,10 +370,10 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
   <aside id="rail">
     <div class="brand"><i>薪</i><span>销售定薪器<small>HR EDITION</small></span></div>
     <div class="nav">
-      <a data-t="input" class="on" onclick="nav('input')"><i>🧮</i>定薪</a>
-      <a data-t="plan" onclick="nav('plan')"><i>📋</i>方案</a>
-      <a data-t="offer" onclick="nav('offer')"><i>📄</i>Offer</a>
-      <a data-t="mine" onclick="nav('mine')"><i>📁</i>我的</a>
+      <a data-t="input" class="on" onclick="nav('input')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6.5 12h.01M17.5 12h.01"/></svg></i>定薪</a>
+      <a data-t="plan" onclick="nav('plan')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="3.5" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8.5 11.5h.01M12 11.5h3.5M8.5 16h.01M12 16h3.5"/></svg></i>方案</a>
+      <a data-t="offer" onclick="nav('offer')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2.5H6a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5z"/><path d="M14 2.5v6h6"/><path d="M9 13.5h6M9 17h6"/></svg></i>Offer</a>
+      <a data-t="mine" onclick="nav('mine')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 4a2 2 0 0 0-1.67-.9H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 1.9Z"/></svg></i>我的</a>
     </div>
     <div class="foot">纯离线单文件 · 数据不出你的设备<br>测算结果仅供参考</div>
   </aside>
@@ -379,7 +383,7 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
       <div class="brand"><i>薪</i>销售定薪器</div>
       <div style="display:flex;gap:8px">
         <button class="tbtn" onclick="fillDemo()">示例数据</button>
-        <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌓</button>
+        <button class="tbtn icon" id="themeBtn" onclick="toggleTheme()" title="切换深浅主题"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
       </div>
     </header>
 
@@ -564,10 +568,10 @@ p.lead{color:var(--lead);font-size:14.5px;line-height:1.7;margin:0 0 16px}
 
     <!-- 手机底部标签栏 -->
     <nav id="tabbar">
-      <a data-t="input" class="on" onclick="nav('input')"><i>🧮</i>定薪</a>
-      <a data-t="plan" onclick="nav('plan')"><i>📋</i>方案</a>
-      <a data-t="offer" onclick="nav('offer')"><i>📄</i>Offer</a>
-      <a data-t="mine" onclick="nav('mine')"><i>📁</i>我的</a>
+      <a data-t="input" class="on" onclick="nav('input')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/><path d="M6.5 12h.01M17.5 12h.01"/></svg></i>定薪</a>
+      <a data-t="plan" onclick="nav('plan')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="3.5" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8.5 11.5h.01M12 11.5h3.5M8.5 16h.01M12 16h3.5"/></svg></i>方案</a>
+      <a data-t="offer" onclick="nav('offer')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2.5H6a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.5z"/><path d="M14 2.5v6h6"/><path d="M9 13.5h6M9 17h6"/></svg></i>Offer</a>
+      <a data-t="mine" onclick="nav('mine')"><i class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 4a2 2 0 0 0-1.67-.9H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 1.9Z"/></svg></i>我的</a>
     </nav>
   </main>
 </div>
