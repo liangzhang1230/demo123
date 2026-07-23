@@ -448,7 +448,9 @@ create table if not exists menu_choices (
 -- #28 OverrideEvent → override_events（双形实体，形状互斥 CHECK）：
 --   A 形＝面试推翻（2号 ZE-10；🔴 仅由推荐≠终决自动生成，零手工）
 --   B 形＝治理留痕（4号 G3：try_downgrade M28 拦截 / force_dividend_risk_ack 分红强启——
---     🔴 L-D1：尝试下调即留痕 + AHC 扣分 + 全员可见（visible_to_all 恒 true））
+--     🔴 L-D1：尝试下调即留痕 + AHC 扣分 + 全员可见（visible_to_all 恒 true）；
+--     C9 增补：insist_eliminate＝3号 M35 [仍坚持淘汰] 仅留痕（🔴 S-D10：
+--     无任何员工状态变更——salespersons 零改动，写侧断言见 c9.test.mjs ④）
 create table if not exists override_events (
   tenant_id        uuid not null references tenants(id) on delete cascade,
   id               text not null,                                   -- ovId
@@ -457,8 +459,9 @@ create table if not exists override_events (
   direction        text check (direction in ('hire_against','reject_against')),  -- ZE-10
   system_recommend text check (system_recommend in ('hire','reject')),
   event_date       date,
-  action           text check (action in ('try_downgrade','force_dividend_risk_ack')),  -- B 形必填
-  m28_id           text,                                            -- B 形：被拦截的 M28 协议
+  action           text check (action in ('try_downgrade','force_dividend_risk_ack','insist_eliminate')),  -- B 形必填
+  m28_id           text,                                            -- B 形 try_downgrade：被拦截的 M28 协议
+  sp_id            text,                                            -- B 形 insist_eliminate：拟淘汰对象（M35 留痕）
   note             text,
   visible_to_all   boolean not null default true,                   -- 🔴 B 形留痕全员可见
   created_by uuid, updated_by uuid,

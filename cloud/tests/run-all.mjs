@@ -20,10 +20,11 @@ const suites = [
   ['C6 真相层验收', 'c6.test.mjs'],
   ['C7 育人层验收', 'c7.test.mjs'],
   ['C8 信用层验收', 'c8.test.mjs'],
+  ['C9 罪证层验收', 'c9.test.mjs'],
 ];
 let bad = 0;
 for (const [name, file] of suites) {
-  const r = spawnSync('node', [join(here, file)], { encoding: 'utf8', timeout: 300000 });
+  const r = spawnSync('node', [join(here, file)], { encoding: 'utf8', timeout: 900000 });
   const passed = r.status === 0;
   if (!passed) bad++;
   console.log(`${passed ? '✅' : '❌'} ${name}${passed ? '' : '\n' + (r.stdout + r.stderr).split('\n').filter(l => l.includes('✗')).slice(0, 10).join('\n')}`);
