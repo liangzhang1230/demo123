@@ -426,7 +426,7 @@ const SK = (() => {
   function emptyDB() {
     return {
       meta: { createdAt: today(), dataVersion: 1, seeded: false },
-      ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false } },
+      ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false }, tierOpen: { sales: true, mgr: false } },
       company: {
         name: '我的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
         complementLevel: 'partial', attributableLevel: 'partial', targetYearMode: 'next',
@@ -1603,23 +1603,33 @@ const SK = (() => {
     const subRows = ['manager', 'executive'].map(lv =>
       `<tr><td>${levelName(lv)}</td><td class="num mono">${fmt.yuan(Bof(lv, gmi))}</td><td class="num mono">${fmt.yuan(Tof(lv, gmi))}</td><td class="hint">${LEVEL_DESC[lv]}</td></tr>`);
     const mgrSeg = h.seg('company.mgrGrade', [{ v: 'effective', t: '有效' }, { v: 'efficient', t: '高效' }, { v: 'leading', t: '领先' }], mgrCur);
-    return `
-      <div style="margin-top:8px"><b style="font-size:12.8px">① 选销售档</b> <span class="hint">（${cityLab} · ${cycLab} 实算 · 点一行选定）</span></div>
+    // 🔴 v2.6：销售档 / 主管高管档均为可收起可展开（开合状态存 DB.ui.tierOpen，
+    //   跨全站重算持久——修复原生 <details> 在 UI.commit 全量重渲后被重置的收起 bug）。
+    const to = SK.DB.ui.tierOpen || {}, sOpen = to.sales !== false, mOpen = to.mgr === true;
+    const head = (k, open, title, note) =>
+      `<div data-act="dj.tier" data-k="${k}" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-top:10px">
+        <b style="font-size:12.8px">${title}</b> <span class="hint">${note}</span>
+        <span class="hint" style="margin-left:auto;white-space:nowrap">${open ? '▾ 收起' : '▸ 展开'}</span>
+      </div>`;
+    const salesBody = `
       ${h.tbl([{ t: '销售档位' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '这是什么人' }], gradeRows)}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
         <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？直接输入你现在给销售的月底薪，系统帮你反查</label>
         <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
         ${h.btn('反查匹配', 'dj.grade-match', { cls: 'sm' })}
         ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
-      </div>
-      <details class="acc" style="margin-top:10px">
-        <summary><b style="font-size:12.8px">② 主管 / 高管档位</b> <span class="hint">（管理层单独定档 · 当前「${GRADE_TECH[mgrCur]}」· 点此展开 / 收起）</span></summary>
-        <div class="acc-body">
-          <div style="margin:2px 0 10px">${mgrSeg}</div>
-          ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
-          ${h.hint('主管/高管档位与销售档相互独立；底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚），达标月收入只随城市与档位变、不随周期变。')}
-        </div>
-      </details>`;
+      </div>`;
+    const mgrBody = `
+      <div style="padding:8px 12px 11px;margin-top:6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card)">
+        <div style="margin:2px 0 10px">${mgrSeg}</div>
+        ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
+        ${h.hint('主管/高管档位与销售档相互独立；底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚），达标月收入只随城市与档位变、不随周期变。')}
+      </div>`;
+    return `
+      ${head('sales', sOpen, '① 选销售档', `（${cityLab} · ${cycLab} · 当前「${GRADE_TECH[c.tierGrade] || '未定'}」· 点一行选定）`)}
+      ${sOpen ? salesBody : ''}
+      ${head('mgr', mOpen, '② 主管 / 高管档位', `（管理层单独定档 · 当前「${GRADE_TECH[mgrCur]}」）`)}
+      ${mOpen ? mgrBody : ''}`;
   }
 
   /* ---- 五张账单 ---- */
@@ -1906,6 +1916,11 @@ const SK = (() => {
   /* ================= 6. 动作 ================= */
   Object.assign(SK.actions, {
     'dj.card': d => { const oc = SK.DB.ui.openCards || (SK.DB.ui.openCards = {}); oc[d.key] = !oc[d.key]; UI.commit(); },
+    'dj.tier': d => {                                       // ① 销售档 / ② 主管高管档 收合（持久化，修复重渲复位 bug）
+      const to = SK.DB.ui.tierOpen || (SK.DB.ui.tierOpen = { sales: true, mgr: false });
+      const cur = d.k === 'sales' ? (to.sales !== false) : (to.mgr === true);
+      to[d.k] = !cur; UI.commit();
+    },
     'dj.ty': () => { SK.DB.company.targetYearMode = SK.DB.company.targetYearMode === 'this' ? 'next' : 'this'; UI.commit(); },
     'dj.grade': d => { SK.DB.company.tierGrade = d.g; gradeBaseDraft = null; matchNote = ''; UI.commit(); },
     'dj.grade-match': () => {

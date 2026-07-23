@@ -171,7 +171,7 @@ const SK = (() => {
   function emptyDB() {
     return {
       meta: { createdAt: today(), dataVersion: 1, seeded: false },
-      ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false } },
+      ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false }, tierOpen: { sales: true, mgr: false } },
       company: {
         name: '我的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
         complementLevel: 'partial', attributableLevel: 'partial', targetYearMode: 'next',
