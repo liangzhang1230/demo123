@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>销售定薪器 · HR 版</title>
+<style>
+/* ============================================================
+   销售定薪器 · HR 版 — 单文件 / 纯离线 / localStorage
+   视觉：黑 + 墨绿（承接公司筛选器）· 深浅双主题
+   布局：手机底部标签栏 / 平板电脑左侧导航 + 底部实时结果条
+   ============================================================ */
+:root{
+  --bg:#0F1416; --card:#1A2124; --card2:#212A2E; --line:rgba(255,255,255,.10);
+  --ink:#ECF1F0; --mute:#93A0A2; --faint:#68767A;
+  --brand:#5BB98C; --brand-d:#3E8E6A; --brand-soft:rgba(91,185,140,.14);
+  --green:#5BB98C; --amber:#E0A63F; --red:#E06B6B; --blue:#7FA8B8; --gold:#D4B45A;
+  --lead:#CDD6D4;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Songti SC","SimSun",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sh:0 8px 30px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --bg:#EAEEEC; --card:#FCFDFC; --card2:#F1F5F3; --line:rgba(20,30,28,.10);
+  --ink:#18211E; --mute:#5C6A66; --faint:#8A9691; --brand-soft:rgba(91,185,140,.16);
+  --lead:#3A443F;
+  --sh:0 6px 22px rgba(20,30,28,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;overflow:hidden}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ===== 应用外壳：桌面左栏 / 手机底栏 ===== */
+#app{display:flex;height:100dvh}
+#rail{width:220px;flex:0 0 220px;background:linear-gradient(180deg,#101819,#0C1213);
+  border-right:1px solid var(--line);display:none;flex-direction:column}
+:root[data-theme="light"] #rail{background:linear-gradient(180deg,#F4F7F5,#ECF0EE)}
+#rail .brand{display:flex;align-items:center;gap:10px;padding:18px 16px;border-bottom:1px solid var(--line)}
+#rail .nav{padding:12px 10px;flex:1;display:flex;flex-direction:column;gap:3px}
+#rail .nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
+  color:var(--mute);font-size:14px;font-weight:600;cursor:pointer;transition:.13s}
+#rail .nav a i{font-style:normal;font-size:17px;width:22px;text-align:center}
+#rail .nav a:hover{background:var(--card2);color:var(--ink)}
+#rail .nav a.on{background:var(--brand-soft);color:var(--brand)}
+#rail .foot{padding:13px 16px;border-top:1px solid var(--line);font-size:10.5px;color:var(--faint);line-height:1.7}
+main{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh}
+.top{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 16px 9px;border-bottom:1px solid var(--line);background:var(--bg);z-index:20}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;letter-spacing:.02em}
+.brand i{width:26px;height:26px;border-radius:7px;background:var(--brand);color:#08130E;
+  display:grid;place-items:center;font-size:15px;font-style:normal;flex:none}
+.brand small{font-size:10px;color:var(--faint);font-weight:600;letter-spacing:.12em;display:block;line-height:1.2}
+.tbtn{background:var(--card2);border:1px solid var(--line);color:var(--mute);border-radius:9px;
+  padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+.tbtn:active{transform:scale(.96)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wrap{max-width:560px;margin:0 auto;padding:14px 15px 90px}
+
+/* 底部实时结果条（桌面/平板） */
+#livebar{display:none;flex:0 0 auto;background:linear-gradient(180deg,#131B1D,#0D1315);
+  border-top:1px solid var(--line);align-items:stretch;min-height:62px;z-index:15}
+:root[data-theme="light"] #livebar{background:linear-gradient(180deg,#F2F6F4,#E8EEEB)}
+.lb-status{display:flex;align-items:center;gap:8px;padding:0 14px 0 20px;color:var(--mute);
+  font-size:12px;font-weight:600;white-space:nowrap}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 2.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(91,185,140,.5)}70%{box-shadow:0 0 0 7px rgba(91,185,140,0)}100%{box-shadow:0 0 0 0 rgba(91,185,140,0)}}
+.lb-cells{display:flex;flex:1;overflow-x:auto}
+.lb-cells::-webkit-scrollbar{height:0}
+.lb-cell{padding:9px 18px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;min-width:110px}
+.lb-cell .k{font-size:10px;letter-spacing:.06em;color:var(--faint);font-weight:600}
+.lb-cell .v{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:2px;letter-spacing:-.01em}
+.lb-cell .v.red{color:var(--red)}.lb-cell .v.amber{color:var(--amber)}.lb-cell .v.green{color:var(--green)}
+.lb-cta{align-self:center;margin:0 16px;padding:10px 18px;background:var(--brand);color:#08130E;border:none;
+  border-radius:10px;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer}
+.lb-cta:active{transform:scale(.97)}
+
+/* 底部标签栏（手机） */
+#tabbar{flex:0 0 auto;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:30}
+#tabbar a{flex:1;text-align:center;color:var(--faint);text-decoration:none;font-size:10.5px;padding:5px 0;cursor:pointer}
+#tabbar a.on{color:var(--brand)}
+#tabbar a i{display:block;font-size:19px;font-style:normal;line-height:1.2;margin-bottom:1px}
+
+/* ≥761px：左栏出现、底栏隐藏、结果条出现、内容加宽 */
+@media(min-width:761px){
+  #rail{display:flex}
+  #tabbar{display:none}
+  #livebar{display:flex}
+  .top .brand{display:none}
+  .wrap{max-width:760px;padding:20px 28px 40px}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+}
+@media(min-width:1100px){ .wrap{max-width:860px} }
+
+/* ===== 卡片 / 排版 ===== */
+.screen{display:none;animation:rise .28s ease both}
+.screen.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.screen{animation:none}}
+h1{font-size:25px;line-height:1.3;font-weight:700;margin:6px 0 10px;letter-spacing:.01em}
+h2{font-size:19px;font-weight:700;margin:2px 0 10px}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--brand);text-transform:uppercase;font-weight:600}
+p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
+.dim{color:var(--mute);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:var(--sh)}
+.sec-h{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.14em;color:var(--faint);
+  text-transform:uppercase;font-weight:600;margin:0 0 4px}
+.sec-h .n{width:20px;height:20px;border-radius:6px;background:var(--card2);color:var(--brand);
+  display:grid;place-items:center;font-size:11px;flex:none}
+.note{background:var(--card2);border-left:2px solid var(--blue);border-radius:0 10px 10px 0;
+  padding:11px 13px;font-size:12.5px;color:var(--mute);line-height:1.7;margin-top:12px}
+.note b{color:var(--ink)}
+.foot{text-align:center;font-size:11px;color:var(--faint);line-height:1.8;padding:26px 10px 10px}
+
+/* ===== 表单 ===== */
+.field{padding:11px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:none}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+.field .hint{font-size:11.5px;color:var(--faint);line-height:1.5;margin-bottom:7px}
+.field input[type=number],.field input[type=text],.field input[type=date]{width:100%;background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;color:var(--ink);font-family:var(--mono);font-size:16px;padding:10px 12px}
+.field input:focus{outline:none;border-color:var(--brand)}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.seg{flex:1 1 auto;min-width:58px;text-align:center;font-size:13px;padding:9px 6px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card2);color:var(--mute);cursor:pointer;transition:.12s;user-select:none}
+.seg[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#08130E;font-weight:700}
+.seg:active{transform:scale(.97)}
+
+/* ===== 结论卡 / 数字 ===== */
+.summary{position:sticky;top:0;z-index:15;padding-top:4px;background:linear-gradient(var(--bg) 82%,transparent)}
+.verdict-card{border-radius:16px;padding:15px 16px;border:1px solid var(--line);background:var(--card);box-shadow:var(--sh)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:12px;overflow:hidden;margin-top:12px}
+.kpis.k3{grid-template-columns:1fr 1fr 1fr}
+.kpi{background:var(--card);padding:11px 12px}
+.kpi .k{font-size:11px;color:var(--faint);letter-spacing:.05em}
+.kpi .v{font-family:var(--mono);font-size:19px;font-weight:700;margin-top:2px;line-height:1.15}
+.kpi .v small{font-size:11px;color:var(--mute);font-weight:400}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.badge .dot{width:9px;height:9px;border-radius:50%}
+.b-g{background:rgba(91,185,140,.15);color:var(--green)} .b-g .dot{background:var(--green)}
+.b-y{background:rgba(224,166,63,.15);color:var(--amber)} .b-y .dot{background:var(--amber)}
+.b-r{background:rgba(224,107,107,.15);color:var(--red)} .b-r .dot{background:var(--red)}
+.b-gold{background:rgba(212,180,90,.15);color:var(--gold)} .b-gold .dot{background:var(--gold)}
+
+/* 红线 gates */
+.gate{display:flex;gap:10px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.6;
+  align-items:flex-start;margin-bottom:8px}
+.gate i{font-style:normal;flex:none}
+.gate.red{background:rgba(224,107,107,.12);color:#F0B4B4}
+.gate.amber{background:rgba(224,166,63,.12);color:#EBCB90}
+.gate.green{background:rgba(91,185,140,.12);color:#A9D9C0}
+:root[data-theme="light"] .gate.red{color:#A33636}
+:root[data-theme="light"] .gate.amber{color:#8A6210}
+:root[data-theme="light"] .gate.green{color:#25684A}
+.gate b{font-weight:700}
+
+/* 三档方案 */
+.menu{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+@media(min-width:761px){.menu{grid-template-columns:1fr 1fr 1fr}}
+.mc{border:1px solid var(--line);border-radius:13px;padding:14px;background:var(--card2);cursor:pointer;transition:.13s;position:relative}
+.mc:active{transform:scale(.98)}
+.mc.on{border-color:var(--brand);background:var(--brand-soft)}
+.mc .tier{font-size:11.5px;color:var(--faint);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.mc.on .tier{color:var(--brand)}
+.mc .big{font-family:var(--mono);font-size:19px;font-weight:800;margin:7px 0 1px}
+.mc .sub{font-size:12px;color:var(--mute)}
+.mc .meta{font-size:11.5px;color:var(--faint);margin-top:8px;line-height:1.6;border-top:1px dashed var(--line);padding-top:8px}
+.mc .pick{position:absolute;top:11px;right:12px;font-size:11px;color:var(--brand);font-weight:700;display:none}
+.mc.on .pick{display:block}
+
+/* 现金流条 */
+.ramp{display:flex;gap:3px;align-items:flex-end;height:58px;margin:8px 0 4px}
+.ramp .bar{flex:1;background:var(--brand);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
+.ramp .bar.low{background:var(--red)}
+.ramp-x{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint);font-family:var(--mono)}
+
+/* 对标刻度 */
+.meter{position:relative;height:9px;border-radius:6px;margin:26px 2px 6px;
+  background:linear-gradient(90deg,var(--red),var(--amber) 33%,var(--green) 66%,var(--gold))}
+.meter .mk{position:absolute;top:-5px;width:4px;height:19px;background:var(--ink);border-radius:2px;
+  box-shadow:0 0 0 2px var(--card);transform:translateX(-2px)}
+.meter .mklab{position:absolute;top:-24px;transform:translateX(-50%);font-size:10.5px;font-family:var(--mono);
+  font-weight:700;color:var(--ink);white-space:nowrap}
+.meter-cap{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint)}
+
+/* 账本 */
+.ledger{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.ledger td{padding:7px 2px;border-bottom:1px dotted var(--line);font-family:var(--mono)}
+.ledger td:first-child{font-family:var(--sans);color:var(--mute);text-align:left}
+.ledger td:last-child{text-align:right}
+.ledger tr.sum td{border-top:1px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700;color:var(--ink)}
+.neg{color:var(--red)}
+
+/* 对比表 */
+.cmp{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cmp table{border-collapse:collapse;width:100%;min-width:340px;font-size:13px}
+.cmp th,.cmp td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--mono);white-space:nowrap}
+.cmp th:first-child,.cmp td:first-child{text-align:left;font-family:var(--sans);color:var(--mute)}
+.cmp th{color:var(--faint);font-size:11px;font-weight:600}
+.win{color:var(--green);font-weight:700}
+
+/* 折叠 */
+.acc{border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;background:var(--card)}
+.acc>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary .chev{color:var(--faint);transition:.2s;font-size:13px}
+.acc[open]>summary .chev{transform:rotate(180deg)}
+.acc .body{padding:2px 16px 14px}
+
+/* 按钮 */
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:13px;background:var(--brand);
+  color:#08130E;font-family:var(--sans);font-size:16px;font-weight:700;cursor:pointer;margin-top:14px;transition:.15s}
+.btn:active{transform:scale(.98)} .btn:disabled{opacity:.5}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mute);font-weight:600}
+.btn.sm{padding:11px;font-size:14px;margin-top:0}
+.btnrow{display:flex;gap:9px}.btnrow .btn{margin-top:14px}
+
+/* 记录 */
+.rec{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px;background:var(--card)}
+.rec .info{flex:1;min-width:0}
+.rec .info b{font-size:14.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec .info span{font-size:11.5px;color:var(--faint)}
+.rec .score{font-family:var(--mono);font-weight:700;font-size:15px;text-align:right}
+.rec .score small{display:block;font-size:10px;color:var(--faint);font-weight:400}
+.rec input[type=checkbox]{width:19px;height:19px;accent-color:var(--brand)}
+.empty{text-align:center;color:var(--faint);font-size:13.5px;padding:36px 20px}
+
+/* Offer 说明书预览 */
+.doc{background:#fff;color:#1a1a1a;border-radius:12px;padding:26px 24px;font-size:13.5px;line-height:1.85;box-shadow:var(--sh)}
+.doc h3{text-align:center;font-size:18px;letter-spacing:.14em;margin-bottom:2px}
+.doc .doc-sub{text-align:center;font-size:11px;color:#999;letter-spacing:.06em;margin-bottom:16px}
+.doc table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+.doc th,.doc td{border:1px solid #ddd;padding:8px 10px;text-align:left}
+.doc th{background:#f6f8f7;font-weight:600;white-space:nowrap;width:96px}
+.doc .doc-note{font-size:11px;color:#888;border-top:1px solid #eee;margin-top:16px;padding-top:10px;line-height:1.8}
+.doc .doc-sign{display:flex;justify-content:space-between;margin-top:22px;font-size:12.5px;color:#444}
+.doc .sc{font-family:var(--mono)}
+
+/* ===== 激活闸 / 微信拦截 ===== */
+#gate,#wxmask{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;align-items:center;justify-content:center;padding:22px}
+.gate-card{max-width:400px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px;box-shadow:var(--sh);max-height:92dvh;overflow-y:auto}
+.gate-card h2{font-size:20px;margin:14px 0 6px}
+.gate-card p{font-size:13px;color:var(--mute);line-height:1.7;margin-bottom:14px}
+.gate-card input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:11px;color:var(--ink);font-family:var(--mono);font-size:15px;padding:12px;text-align:center}
+.gate-card input:focus{outline:none;border-color:var(--brand)}
+#actMsg{font-size:13px;margin-top:10px;min-height:18px;text-align:center}
+.warnbox{background:rgba(224,107,107,.14);border:1px solid var(--red);color:#F0B4B4;border-radius:11px;padding:11px 13px;font-size:13.5px;line-height:1.7;margin:6px 0 14px;font-weight:600}
+:root[data-theme="light"] .warnbox{color:#A33636}
+.devline{margin:0 0 14px;color:var(--ink);font-size:13.5px;line-height:1.8}
+.devline b{color:var(--brand);font-family:var(--mono);font-size:16px;letter-spacing:.05em}
+
+/* toast */
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#0f1a16;color:#fff;padding:11px 20px;border-radius:10px;font-size:13.5px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);opacity:0;transition:all .25s;z-index:100;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 打印：只打 Offer 说明书 */
+#printzone{display:none}
+@media print{
+  body{overflow:visible}
+  #app,#gate,#wxmask,.toast{display:none!important}
+  #printzone{display:block!important}
+  #printzone .doc{box-shadow:none;border-radius:0;padding:30px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- 微信拦截 -->
+<div id="wxmask">
+  <div class="gate-card">
+    <div class="brand" style="font-size:17px"><i style="width:28px;height:28px">薪</i>销售定薪器</div>
+    <h2>请用浏览器打开</h2>
+    <div class="warnbox">🚫 <b>微信里无法正常使用本工具</b><br>
+    点右上角「···」→ 选择「在浏览器打开」<br>（苹果用 Safari，安卓/华为用自带浏览器）</div>
+    <p>本工具纯离线运行，数据只存在你自己的设备里。</p>
+  </div>
+</div>
+
+<!-- 激活闸 -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="brand" style="font-size:17px"><i style="width:28px;height:28px">薪</i>销售定薪器 · HR 版</div>
+    <h2>输入激活码</h2>
+    <div class="warnbox">🚫 <b>别在微信里打开！</b><br>
+      复制整条网址 → 粘到手机浏览器（苹果 Safari／安卓华为自带浏览器）→ 再打开激活。<br>
+      微信里打不开、激活码也会失效。有问题微信找我。</div>
+    <p>激活信息只存在你本机、不联网。首次激活按下面提示操作。</p>
+    <div class="devline">👉 <b style="font-family:var(--sans);font-size:13.5px">首次激活</b>：把下面这串「设备码」发给卖家，换你的专属激活码 ——<br>
+      本机设备码 <b id="actDev">…</b></div>
+    <input id="actCode" placeholder="粘贴卖家发的激活码 DX-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn" onclick="doActivate()" style="margin-top:12px">激 活</button>
+    <div id="actMsg"></div>
+    <p style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:11.5px">
+      本工具所有测算结果<b style="color:var(--ink)">仅供参考</b>，不构成薪酬、法律或用工建议。</p>
+  </div>
+</div>
+
+<div id="app">
+  <!-- 桌面左栏 -->
+  <aside id="rail">
+    <div class="brand"><i>薪</i><span>销售定薪器<small>HR EDITION</small></span></div>
+    <div class="nav">
+      <a data-t="input" class="on" onclick="nav('input')"><i>🧮</i>定薪</a>
+      <a data-t="plan" onclick="nav('plan')"><i>📋</i>方案</a>
+      <a data-t="offer" onclick="nav('offer')"><i>📄</i>Offer</a>
+      <a data-t="mine" onclick="nav('mine')"><i>📁</i>我的</a>
+    </div>
+    <div class="foot">纯离线单文件 · 数据不出你的设备<br>测算结果仅供参考</div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="brand"><i>薪</i>销售定薪器</div>
+      <div style="display:flex;gap:8px">
+        <button class="tbtn" onclick="fillDemo()">示例数据</button>
+        <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌓</button>
+      </div>
+    </header>
+
+    <div class="scroll"><div class="wrap">
+
+    <!-- ===== 定薪（输入） ===== -->
+    <section class="screen on" id="pg-input">
+      <p class="eyebrow">HR · 销售岗定薪</p>
+      <h1>这个销售岗，<br>底薪提成到底怎么定？</h1>
+      <p class="lead">填 6 个数，30 秒出：<b>建议底薪、提成率、达标月收入</b>，外加合规红线、给老板看的成本账、可发候选人的 Offer 说明书。</p>
+
+      <div class="summary" id="miniSum"></div>
+
+      <div class="card">
+        <div class="sec-h"><span class="n">1</span>基本盘（30 秒）</div>
+        <div class="cols2">
+        <div class="field">
+          <label>城市</label>
+          <div class="segs" data-seg="city">
+            <div class="seg" data-v="tier1">一线</div>
+            <div class="seg" data-v="tier2">二线/新一线</div>
+            <div class="seg" data-v="tier34">三四线</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>岗位档位</label>
+          <div class="hint">取「该城市该档达标月收入」做基准。</div>
+          <div class="segs" data-seg="level">
+            <div class="seg" data-v="s1">销售·初级</div>
+            <div class="seg" data-v="s2">销售·中级</div>
+            <div class="seg" data-v="s3">销售·高级</div>
+            <div class="seg" data-v="m">销售主管</div>
+            <div class="seg" data-v="e">总监/高管</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>成交周期</label>
+          <div class="hint">周期越长，底薪占比应该越高，否则人熬不到开单就走了。</div>
+          <div class="segs" data-seg="cycle">
+            <div class="seg" data-v="short">快消(1-3月)</div>
+            <div class="seg" data-v="regular">普通(3-6月)</div>
+            <div class="seg" data-v="midLong">中长(6-9月)</div>
+            <div class="seg" data-v="long">大客户(9-15月)</div>
+            <div class="seg" data-v="ultraLong">项目制(15月+)</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>线索从哪来</label>
+          <div class="hint">纯自拓的岗位，爬坡更慢、要价更高。</div>
+          <div class="segs" data-seg="lead">
+            <div class="seg" data-v="1">公司给</div>
+            <div class="seg" data-v="0.5">一半一半</div>
+            <div class="seg" data-v="0">纯自拓</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>平均客单价（元/单）</label>
+          <input type="number" id="aov" value="8000" min="0" oninput="recalc()">
+        </div>
+        <div class="field">
+          <label>月目标单数（单/月）</label>
+          <input type="number" id="deals" value="4" min="0" step="0.5" oninput="recalc()">
+        </div>
+        </div>
+      </div>
+
+      <details class="acc">
+        <summary>② 精算口径（建议展开核对）<span class="chev">▾</span></summary>
+        <div class="body">
+          <div class="cols2">
+          <div class="field">
+            <label>提成基数</label>
+            <div class="hint">按毛利提成时，名义比率会被毛利率打折，要给候选人讲清楚。</div>
+            <div class="segs" data-seg="commBase">
+              <div class="seg" data-v="hk">按回款</div>
+              <div class="seg" data-v="ml">按毛利</div>
+              <div class="seg" data-v="bj">按标价/GMV</div>
+            </div>
+          </div>
+          <div class="field" id="marginField">
+            <label>综合毛利率（%）</label>
+            <div class="hint">按毛利提成时必填；不确定填 30。</div>
+            <input type="number" id="margin" value="30" min="1" max="95" oninput="recalc()">
+          </div>
+          <div class="field">
+            <label>试用期（月）</label>
+            <input type="number" id="prob" value="3" min="0" max="6" oninput="recalc()">
+          </div>
+          <div class="field">
+            <label>月度预算上限（元/月·可不填）</label>
+            <div class="hint">老板给这个岗位的钱数上限（含社保口径见成本账）。</div>
+            <input type="number" id="budget" placeholder="不填则不校验" min="0" oninput="recalc()">
+          </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="field">
+        <label>给这个岗位起个名（存档用）</label>
+        <input type="text" id="postName" placeholder="例如：华东区-大客户销售" oninput="recalc()">
+      </div>
+
+      <button class="btn" onclick="nav('plan')">看定薪方案 →</button>
+      <div class="note"><b>说明。</b>基准值来自企业版定薪系统的城市×档位达标收入表与爬坡曲线，为行业参考值，可能与你所在行业有出入。<b>所有结果仅供参考</b>，不构成薪酬、法律或用工建议；涉及劳动合同、竞业条款请咨询执业律师。数据只存在你自己的设备里，不上传任何服务器。</div>
+    </section>
+
+    <!-- ===== 方案（结果） ===== -->
+    <section class="screen" id="pg-plan">
+      <h2>定薪方案</h2>
+      <div id="planBox"></div>
+    </section>
+
+    <!-- ===== Offer 说明书 ===== -->
+    <section class="screen" id="pg-offer">
+      <h2>Offer 薪酬说明书</h2>
+      <p class="dim" style="margin-bottom:6px">基于当前方案生成一页说明书：发候选人、给老板审批、或打印归档。</p>
+      <div class="card">
+        <div class="cols2">
+        <div class="field"><label>公司名称</label><input type="text" id="ofCompany" placeholder="例如：××科技有限公司" oninput="renderOffer()"></div>
+        <div class="field"><label>岗位名称</label><input type="text" id="ofPost" placeholder="默认用存档名" oninput="renderOffer()"></div>
+        <div class="field"><label>候选人（可不填）</label><input type="text" id="ofWho" placeholder="例如：李女士" oninput="renderOffer()"></div>
+        <div class="field"><label>出具日期</label><input type="text" id="ofDate" placeholder="例如：2026-07-23" oninput="renderOffer()"></div>
+        </div>
+      </div>
+      <div id="offerDoc"></div>
+      <div class="btnrow">
+        <button class="btn" onclick="printOffer()">打印 / 存 PDF</button>
+      </div>
+      <div class="note"><b>提醒。</b>说明书仅为薪酬结构的参考说明，不构成劳动合同或要约的一部分；试用期工资依法不得低于转正工资的 80% 且不得低于当地最低工资；约定竞业限制的，离职后需按月支付经济补偿。具体以贵司与候选人签署的书面合同为准。</div>
+    </section>
+
+    <!-- ===== 我的 ===== -->
+    <section class="screen" id="pg-mine">
+      <h2>我的方案</h2>
+      <p class="dim" style="margin-bottom:6px">勾选 2–3 个已存方案可并排对比。</p>
+      <div id="mineList"></div>
+      <div id="cmpBox"></div>
+      <div class="card">
+        <div class="sec-h">设置</div>
+        <div class="field">
+          <label>报告署名（印在说明书页脚）</label>
+          <input type="text" id="signer" placeholder="例如：人力资源部 张三" oninput="saveMeta()">
+        </div>
+        <div class="btnrow">
+          <button class="btn ghost sm" onclick="exportData()">导出数据备份</button>
+          <button class="btn ghost sm" onclick="document.getElementById('impFile').click()">导入备份</button>
+        </div>
+        <input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)">
+      </div>
+      <div class="foot">销售定薪器 HR 版 · 纯离线单文件 · 数据只在你的设备<br>测算结果仅供参考，不构成薪酬/法律/用工建议</div>
+    </section>
+
+    </div></div>
+
+    <!-- 桌面实时结果条 -->
+    <footer id="livebar">
+      <div class="lb-status"><span class="pulse"></span><span>实时测算</span></div>
+      <div class="lb-cells" id="lbCells"></div>
+      <button class="lb-cta" onclick="nav('plan')">看方案 →</button>
+    </footer>
+
+    <!-- 手机底部标签栏 -->
+    <nav id="tabbar">
+      <a data-t="input" class="on" onclick="nav('input')"><i>🧮</i>定薪</a>
+      <a data-t="plan" onclick="nav('plan')"><i>📋</i>方案</a>
+      <a data-t="offer" onclick="nav('offer')"><i>📄</i>Offer</a>
+      <a data-t="mine" onclick="nav('mine')"><i>📁</i>我的</a>
+    </nav>
+  </main>
+</div>
+
+<div id="printzone"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ======================================================================
+   销售定薪器 · HR 版 —— 纯前端 / 离线 / localStorage
+   引擎基准继承自企业版定薪系统（达标月收入表 / 爬坡曲线 / 达标率区间）。
+   金额单位：元（消费级近似，非会计口径）。除法走 safeDiv，缺数据显「—」。
+====================================================================== */
+
+/* ====== 激活（纯 JS HMAC-SHA256；http 也能用）====== */
+var REQUIRE_ACTIVATION = true;   // 自己测试想直接进，临时改成 false
+var ACT_SECRET = "9c2f7e14ab5d380c6f1e9b4a2d7c5f80e3a1b6d94c8f2e70"; // 暗号：必须和「定薪器发码器」一致
+function _u8(s){return unescape(encodeURIComponent(s));}
+function _sha256(ascii){function rr(v,a){return(v>>>a)|(v<<(32-a));}var mp=Math.pow,mw=mp(2,32),i,j,result='';var words=[],L=ascii.length*8;var hash=_sha256.h=_sha256.h||[],k=_sha256.k=_sha256.k||[],pc=k.length,comp={};for(var cand=2;pc<64;cand++){if(!comp[cand]){for(i=0;i<313;i+=cand)comp[i]=cand;hash[pc]=(mp(cand,.5)*mw)|0;k[pc++]=(mp(cand,1/3)*mw)|0;}}ascii+='\x80';while(ascii.length%64-56)ascii+='\x00';for(i=0;i<ascii.length;i++){j=ascii.charCodeAt(i);if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}words[words.length]=((L/mw)|0);words[words.length]=(L);for(j=0;j<words.length;){var w=words.slice(j,j+=16),oh=hash;hash=hash.slice(0,8);for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2],a=hash[0],e=hash[4];var t1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);var t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(t1+t2)|0].concat(hash);hash[4]=(hash[4]+t1)|0;}for(i=0;i<8;i++)hash[i]=(hash[i]+oh[i])|0;}for(i=0;i<8;i++)for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;result+=((b<16)?0:'')+b.toString(16);}return result;}
+function _hb(h){var s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.substr(i,2),16));return s;}
+function _hmac(key,msg){key=_u8(key);msg=_u8(msg);if(key.length>64)key=_hb(_sha256(key));while(key.length<64)key+='\x00';var ok='',ik='';for(var i=0;i<64;i++){var c=key.charCodeAt(i);ok+=String.fromCharCode(c^0x5c);ik+=String.fromCharCode(c^0x36);}return _sha256(ok+_hb(_sha256(ik+msg)));}
+function _unhex(h){try{var b='';for(var i=0;i<h.length;i+=2)b+=String.fromCharCode(parseInt(h.substr(i,2),16));return decodeURIComponent(escape(b));}catch(e){return '';}}
+function deviceFP(){
+  var id; try{ id=localStorage.getItem('dx_devid'); }catch(e){}
+  if(!id || !/^[0-9a-f]{12}$/.test(id)){
+    var bytes=new Uint8Array(6);
+    try{ crypto.getRandomValues(bytes); }catch(e){ for(var i=0;i<6;i++) bytes[i]=Math.floor(Math.random()*256); }
+    id=''; for(var j=0;j<6;j++){ var h=bytes[j].toString(16); id+=(h.length<2?'0':'')+h; }
+    try{ localStorage.setItem('dx_devid',id); }catch(e){}
+  }
+  return id;
+}
+function verifyCode(code){
+  try{
+    code=(code||'').trim().replace(/\s+/g,'');
+    var p=code.split('-');
+    if(p[0]!=='DX'||p.length<4) return {ok:false,reason:'格式不对，请检查激活码'};
+    if(p[1]==='G'){ var id=_unhex(p[2]); return _hmac(ACT_SECRET,'G|'+id).slice(0,20)===p[3]?{ok:true}:{ok:false,reason:'无效激活码（验签失败）'}; }
+    if(p[1]==='D'){ var dfp=p[2]; if(_hmac(ACT_SECRET,'D|'+dfp).slice(0,20)!==p[3]) return {ok:false,reason:'无效激活码（验签失败）'}; if(dfp!==deviceFP()) return {ok:false,reason:'这个码绑定的是另一台设备'}; return {ok:true}; }
+    return {ok:false,reason:'格式不对'};
+  }catch(e){ return {ok:false,reason:'激活码损坏'}; }
+}
+function checkActivated(){
+  if(!REQUIRE_ACTIVATION) return true;
+  var raw; try{raw=localStorage.getItem('dx_act');}catch(e){}
+  if(!raw) return false;
+  try{ return verifyCode(JSON.parse(raw).code).ok; }catch(e){ return false; }
+}
+function doActivate(){
+  var inp=document.getElementById('actCode'),msg=document.getElementById('actMsg');
+  var r=verifyCode(inp.value);
+  if(r.ok){ try{localStorage.setItem('dx_act',JSON.stringify({code:inp.value.trim()}));}catch(e){}
+    msg.style.color='var(--green)'; msg.textContent='✓ 激活成功';
+    document.getElementById('gate').style.display='none'; bootApp(); }
+  else { msg.style.color='var(--red)'; msg.textContent='✗ '+r.reason; }
+}
+function showGate(){
+  try{document.getElementById('actDev').textContent=deviceFP();}catch(e){document.getElementById('actDev').textContent='—';}
+  document.getElementById('gate').style.display='flex';
+}
+function inWeChat(){ return /MicroMessenger/i.test(navigator.userAgent||''); }
+
+/* ---------- 基准数据（企业版原始值） ---------- */
+var BENCH={ // 达标月收入（元/月），序=[预警,初级,中级,高级]
+  tier1:{sales:[25000,30000,35000,40000],manager:[33000,40000,47000,54000],executive:[45000,54000,63000,72000]},
+  tier2:{sales:[20000,24000,28000,32000],manager:[27000,32000,37000,43000],executive:[36000,43000,50000,57000]},
+  tier34:{sales:[15000,18000,21000,24000],manager:[20000,24000,28000,32000],executive:[27000,32000,38000,43000]}
+};
+var CITY_BASE={tier1:5000,tier2:4000,tier34:3000};
+var LV_MULT={sales:[1.0,1.5,1.8,2.0],manager:[2.0,2.5,3.0,3.5],executive:[3.0,4.0,4.5,5.0]};
+var CYCLE_F={short:1.0,regular:1.15,midLong:1.3225,long:1.5606,ultraLong:2.0};
+var MINWAGE={tier1:2420,tier2:2000,tier34:1700};
+var RAMP={
+  short:[0,12,25,42,60,73,85,93,100,100,100,100],
+  regular:[0,5,12,22,35,48,60,72,82,90,96,100],
+  midLong:[0,0,5,12,20,30,42,53,63,72,80,87],
+  long:[0,0,0,5,10,18,27,36,45,54,62,70],
+  ultraLong:[0,0,0,0,5,10,16,23,30,37,44,50]
+};
+var SOCIAL=0.30;                 // 五险一金及杂费近似（占工资）
+var ATTAIN_MID=0.47;             // 行业达标率中位（企业版 globalAttainRate 0.43–0.51 取中）
+var ATTAIN_LO=0.43, ATTAIN_HI=0.51;
+var RECRUIT_FEE=5000;            // 单次招聘费默认（元）
+var TURNOVER_X=[1.5,2.0];        // 流失重置成本 ≈ 1.5–2 × 月度 OTE ×爬坡月数（简化口径）
+var LEVEL_MAP={s1:['sales',1],s2:['sales',2],s3:['sales',3],m:['manager',2],e:['executive',2]};
+var LEVEL_CN={s1:'销售·初级',s2:'销售·中级',s3:'销售·高级',m:'销售主管',e:'总监/高管'};
+var CITY_CN={tier1:'一线',tier2:'二线/新一线',tier34:'三四线'};
+var CYCLE_CN={short:'快消(1-3月)',regular:'普通(3-6月)',midLong:'中长(6-9月)',long:'大客户(9-15月)',ultraLong:'项目制(15月+)'};
+var BASIS_CN={hk:'回款',ml:'毛利',bj:'标价/GMV'};
+var GRADE_CN=['预警线','初级达标','中级达标','高级达标'];
+
+/* ---------- 工具 ---------- */
+function safeDiv(a,b){ return (b===0||b==null||a==null)?null:a/b; }
+function num(id){ var e=document.getElementById(id); if(!e)return 0; var v=parseFloat(e.value); return isFinite(v)?v:0; }
+function val(id){ var e=document.getElementById(id); return e?(e.value||'').trim():''; }
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+function r100(n){ return Math.round(n/100)*100; }
+function yuan(n){ if(n==null||!isFinite(n))return '—'; return '¥'+Math.round(n).toLocaleString('zh-CN'); }
+function wan(n){ if(n==null||!isFinite(n))return '—'; return (n/10000).toFixed(1)+'万'; }
+function pctf(n,d){ if(n==null||!isFinite(n))return '—'; return n.toFixed(d==null?1:d)+'%'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function toast(t){ var e=document.getElementById('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){e.classList.remove('show');},1800); }
+
+/* ---------- 状态 ---------- */
+var SEG={city:'tier1',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk'};
+var PLAN_PICK='std';   // cons | std | sprint
+var DB={records:[], meta:{signer:'',theme:'dark'}};
+function load(){ try{ var s=localStorage.getItem('dx_db'); if(s)DB=JSON.parse(s); }catch(e){}
+  if(!DB.records)DB.records=[]; if(!DB.meta)DB.meta={signer:'',theme:'dark'}; }
+function save(){ try{ localStorage.setItem('dx_db',JSON.stringify(DB)); }catch(e){} }
+function saveMeta(){ DB.meta.signer=val('signer'); save(); renderOffer(); }
+
+/* ---------- 读表单 ---------- */
+function readPost(){
+  return { city:SEG.city, level:SEG.level, cycle:SEG.cycle, lead:SEG.lead, commBase:SEG.commBase,
+    aov:num('aov'), deals:num('deals'), margin:num('margin'), prob:num('prob'), budget:num('budget'),
+    name:val('postName'), pick:PLAN_PICK };
+}
+
+/* ---------- 核心计算 ---------- */
+function computePost(o){
+  var R={gates:[]};
+  var lm=LEVEL_MAP[o.level]||['sales',2];
+  var arr=BENCH[o.city][lm[0]];
+  R.benchArr=arr;
+  R.ote=arr[lm[1]];                                     // 达标月收入（OTE）
+  R.minWage=MINWAGE[o.city];
+  var leadUp = (parseFloat(o.lead)===0)?1.08:1;         // 纯自拓：底薪上浮 8% 补偿
+  R.baseRef=r100(CITY_BASE[o.city]*LV_MULT[lm[0]][lm[1]]*(CYCLE_F[o.cycle]||1.15)*leadUp);
+  R.leadFactor=0.4+0.6*parseFloat(o.lead);
+
+  // 三档等价方案：同一 OTE，不同固浮比
+  function mkPlan(key,cn,base,fit){
+    base=r100(clamp(base, R.minWage, R.ote*0.85));
+    var commT=Math.max(0,R.ote-base);                   // 达标月提成额
+    var perDeal=safeDiv(commT,o.deals);
+    var rate=null, rateShow='—';
+    if(perDeal!=null&&o.aov>0){
+      if(o.commBase==='ml'&&o.margin>0){ rate=perDeal/(o.aov*o.margin/100)*100; }
+      else{ rate=perDeal/o.aov*100; }
+      rateShow=pctf(rate, rate<10?1:0);
+    }
+    // 公司年成本（现实口径：底薪全付 + 提成按行业达标率中位兑付，均含社保负担）
+    var annual=(base*12+commT*12*ATTAIN_MID)*(1+SOCIAL);
+    var annualHi=(base*12+commT*12)*(1+SOCIAL);          // 满产上限
+    return {key:key,cn:cn,base:base,commT:commT,perDeal:perDeal,rate:rate,rateShow:rateShow,
+      fixShare:base/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
+  }
+  R.plans={
+    cons:  mkPlan('cons','稳健型', R.baseRef*1.15,'成交周期长 / 想留住人 / 候选人看重安全感'),
+    std:   mkPlan('std','标准型', R.baseRef,'大多数情况的默认选择'),
+    sprint:mkPlan('sprint','冲刺型', Math.max(R.minWage*1.1,R.baseRef*0.82),'快消短周期 / 线索充足 / 想强激励')
+  };
+  var P=R.plans[o.pick]||R.plans.std; R.P=P;
+
+  // 对标位置（OTE 恒等于所选档位基准，重点看底薪竞争力）
+  R.gradeIdx=lm[1];
+  R.basePos = safeDiv(P.base-arr[0], arr[3]-arr[0]);     // 仅作刻度参考
+
+  // 员工前 12 月到手（含爬坡×线索折减；试用期 80% 但不低于最低工资）
+  R.flow=[]; R.dryMonths=0;
+  var ramp=RAMP[o.cycle]||RAMP.regular;
+  for(var m=1;m<=12;m++){
+    var b=(m<=o.prob)?Math.max(P.base*0.8,R.minWage):P.base;
+    var take=b+P.commT*(ramp[m-1]/100)*R.leadFactor;
+    R.flow.push(take);
+    if(take<R.minWage*1.2) R.dryMonths++;
+  }
+  // 公司毛利回本点：第 N 月毛利 ≥ 当月人力成本
+  R.breakeven=null;
+  if(o.aov>0&&o.deals>0&&o.margin>0){
+    for(var m2=1;m2<=12;m2++){
+      var gp=o.aov*o.deals*(ramp[m2-1]/100)*R.leadFactor*(o.margin/100);
+      var cost=R.flow[m2-1]*(1+SOCIAL);
+      if(gp>=cost){ R.breakeven=m2; break; }
+    }
+  }
+
+  // 成本账（年）
+  var commPaid=P.commT*12*ATTAIN_MID;
+  R.ledger={ base:P.base*12, comm:commPaid, social:(P.base*12+commPaid)*SOCIAL, recruit:RECRUIT_FEE };
+  R.ledger.total=R.ledger.base+R.ledger.comm+R.ledger.social+R.ledger.recruit;
+  R.attritionCost=[R.ote*TURNOVER_X[0]*(CYCLE_F[o.cycle]||1.15), R.ote*TURNOVER_X[1]*(CYCLE_F[o.cycle]||1.15)];
+
+  // ===== 红线 / 提醒 =====
+  var G=R.gates;
+  if(P.base<R.minWage) G.push(['red','⛔','<b>底薪低于最低工资</b>：'+yuan(P.base)+' < 当地参考下限 '+yuan(R.minWage)+'，直接违法风险，必须调高。']);
+  if(P.base<R.baseRef*0.7) G.push(['amber','⚠️','<b>底薪偏低难招人</b>：低于该城市该档参考底薪（约 '+yuan(R.baseRef)+'）的七成，候选人大概率拿去比价后放弃。']);
+  if(P.base>R.ote*0.7) G.push(['amber','⚠️','<b>固浮比失衡</b>：底薪占达标收入 '+pctf(P.fixShare,0)+'，超过 70% 容易养出「躺平单」，建议压回 40%–65%。']);
+  if(o.commBase==='ml'&&o.margin<30&&P.rate!=null) G.push(['amber','⚠️','<b>按毛利提成要讲清楚</b>：名义 '+P.rateShow+' 提成按 '+o.margin+'% 毛利折算，只相当于回款的 '+pctf(P.rate*o.margin/100,1)+'。入职前不说清，三个月后必闹矛盾。']);
+  var rateHK=(o.commBase==='ml'&&P.rate!=null)?P.rate*o.margin/100:P.rate;
+  if(rateHK!=null&&rateHK>25) G.push(['red','⛔','<b>单量撑不起这档收入</b>：要让人达标拿 '+yuan(R.ote)+'，提成率得开到回款的 '+pctf(rateHK,1)+'（常规 3–15%）。说明「'+o.deals+' 单 × '+yuan(o.aov)+'」的盘子太小——要么提高目标单量/客单，要么把岗位降一档。']);
+  else if(rateHK!=null&&rateHK>15) G.push(['amber','⚠️','<b>提成率偏高</b>：反推出回款口径 '+pctf(rateHK,1)+'（常规 3–15%）。能给就是竞争力，给不了就调目标单量或降档，别发一个兑现不了的 offer。']);
+  if(parseFloat(o.lead)===0&&(o.cycle==='long'||o.cycle==='ultraLong')) G.push(['amber','⚠️','<b>纯自拓 + 长周期</b>：前 '+((RAMP[o.cycle]||[]).findIndex(function(x){return x>0;})+1)+' 个月几乎零产出，要么给线索，要么给更高底薪，否则招来也留不住。']);
+  if(o.budget>0){
+    var mCost=R.ledger.total/12;
+    if(mCost>o.budget) G.push(['red','⛔','<b>超预算</b>：现实口径月成本约 '+yuan(mCost)+'（含社保、按行业达标率折算），超过你填的上限 '+yuan(o.budget)+'。']);
+    else G.push(['green','✓','<b>预算内</b>：现实口径月成本约 '+yuan(mCost)+'，在上限 '+yuan(o.budget)+' 之内。']);
+  }
+  if(R.dryMonths>=4) G.push(['amber','⚠️','<b>前 '+R.dryMonths+' 个月到手很薄</b>：新人现金流长期贴地容易闪辞，考虑前 3–6 个月给保护期补贴（爬坡保底）。']);
+  if(R.breakeven==null&&o.aov>0&&o.deals>0) G.push(['amber','⚠️','<b>12 个月内毛利难覆盖人力成本</b>：按你填的单量×客单×毛利，这个岗位首年在账面上是投入期，向老板汇报时要提前说明。']);
+  else if(R.breakeven!=null&&R.breakeven<=6) G.push(['green','✓','<b>回本较快</b>：预计第 '+R.breakeven+' 个月毛利即可覆盖当月人力成本。']);
+  G.push(['green','📌','<b>法定项自查</b>：试用期工资 ≥ 转正 80% 且 ≥ 当地最低工资；约定竞业限制需按月付补偿；提成规则、发放时点建议写进合同附件。（仅提示，具体咨询律师）']);
+  R.redCount=G.filter(function(g){return g[0]==='red';}).length;
+  return R;
+}
+
+/* ---------- 渲染：分段按钮 ---------- */
+function bindSegs(){
+  document.querySelectorAll('[data-seg]').forEach(function(box){
+    var key=box.getAttribute('data-seg');
+    box.addEventListener('click',function(e){
+      var s=e.target.closest('.seg'); if(!s)return;
+      SEG[key]=s.getAttribute('data-v'); syncSegs(); recalc();
+    });
+  });
+}
+function syncSegs(){
+  document.querySelectorAll('[data-seg]').forEach(function(box){
+    var key=box.getAttribute('data-seg');
+    box.querySelectorAll('.seg').forEach(function(s){ s.setAttribute('aria-pressed', s.getAttribute('data-v')===SEG[key]); });
+  });
+  var mf=document.getElementById('marginField');
+  if(mf) mf.style.opacity=(SEG.commBase==='ml')?1:.55;
+}
+
+/* ---------- 渲染：迷你结论 + 实时条 ---------- */
+function recalc(){
+  var o=readPost(), R=computePost(o);
+  var P=R.P;
+  document.getElementById('miniSum').innerHTML=
+    '<div class="verdict-card">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
+    '<span class="badge b-gold"><span class="dot"></span>'+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+'</span>'+
+    (R.redCount?'<span class="badge b-r"><span class="dot"></span>'+R.redCount+' 条红线</span>':'<span class="badge b-g"><span class="dot"></span>暂无硬红线</span>')+
+    '</div>'+
+    '<div class="kpis k3">'+
+    '<div class="kpi"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
+    '<div class="kpi"><div class="k">建议提成率<small>（按'+esc(BASIS_CN[o.commBase])+'）</small></div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="kpi"><div class="k">达标月收入</div><div class="v">'+yuan(R.ote)+'</div></div>'+
+    '</div></div>';
+  var lb=document.getElementById('lbCells');
+  if(lb) lb.innerHTML=
+    '<div class="lb-cell"><div class="k">建议底薪</div><div class="v">'+yuan(P.base)+'</div></div>'+
+    '<div class="lb-cell"><div class="k">提成率·按'+esc(BASIS_CN[o.commBase])+'</div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="lb-cell"><div class="k">达标月收入</div><div class="v green">'+yuan(R.ote)+'</div></div>'+
+    '<div class="lb-cell"><div class="k">首年公司成本</div><div class="v">'+wan(R.ledger.total)+'</div></div>'+
+    '<div class="lb-cell"><div class="k">红线</div><div class="v '+(R.redCount?'red':'green')+'">'+(R.redCount||'0')+' 条</div></div>';
+  if(document.getElementById('pg-plan').classList.contains('on')) renderPlan();
+  if(document.getElementById('pg-offer').classList.contains('on')) renderOffer();
+}
+
+/* ---------- 渲染：方案页 ---------- */
+function renderPlan(){
+  var o=readPost(), R=computePost(o), P=R.P;
+  var h='';
+  // A. 结论卡
+  h+='<div class="card"><div class="sec-h"><span class="n">A</span>定薪结论 · '+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+' · '+esc(CYCLE_CN[o.cycle])+'</div>'+
+    '<div class="kpis">'+
+    '<div class="kpi"><div class="k">建议底薪（'+esc(P.cn)+'）</div><div class="v">'+yuan(P.base)+'</div></div>'+
+    '<div class="kpi"><div class="k">达标月提成额</div><div class="v">'+yuan(P.commT)+'</div></div>'+
+    '<div class="kpi"><div class="k">建议提成率 · 按'+esc(BASIS_CN[o.commBase])+'</div><div class="v">'+P.rateShow+'</div></div>'+
+    '<div class="kpi"><div class="k">达标月收入 OTE</div><div class="v">'+yuan(R.ote)+'</div></div>'+
+    '<div class="kpi"><div class="k">固浮比（底薪占比）</div><div class="v">'+pctf(P.fixShare,0)+'</div></div>'+
+    '<div class="kpi"><div class="k">单笔达标提成</div><div class="v">'+yuan(P.perDeal)+'</div></div>'+
+    '</div>'+
+    '<div class="note" style="margin-top:12px"><b>口径。</b>达标月收入取自企业版「城市×档位达标收入表」；提成率由（达标收入−底薪）÷ 月目标单量 ÷ 客单价反推，'+(o.commBase==='ml'?'已按 '+o.margin+'% 毛利折算。':'按'+BASIS_CN[o.commBase]+'计。')+'行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现。仅供参考。</div></div>';
+
+  // B. 三档方案
+  h+='<div class="card"><div class="sec-h"><span class="n">B</span>三档等价方案 · 同一达标收入，不同风险分配 · 点选</div><div class="menu">';
+  ['cons','std','sprint'].forEach(function(k){
+    var p=R.plans[k];
+    h+='<div class="mc'+(o.pick===k?' on':'')+'" onclick="pickPlan(\''+k+'\')"><span class="pick">✓ 已选</span>'+
+      '<div class="tier">'+p.cn+'</div>'+
+      '<div class="big">'+yuan(p.base)+'<span style="font-size:12px;font-weight:400;color:var(--mute)"> 底薪</span></div>'+
+      '<div class="sub">提成 '+p.rateShow+' · 达标拿 '+yuan(R.ote)+'</div>'+
+      '<div class="meta">固浮比 '+pctf(p.fixShare,0)+'<br>公司年成本 '+wan(p.annual)+'（满产上限 '+wan(p.annualHi)+'）<br>适用：'+p.fit+'</div></div>';
+  });
+  h+='</div></div>';
+
+  // C. 红线
+  h+='<div class="card"><div class="sec-h"><span class="n">C</span>合规与风险红线</div>';
+  R.gates.forEach(function(g){ h+='<div class="gate '+g[0]+'"><i>'+g[1]+'</i><span>'+g[2]+'</span></div>'; });
+  h+='</div>';
+
+  // D. 新人前 12 月到手（现金流）
+  var mx=Math.max.apply(null,R.flow.concat([1]));
+  h+='<div class="card"><div class="sec-h"><span class="n">D</span>新人前 12 个月到手（爬坡 × 线索折减）</div><div class="ramp">';
+  R.flow.forEach(function(v){ h+='<div class="bar'+(v<R.minWage*1.2?' low':'')+'" style="height:'+Math.max(4,v/mx*100)+'%" title="'+yuan(v)+'"></div>'; });
+  h+='</div><div class="ramp-x"><span>第1月</span><span>第6月</span><span>第12月</span></div>'+
+    '<div class="dim" style="margin-top:8px">第 1 月 '+yuan(R.flow[0])+' → 第 6 月 '+yuan(R.flow[5])+' → 第 12 月 '+yuan(R.flow[11])+'。红色 = 到手贴近最低工资，'+(R.breakeven?'预计第 <b style="color:var(--ink)">'+R.breakeven+'</b> 个月毛利覆盖当月人力成本。':'12 个月内毛利尚难覆盖人力成本。')+'</div></div>';
+
+  // E. 成本账
+  var L=R.ledger;
+  h+='<div class="card"><div class="sec-h"><span class="n">E</span>成本账 · 拿去跟老板汇报</div><table class="ledger">'+
+    '<tr><td>底薪 × 12</td><td>'+yuan(L.base)+'</td></tr>'+
+    '<tr><td>提成（按行业达标率 '+Math.round(ATTAIN_MID*100)+'% 折现）</td><td>'+yuan(L.comm)+'</td></tr>'+
+    '<tr><td>社保公积金等（约 '+Math.round(SOCIAL*100)+'%）</td><td>'+yuan(L.social)+'</td></tr>'+
+    '<tr><td>招聘费（可在设置改）</td><td>'+yuan(L.recruit)+'</td></tr>'+
+    '<tr class="sum"><td>首年总成本</td><td>'+yuan(L.total)+'</td></tr></table>'+
+    '<div class="dim" style="margin-top:9px">⚑ 若 6 个月内流失重招：一次损失约 <b style="color:var(--red)">'+wan(R.attritionCost[0])+' – '+wan(R.attritionCost[1])+'</b>（重置成本≈1.5–2 × 月度达标收入 × 周期系数）。定薪别只压成本，流失才是最贵的。</div></div>';
+
+  // F. 对标
+  var arr=R.benchArr;
+  var pos=clamp((R.ote-arr[0])/(arr[3]-arr[0]),0,1)*100;
+  h+='<div class="card"><div class="sec-h"><span class="n">F</span>本地对标 · '+esc(CITY_CN[o.city])+'</div>'+
+    '<div class="meter"><span class="mk" style="left:'+pos+'%"></span><span class="mklab" style="left:'+pos+'%">'+yuan(R.ote)+'</span></div>'+
+    '<div class="meter-cap"><span>预警 '+wan(arr[0])+'</span><span>初级 '+wan(arr[1])+'</span><span>中级 '+wan(arr[2])+'</span><span>高级 '+wan(arr[3])+'</span></div>'+
+    '<div class="dim" style="margin-top:10px">这份 offer 的达标收入落在「'+GRADE_CN[R.gradeIdx]+'」档。低于预警线的 offer 基本招不到能打的人；高于高级线要问自己是否真需要这个段位。</div></div>';
+
+  h+='<div class="btnrow"><button class="btn" onclick="savePost()">存这个方案</button>'+
+     '<button class="btn ghost" onclick="nav(\'offer\')">生成 Offer 说明书</button></div>'+
+     '<div class="foot">测算结果仅供参考，不构成薪酬/法律/用工建议</div>';
+  document.getElementById('planBox').innerHTML=h;
+}
+function pickPlan(k){ PLAN_PICK=k; renderPlan(); recalc(); }
+
+/* ---------- Offer 说明书 ---------- */
+function offerDocHTML(o,R,forPrint){
+  var P=R.P;
+  var post=val('ofPost')||o.name||(LEVEL_CN[o.level]);
+  var scen=[
+    ['保守（达标 50%）', P.base+P.commT*0.5],
+    ['标准（达标 100%）', R.ote],
+    ['超额（达标 120%）', P.base+P.commT*1.2]
+  ];
+  var probBase=Math.max(P.base*0.8,R.minWage);
+  return '<div class="doc">'+
+    '<h3>薪 酬 说 明 书</h3><div class="doc-sub">SALARY STRUCTURE BRIEF · 仅供参考</div>'+
+    '<table>'+
+    (val('ofCompany')?'<tr><th>公司</th><td>'+esc(val('ofCompany'))+'</td></tr>':'')+
+    '<tr><th>岗位</th><td>'+esc(post)+'（'+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+'）</td></tr>'+
+    (val('ofWho')?'<tr><th>致</th><td>'+esc(val('ofWho'))+'</td></tr>':'')+
+    '<tr><th>底薪</th><td class="sc">'+yuan(P.base)+' / 月（无责）'+(o.prob>0?'；试用期 '+o.prob+' 个月，试用期工资 '+yuan(probBase)+'（不低于转正 80% 且不低于当地最低工资）':'')+'</td></tr>'+
+    '<tr><th>提成</th><td class="sc">按'+esc(BASIS_CN[o.commBase])+'的 '+P.rateShow+
+      (o.commBase==='ml'?'（即毛利提成；折算回款口径约 '+pctf((P.rate||0)*o.margin/100,1)+'）':'')+
+      '；月目标 '+o.deals+' 单 × 客单 '+yuan(o.aov)+'</td></tr>'+
+    '<tr><th>收入测算</th><td class="sc">'+scen.map(function(s){return s[0]+'：'+yuan(s[1])+'/月';}).join('<br>')+'</td></tr>'+
+    '<tr><th>发放说明</th><td>底薪按月发放；提成核算与发放时点、离职结算规则以劳动合同及附件为准</td></tr>'+
+    '</table>'+
+    '<div class="doc-note">本说明书由「销售定薪器」生成，收入测算基于行业参考基准与既定假设，<b>仅供参考</b>，不构成劳动合同、要约或任何收入承诺；双方权利义务以正式签署的书面合同为准。竞业限制、保密条款等请咨询执业律师。</div>'+
+    '<div class="doc-sign"><span>出具：'+esc(DB.meta.signer||'____________')+'</span><span>日期：'+esc(val('ofDate')||'____________')+'</span></div>'+
+    '</div>';
+}
+function renderOffer(){
+  var o=readPost(), R=computePost(o);
+  document.getElementById('offerDoc').innerHTML='<div style="margin:14px 0">'+offerDocHTML(o,R)+'</div>';
+}
+function printOffer(){
+  var o=readPost(), R=computePost(o);
+  document.getElementById('printzone').innerHTML=offerDocHTML(o,R,true);
+  window.print();
+}
+
+/* ---------- 存档 / 对比 ---------- */
+function savePost(){
+  var o=readPost(), R=computePost(o);
+  var name=o.name||(CITY_CN[o.city]+'-'+LEVEL_CN[o.level]);
+  DB.records.unshift({ id:Date.now(), name:name, o:o,
+    base:R.P.base, rateShow:R.P.rateShow, ote:R.ote, annual:R.ledger.total, red:R.redCount, plan:R.P.cn });
+  DB.records=DB.records.slice(0,50); save();
+  toast('已保存「'+name+'」'); renderMine();
+}
+function renderMine(){
+  var box=document.getElementById('mineList');
+  if(!DB.records.length){ box.innerHTML='<div class="empty">还没有存过方案。<br>在「定薪」填好后，到「方案」页点「存这个方案」。</div>'; document.getElementById('cmpBox').innerHTML=''; return; }
+  box.innerHTML=DB.records.map(function(r){
+    return '<div class="rec"><input type="checkbox" data-cmp="'+r.id+'" onchange="renderCmp()">'+
+      '<div class="info"><b>'+esc(r.name)+'</b><span>'+esc(r.plan)+' · 底薪 '+yuan(r.base)+' · 提成 '+esc(r.rateShow)+(r.red?' · <span style="color:var(--red)">'+r.red+'条红线</span>':'')+'</span></div>'+
+      '<div class="score">'+wan(r.annual)+'<small>首年成本</small></div>'+
+      '<button class="tbtn" onclick="loadRec('+r.id+')">载入</button>'+
+      '<button class="tbtn" onclick="delRec('+r.id+')">删</button></div>';
+  }).join('');
+  renderCmp();
+}
+function renderCmp(){
+  var ids=[].map.call(document.querySelectorAll('[data-cmp]:checked'),function(c){return +c.getAttribute('data-cmp');}).slice(0,3);
+  var box=document.getElementById('cmpBox');
+  if(ids.length<2){ box.innerHTML=''; return; }
+  var rs=DB.records.filter(function(r){return ids.indexOf(r.id)>=0;});
+  var rows=[
+    ['底薪', rs.map(function(r){return r.base;}), function(v){return yuan(v);}, 'max'],
+    ['提成率', rs.map(function(r){return r.rateShow;}), function(v){return esc(v);}, null],
+    ['达标月收入', rs.map(function(r){return r.ote;}), function(v){return yuan(v);}, 'max'],
+    ['首年公司成本', rs.map(function(r){return r.annual;}), function(v){return wan(v);}, 'min'],
+    ['红线数', rs.map(function(r){return r.red;}), function(v){return v+' 条';}, 'min']
+  ];
+  var h='<div class="card"><div class="sec-h">并排对比</div><div class="cmp"><table><tr><th></th>';
+  rs.forEach(function(r){ h+='<th>'+esc(r.name)+'</th>'; }); h+='</tr>';
+  rows.forEach(function(row){
+    h+='<tr><td>'+row[0]+'</td>';
+    var vals=row[1], best=null;
+    if(row[3]==='max')best=Math.max.apply(null,vals);
+    if(row[3]==='min')best=Math.min.apply(null,vals);
+    vals.forEach(function(v){ h+='<td class="'+(best!=null&&v===best?'win':'')+'">'+row[2](v)+'</td>'; });
+    h+='</tr>';
+  });
+  h+='</table></div><div class="dim" style="margin-top:8px">绿色 = 该项占优。成本低≠好方案，先看红线数。</div></div>';
+  box.innerHTML=h;
+}
+function loadRec(id){
+  var r=DB.records.filter(function(x){return x.id===id;})[0]; if(!r)return;
+  var o=r.o;
+  SEG.city=o.city; SEG.level=o.level; SEG.cycle=o.cycle; SEG.lead=o.lead; SEG.commBase=o.commBase;
+  PLAN_PICK=o.pick||'std';
+  document.getElementById('aov').value=o.aov; document.getElementById('deals').value=o.deals;
+  document.getElementById('margin').value=o.margin; document.getElementById('prob').value=o.prob;
+  document.getElementById('budget').value=o.budget||''; document.getElementById('postName').value=o.name||'';
+  syncSegs(); recalc(); nav('plan'); toast('已载入「'+r.name+'」');
+}
+function delRec(id){ if(!confirm('删除这条方案？'))return;
+  DB.records=DB.records.filter(function(x){return x.id!==id;}); save(); renderMine(); }
+
+/* ---------- 备份 ---------- */
+function exportData(){
+  var blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='dingxinqi-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+  toast('已导出备份文件');
+}
+function importData(inp){
+  var f=inp.files&&inp.files[0]; if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){ try{ var d=JSON.parse(rd.result);
+      if(!d||!Array.isArray(d.records)) throw 0;
+      DB=d; if(!DB.meta)DB.meta={signer:'',theme:'dark'}; save(); renderMine();
+      document.getElementById('signer').value=DB.meta.signer||''; toast('导入成功');
+    }catch(e){ toast('文件格式不对'); } inp.value=''; };
+  rd.readAsText(f);
+}
+
+/* ---------- 导航 / 主题 ---------- */
+function nav(t){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.id==='pg-'+t); });
+  document.querySelectorAll('#tabbar a,#rail .nav a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-t')===t); });
+  if(t==='plan')renderPlan();
+  if(t==='offer')renderOffer();
+  if(t==='mine')renderMine();
+  var sc=document.querySelector('.scroll'); if(sc)sc.scrollTop=0;
+}
+function toggleTheme(){
+  var t=(DB.meta.theme==='dark')?'light':'dark';
+  DB.meta.theme=t; save(); applyTheme();
+}
+function applyTheme(){ document.documentElement.setAttribute('data-theme', DB.meta.theme==='light'?'light':'dark'); }
+
+/* ---------- 示例数据 ---------- */
+function fillDemo(){
+  SEG={city:'tier2',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk'};
+  PLAN_PICK='std';
+  document.getElementById('aov').value=30000; document.getElementById('deals').value=5;
+  document.getElementById('margin').value=30; document.getElementById('prob').value=3;
+  document.getElementById('budget').value=''; document.getElementById('postName').value='示例-二线中级销售';
+  syncSegs(); recalc(); toast('已填入示例数据'); nav('plan');
+}
+
+/* ---------- 启动 ---------- */
+function bootApp(){
+  load(); applyTheme();
+  document.getElementById('signer').value=DB.meta.signer||'';
+  bindSegs(); syncSegs(); recalc(); renderMine();
+}
+(function init(){
+  if(inWeChat()){ document.getElementById('wxmask').style.display='flex'; return; }
+  load(); applyTheme();
+  if(checkActivated()){ bootApp(); } else { showGate(); }
+})();
+</script>
+</body>
+</html>
