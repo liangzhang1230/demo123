@@ -104,7 +104,12 @@
       <div class="brand"><div class="logo">销</div><span>销冠操盘系统 <small>一体版 v1.0</small></span></div>
       ${SK.modules.map(m => {
         const alerts = m.alerts ? m.alerts() : 0;
-        return `<button class="nav-tab ${route.board === m.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">${m.icon} ${m.title}${alerts > 0 ? '<span class="dotwarn"></span>' : ''}</button>`;
+        const on = route.board === m.id;
+        const hasDrop = m.id === 'dingjia' && m.subnav && m.subnav.length;   // 仅定价板块带下拉快速跳转
+        const tab = `<button class="nav-tab ${on ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">${m.icon} ${m.title}${hasDrop ? ' <span class="nav-caret">▾</span>' : ''}${alerts > 0 ? '<span class="dotwarn"></span>' : ''}</button>`;
+        if (!hasDrop) return tab;
+        const menu = m.subnav.map(s => `<button class="nav-menu-item ${on && route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+        return `<div class="nav-drop">${tab}<div class="nav-menu" role="menu">${menu}</div></div>`;
       }).join('')}
       <div class="sp"></div>
       <button class="icon-btn" data-act="ui.palette" title="命令面板 ⌘K">⌘K</button>

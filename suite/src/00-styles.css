@@ -58,6 +58,18 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .nav-tab.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:650}
 .nav-tab .dotwarn{width:6px;height:6px;border-radius:50%;background:var(--red-hero);display:inline-block}
 #topnav .sp{flex:1}
+/* 定价板块：顶部导航项下拉快速跳转（悬停 / 键盘聚焦展开） */
+.nav-drop{position:relative;display:inline-flex}
+.nav-caret{font-size:9px;opacity:.65;margin-left:1px}
+.nav-drop::after{content:"";position:absolute;top:100%;left:0;right:0;height:8px}   /* 悬停桥，跨过间隙不丢焦 */
+.nav-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:172px;z-index:70;
+  display:none;flex-direction:column;gap:2px;padding:6px;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.30)}
+.nav-drop:hover>.nav-menu,.nav-drop:focus-within>.nav-menu{display:flex}
+.nav-menu-item{text-align:left;padding:7px 11px;border-radius:8px;font-size:12.8px;font-weight:550;color:var(--ink2);white-space:nowrap}
+.nav-menu-item:hover{background:var(--panel);color:var(--ink)}
+.nav-menu-item.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:650}
 .icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-size:14px}
 .icon-btn:hover{background:var(--panel);color:var(--ink)}
 
