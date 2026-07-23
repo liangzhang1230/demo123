@@ -102,7 +102,77 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
 .g23{grid-template-columns:2fr 1fr}.g32{grid-template-columns:1fr 2fr}
 .span2{grid-column:span 2}
+.g-hero{grid-template-columns:1.5fr 1fr;align-items:start}
 @media (max-width:980px){.g2,.g3,.g4,.g23,.g32{grid-template-columns:1fr}.span2{grid-column:span 1}}
+@media (max-width:760px){.g-hero{grid-template-columns:1fr}}
+/* ═══════════ 手机 / 平板移动壳（桌面 ≥1024 完全不受影响） ═══════════
+   世界顶级做法：主导航下沉为底部标签栏(4 常驻 + 更多)，横排指标重排为 KPI 卡片网格，
+   子导航吸顶胶囊，内容单列。渐进披露：一眼见核心，细节点开。 */
+#bottomnav, #moresheet{display:none}                    /* 桌面隐藏，仅移动壳启用 */
+
+@media (max-width:1023px){
+  /* —— 顶部：仅留品牌 + 右侧工具（板块切换交给底部栏） —— */
+  #topnav{padding:0 12px}
+  #topnav .nav-tab, #topnav .nav-drop{display:none}     /* 顶部板块 tab 让位给底部栏 */
+  #topnav .brand small{display:none}
+
+  /* —— 指标条 → KPI 卡片网格（重排不缩放，滚动即见全部） —— */
+  #livebar{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    gap:8px;padding:10px 12px;overflow:visible;min-height:0;border-bottom:none;background:transparent}
+  .lv-cell{border:1px solid var(--line);border-right:1px solid var(--line);border-radius:11px;
+    background:var(--card);padding:9px 11px;box-shadow:var(--shadow);min-width:0}
+  .lv-cell .k{white-space:normal}
+  .lv-cell .v{font-size:16px;white-space:normal}
+
+  /* —— 子导航吸顶到品牌栏之下（指标条已不吸顶） —— */
+  #subnav{top:48px;z-index:54;padding:9px 12px;max-width:none;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #subnav::-webkit-scrollbar{display:none}
+  #subnav::before{background:color-mix(in srgb,var(--card) 92%,transparent)}
+  .sub-tab{flex:0 0 auto}
+
+  /* —— 定价下拉在移动端不用（底部栏 + 吸顶子标签已覆盖切换） —— */
+  .nav-caret, .nav-drop::after{display:none}
+  .nav-menu{display:none!important}
+
+  /* —— 内容：单列 + 让出底部栏高度 —— */
+  #view{padding:12px 14px calc(66px + env(safe-area-inset-bottom))}
+  .footer-note{padding-bottom:calc(20px + 66px + env(safe-area-inset-bottom))}
+  .g-hero{grid-template-columns:1fr}
+
+  /* —— 底部标签栏（拇指区，5 槽：4 板块 + 更多） —— */
+  #bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:80;
+    background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:saturate(160%) blur(12px);
+    border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 20px -12px rgba(0,0,0,.25)}
+  .bn-tab{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:5px 2px;border-radius:12px;color:var(--ink3);font-weight:600;min-width:0}
+  .bn-tab .bn-ic{position:relative;font-size:19px;line-height:1}
+  .bn-tab .bn-lb{font-size:10.5px;letter-spacing:.01em;white-space:nowrap}
+  .bn-tab.on{color:var(--accent-ink);background:var(--accent-soft)}
+  .bn-dot{position:absolute;top:-2px;right:-6px;width:7px;height:7px;border-radius:50%;
+    background:var(--red-hero);border:1.5px solid var(--card)}
+
+  /* —— 「更多」抽屉（底部半屏卡片，遮罩点击关闭） —— */
+  #moresheet.open{display:block;position:fixed;inset:0;z-index:90}
+  #moresheet .ms-scrim{position:absolute;inset:0;background:rgba(15,18,30,.42);
+    animation:ms-fade .18s ease}
+  #moresheet .ms-panel{position:absolute;left:0;right:0;bottom:0;
+    background:var(--card);border-radius:18px 18px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -14px 40px -12px rgba(0,0,0,.4);animation:ms-up .22s cubic-bezier(.22,1,.36,1)}
+  .ms-grab{width:38px;height:4px;border-radius:99px;background:var(--line2);margin:6px auto 12px}
+  .ms-head{font-size:13px;font-weight:700;color:var(--ink2);margin:0 2px 12px}
+  .ms-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .ms-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:14px 6px;border:1px solid var(--line);border-radius:14px;background:var(--panel);
+    color:var(--ink2);font-weight:600}
+  .ms-item .ms-ic{font-size:24px;line-height:1}
+  .ms-item .ms-lb{font-size:11.5px}
+  .ms-item.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+  .ms-item .bn-dot{top:8px;right:calc(50% - 22px)}
+  @keyframes ms-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes ms-fade{from{opacity:0}to{opacity:1}}
+}
+@media (max-width:560px){ .ms-grid{grid-template-columns:repeat(3,1fr)} }
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;min-width:0}
 .card.flat{box-shadow:none}
 .card>h3{font-size:13.5px;display:flex;align-items:center;gap:7px;margin-bottom:9px}

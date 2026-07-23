@@ -110,7 +110,77 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
 .g23{grid-template-columns:2fr 1fr}.g32{grid-template-columns:1fr 2fr}
 .span2{grid-column:span 2}
+.g-hero{grid-template-columns:1.5fr 1fr;align-items:start}
 @media (max-width:980px){.g2,.g3,.g4,.g23,.g32{grid-template-columns:1fr}.span2{grid-column:span 1}}
+@media (max-width:760px){.g-hero{grid-template-columns:1fr}}
+/* ═══════════ 手机 / 平板移动壳（桌面 ≥1024 完全不受影响） ═══════════
+   世界顶级做法：主导航下沉为底部标签栏(4 常驻 + 更多)，横排指标重排为 KPI 卡片网格，
+   子导航吸顶胶囊，内容单列。渐进披露：一眼见核心，细节点开。 */
+#bottomnav, #moresheet{display:none}                    /* 桌面隐藏，仅移动壳启用 */
+
+@media (max-width:1023px){
+  /* —— 顶部：仅留品牌 + 右侧工具（板块切换交给底部栏） —— */
+  #topnav{padding:0 12px}
+  #topnav .nav-tab, #topnav .nav-drop{display:none}     /* 顶部板块 tab 让位给底部栏 */
+  #topnav .brand small{display:none}
+
+  /* —— 指标条 → KPI 卡片网格（重排不缩放，滚动即见全部） —— */
+  #livebar{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    gap:8px;padding:10px 12px;overflow:visible;min-height:0;border-bottom:none;background:transparent}
+  .lv-cell{border:1px solid var(--line);border-right:1px solid var(--line);border-radius:11px;
+    background:var(--card);padding:9px 11px;box-shadow:var(--shadow);min-width:0}
+  .lv-cell .k{white-space:normal}
+  .lv-cell .v{font-size:16px;white-space:normal}
+
+  /* —— 子导航吸顶到品牌栏之下（指标条已不吸顶） —— */
+  #subnav{top:48px;z-index:54;padding:9px 12px;max-width:none;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #subnav::-webkit-scrollbar{display:none}
+  #subnav::before{background:color-mix(in srgb,var(--card) 92%,transparent)}
+  .sub-tab{flex:0 0 auto}
+
+  /* —— 定价下拉在移动端不用（底部栏 + 吸顶子标签已覆盖切换） —— */
+  .nav-caret, .nav-drop::after{display:none}
+  .nav-menu{display:none!important}
+
+  /* —— 内容：单列 + 让出底部栏高度 —— */
+  #view{padding:12px 14px calc(66px + env(safe-area-inset-bottom))}
+  .footer-note{padding-bottom:calc(20px + 66px + env(safe-area-inset-bottom))}
+  .g-hero{grid-template-columns:1fr}
+
+  /* —— 底部标签栏（拇指区，5 槽：4 板块 + 更多） —— */
+  #bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:80;
+    background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:saturate(160%) blur(12px);
+    border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 20px -12px rgba(0,0,0,.25)}
+  .bn-tab{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:5px 2px;border-radius:12px;color:var(--ink3);font-weight:600;min-width:0}
+  .bn-tab .bn-ic{position:relative;font-size:19px;line-height:1}
+  .bn-tab .bn-lb{font-size:10.5px;letter-spacing:.01em;white-space:nowrap}
+  .bn-tab.on{color:var(--accent-ink);background:var(--accent-soft)}
+  .bn-dot{position:absolute;top:-2px;right:-6px;width:7px;height:7px;border-radius:50%;
+    background:var(--red-hero);border:1.5px solid var(--card)}
+
+  /* —— 「更多」抽屉（底部半屏卡片，遮罩点击关闭） —— */
+  #moresheet.open{display:block;position:fixed;inset:0;z-index:90}
+  #moresheet .ms-scrim{position:absolute;inset:0;background:rgba(15,18,30,.42);
+    animation:ms-fade .18s ease}
+  #moresheet .ms-panel{position:absolute;left:0;right:0;bottom:0;
+    background:var(--card);border-radius:18px 18px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -14px 40px -12px rgba(0,0,0,.4);animation:ms-up .22s cubic-bezier(.22,1,.36,1)}
+  .ms-grab{width:38px;height:4px;border-radius:99px;background:var(--line2);margin:6px auto 12px}
+  .ms-head{font-size:13px;font-weight:700;color:var(--ink2);margin:0 2px 12px}
+  .ms-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .ms-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:14px 6px;border:1px solid var(--line);border-radius:14px;background:var(--panel);
+    color:var(--ink2);font-weight:600}
+  .ms-item .ms-ic{font-size:24px;line-height:1}
+  .ms-item .ms-lb{font-size:11.5px}
+  .ms-item.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+  .ms-item .bn-dot{top:8px;right:calc(50% - 22px)}
+  @keyframes ms-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes ms-fade{from{opacity:0}to{opacity:1}}
+}
+@media (max-width:560px){ .ms-grid{grid-template-columns:repeat(3,1fr)} }
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;min-width:0}
 .card.flat{box-shadow:none}
 .card>h3{font-size:13.5px;display:flex;align-items:center;gap:7px;margin-bottom:9px}
@@ -260,6 +330,8 @@ svg .axis{stroke:var(--line2)}
 <main id="view"></main>
 <div class="footer-note" id="backup-note"></div>
 <div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 单文件 · 无后端 · 无网络 · 数据只在你电脑</div>
+<nav id="bottomnav"></nav>
+<div id="moresheet"></div>
 <div id="modal-root"></div>
 <div id="palette"></div>
 <div id="toast"></div>
@@ -716,7 +788,7 @@ const SK = (() => {
     const m = location.hash.replace(/^#\/?/, '').split('/');
     route.board = m[0] || 'dash'; route.sub = m[1] || null;
   }
-  function nav(board, sub) { location.hash = '#/' + board + (sub ? '/' + sub : ''); }
+  function nav(board, sub) { moreOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
 
   /* ---------- 数据绑定 ---------- */
   function setPath(obj, path, val) {
@@ -783,13 +855,46 @@ const SK = (() => {
     if (!route.sub || !m.subnav.some(s => s.id === route.sub)) route.sub = m.subnav[0].id;
     el.innerHTML = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
   }
+  /* ---------- 手机 / 平板：底部标签栏 + 「更多」抽屉 ---------- */
+  const BN_PRIMARY = 4;                                   // 底部常驻前 4 个板块，其余进「更多」
+  let moreOpen = false;
+  function renderBottomnav() {
+    const el = document.getElementById('bottomnav'); if (!el) return;
+    const prim = SK.modules.slice(0, BN_PRIMARY), rest = SK.modules.slice(BN_PRIMARY);
+    const btn = m => {
+      const a = m.alerts ? m.alerts() : 0;
+      return `<button class="bn-tab ${route.board === m.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">
+        <span class="bn-ic">${m.icon}${a > 0 ? '<i class="bn-dot"></i>' : ''}</span><span class="bn-lb">${m.title}</span></button>`;
+    };
+    const restA = rest.reduce((s, m) => s + (m.alerts ? m.alerts() : 0), 0);
+    const curRest = rest.some(m => m.id === route.board);
+    el.innerHTML = prim.map(btn).join('') +
+      `<button class="bn-tab ${moreOpen || curRest ? 'on' : ''}" data-act="ui.more">
+        <span class="bn-ic">☰${restA > 0 ? '<i class="bn-dot"></i>' : ''}</span><span class="bn-lb">更多</span></button>`;
+  }
+  function renderMoresheet() {
+    const el = document.getElementById('moresheet'); if (!el) return;
+    el.className = moreOpen ? 'open' : '';
+    if (!moreOpen) { el.innerHTML = ''; return; }
+    const rest = SK.modules.slice(BN_PRIMARY);
+    el.innerHTML = `<div class="ms-scrim" data-act="ui.more-close"></div>
+      <div class="ms-panel" role="dialog" aria-label="更多板块">
+        <div class="ms-grab"></div>
+        <div class="ms-head">更多板块</div>
+        <div class="ms-grid">${rest.map(m => {
+          const a = m.alerts ? m.alerts() : 0;
+          return `<button class="ms-item ${route.board === m.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">
+            <span class="ms-ic">${m.icon}</span><span class="ms-lb">${m.title}</span>${a > 0 ? '<i class="bn-dot"></i>' : ''}</button>`;
+        }).join('')}</div>
+      </div>`;
+  }
   let renderScheduled = false;
   function render() {
     SK.xReset();
     parseHash();
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
-    renderTopnav(); renderSubnav(); renderLivebar();
+    renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
     const view = document.getElementById('view');
     try { view.innerHTML = m.render(route.sub); }
     catch (e) { console.error(e); view.innerHTML = h.banner('渲染出错：' + esc(e.message), 'r'); }
@@ -847,6 +952,8 @@ const SK = (() => {
   /* ---------- 核心动作 ---------- */
   Object.assign(SK.actions, {
     'ui.nav': d => nav(d.board, d.sub || null),
+    'ui.more': () => { moreOpen = !moreOpen; renderMoresheet(); renderBottomnav(); },
+    'ui.more-close': () => { moreOpen = false; renderMoresheet(); renderBottomnav(); },
     'ui.theme': () => {
       const seq = ['auto', 'light', 'dark'];
       SK.DB.ui.theme = seq[(seq.indexOf(SK.DB.ui.theme || 'auto') + 1) % 3];
@@ -3416,7 +3523,7 @@ const SK = (() => {
     const cycleOpts = [['short', '短周期 · 满产 9 月'], ['regular', '常规 · 12 月'], ['midLong', '中长 · 15 月'], ['long', '长 · 18 月'], ['ultraLong', '超长 · 24 月']].map(([v, t]) => ({ v, t }));
     return `
     <div class="sect"><h2>七步输入</h2><span class="sub">填 6 个数 + 2 个联动数 · 右侧实时出结果 · 与定价器共享同一份公司档案（改一处两板块同变）</span></div>
-    <div class="grid" style="grid-template-columns:1.5fr 1fr;align-items:start">
+    <div class="grid g-hero">
       <div class="card">
         <h3>共享输入 <span class="sub">🔴 系统不问你“打算招几个”——双算法自己跑</span></h3>
         <div class="frm">

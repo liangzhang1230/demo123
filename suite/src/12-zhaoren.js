@@ -245,7 +245,7 @@
     const cycleOpts = [['short', '短周期 · 满产 9 月'], ['regular', '常规 · 12 月'], ['midLong', '中长 · 15 月'], ['long', '长 · 18 月'], ['ultraLong', '超长 · 24 月']].map(([v, t]) => ({ v, t }));
     return `
     <div class="sect"><h2>七步输入</h2><span class="sub">填 6 个数 + 2 个联动数 · 右侧实时出结果 · 与定价器共享同一份公司档案（改一处两板块同变）</span></div>
-    <div class="grid" style="grid-template-columns:1.5fr 1fr;align-items:start">
+    <div class="grid g-hero">
       <div class="card">
         <h3>共享输入 <span class="sub">🔴 系统不问你“打算招几个”——双算法自己跑</span></h3>
         <div class="frm">

@@ -28,6 +28,8 @@ ${css}
 <main id="view"></main>
 <div class="footer-note" id="backup-note"></div>
 <div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 单文件 · 无后端 · 无网络 · 数据只在你电脑</div>
+<nav id="bottomnav"></nav>
+<div id="moresheet"></div>
 <div id="modal-root"></div>
 <div id="palette"></div>
 <div id="toast"></div>

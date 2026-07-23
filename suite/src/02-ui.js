@@ -62,7 +62,7 @@
     const m = location.hash.replace(/^#\/?/, '').split('/');
     route.board = m[0] || 'dash'; route.sub = m[1] || null;
   }
-  function nav(board, sub) { location.hash = '#/' + board + (sub ? '/' + sub : ''); }
+  function nav(board, sub) { moreOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
 
   /* ---------- 数据绑定 ---------- */
   function setPath(obj, path, val) {
@@ -129,13 +129,46 @@
     if (!route.sub || !m.subnav.some(s => s.id === route.sub)) route.sub = m.subnav[0].id;
     el.innerHTML = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
   }
+  /* ---------- 手机 / 平板：底部标签栏 + 「更多」抽屉 ---------- */
+  const BN_PRIMARY = 4;                                   // 底部常驻前 4 个板块，其余进「更多」
+  let moreOpen = false;
+  function renderBottomnav() {
+    const el = document.getElementById('bottomnav'); if (!el) return;
+    const prim = SK.modules.slice(0, BN_PRIMARY), rest = SK.modules.slice(BN_PRIMARY);
+    const btn = m => {
+      const a = m.alerts ? m.alerts() : 0;
+      return `<button class="bn-tab ${route.board === m.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">
+        <span class="bn-ic">${m.icon}${a > 0 ? '<i class="bn-dot"></i>' : ''}</span><span class="bn-lb">${m.title}</span></button>`;
+    };
+    const restA = rest.reduce((s, m) => s + (m.alerts ? m.alerts() : 0), 0);
+    const curRest = rest.some(m => m.id === route.board);
+    el.innerHTML = prim.map(btn).join('') +
+      `<button class="bn-tab ${moreOpen || curRest ? 'on' : ''}" data-act="ui.more">
+        <span class="bn-ic">☰${restA > 0 ? '<i class="bn-dot"></i>' : ''}</span><span class="bn-lb">更多</span></button>`;
+  }
+  function renderMoresheet() {
+    const el = document.getElementById('moresheet'); if (!el) return;
+    el.className = moreOpen ? 'open' : '';
+    if (!moreOpen) { el.innerHTML = ''; return; }
+    const rest = SK.modules.slice(BN_PRIMARY);
+    el.innerHTML = `<div class="ms-scrim" data-act="ui.more-close"></div>
+      <div class="ms-panel" role="dialog" aria-label="更多板块">
+        <div class="ms-grab"></div>
+        <div class="ms-head">更多板块</div>
+        <div class="ms-grid">${rest.map(m => {
+          const a = m.alerts ? m.alerts() : 0;
+          return `<button class="ms-item ${route.board === m.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">
+            <span class="ms-ic">${m.icon}</span><span class="ms-lb">${m.title}</span>${a > 0 ? '<i class="bn-dot"></i>' : ''}</button>`;
+        }).join('')}</div>
+      </div>`;
+  }
   let renderScheduled = false;
   function render() {
     SK.xReset();
     parseHash();
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
-    renderTopnav(); renderSubnav(); renderLivebar();
+    renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
     const view = document.getElementById('view');
     try { view.innerHTML = m.render(route.sub); }
     catch (e) { console.error(e); view.innerHTML = h.banner('渲染出错：' + esc(e.message), 'r'); }
@@ -193,6 +226,8 @@
   /* ---------- 核心动作 ---------- */
   Object.assign(SK.actions, {
     'ui.nav': d => nav(d.board, d.sub || null),
+    'ui.more': () => { moreOpen = !moreOpen; renderMoresheet(); renderBottomnav(); },
+    'ui.more-close': () => { moreOpen = false; renderMoresheet(); renderBottomnav(); },
     'ui.theme': () => {
       const seq = ['auto', 'light', 'dark'];
       SK.DB.ui.theme = seq[(seq.indexOf(SK.DB.ui.theme || 'auto') + 1) % 3];
