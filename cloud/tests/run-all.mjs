@@ -17,6 +17,7 @@ const suites = [
   ['C3 填报+提成验收', 'c3.test.mjs'],
   ['C4 招聘链验收', 'c4.test.mjs'],
   ['C5 定价器接入验收', 'c5.test.mjs'],
+  ['C6 真相层验收', 'c6.test.mjs'],
 ];
 let bad = 0;
 for (const [name, file] of suites) {
