@@ -355,6 +355,15 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
             <div class="seg" data-v="e">总监/高管</div>
           </div>
         </div>
+        <div class="field mgr-only" style="display:none">
+          <label>主管 / 高管层级</label>
+          <div class="hint">管理层单独定档（对齐企业版），默认「有效」。<b>有效</b>=能独立带队达标；<b>高效</b>=持续超额；<b>领先</b>=标杆。</div>
+          <div class="segs" data-seg="mgrGrade">
+            <div class="seg" data-v="1">有效</div>
+            <div class="seg" data-v="2">高效</div>
+            <div class="seg" data-v="3">领先</div>
+          </div>
+        </div>
         <div class="field">
           <label>成交周期</label>
           <div class="hint">周期越长，底薪占比应该越高，否则人熬不到开单就走了。</div>
@@ -598,7 +607,8 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){retu
 function toast(t){ var e=document.getElementById('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){e.classList.remove('show');},1800); }
 
 /* ---------- 状态 ---------- */
-var SEG={city:'tier1',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk'};
+var SEG={city:'tier1',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk',mgrGrade:'1'};
+var MGR_GRADE_CN={'1':'有效','2':'高效','3':'领先'};
 var PLAN_PICK='std';   // cons | std | sprint
 var DB={records:[], meta:{signer:'',theme:'dark'}};
 function load(){ try{ var s=localStorage.getItem('dx_db'); if(s)DB=JSON.parse(s); }catch(e){}
@@ -608,11 +618,18 @@ function saveMeta(){ DB.meta.signer=val('signer'); save(); renderOffer(); }
 
 /* ---------- 读表单 ---------- */
 function readPost(){
-  return { city:SEG.city, level:SEG.level, cycle:SEG.cycle, lead:SEG.lead, commBase:SEG.commBase,
+  return { city:SEG.city, level:SEG.level, cycle:SEG.cycle, lead:SEG.lead, commBase:SEG.commBase, mgrGrade:SEG.mgrGrade,
     aov:num('aov'), deals:num('deals'), teamRev:num('teamRev'), margin:num('margin'), prob:num('prob'), budget:num('budget'),
     name:val('postName'), pick:PLAN_PICK };
 }
+// 档位→[倍数表, 档位index]。管理岗的档位由 mgrGrade（有效1/高效2/领先3）决定，对齐企业版可选层级。
+function levelMap(o){
+  if(o.level==='m') return ['manager', parseInt(o.mgrGrade||'1',10)];
+  if(o.level==='e') return ['executive', parseInt(o.mgrGrade||'1',10)];
+  return LEVEL_MAP[o.level]||['sales',2];
+}
 function isMgrLevel(lv){ return lv==='m'||lv==='e'; }
+function levelLabel(o){ return LEVEL_CN[o.level]+(isMgrLevel(o.level)?'·'+(MGR_GRADE_CN[o.mgrGrade]||'有效'):''); }
 
 /* ---------- 核心计算 ---------- */
 function computePost(o){
@@ -620,7 +637,7 @@ function computePost(o){
   var isMgr=isMgrLevel(o.level);            // 主管/总监：提成是团队回款 override，不是个人客单×单数
   R.isMgr=isMgr;
   R.revBase = isMgr ? o.teamRev : (o.aov*o.deals);   // 该岗位对应的月回款盘子（个人 or 团队）
-  var lm=LEVEL_MAP[o.level]||['sales',2];
+  var lm=levelMap(o);
   var arr=BENCH[o.city][lm[0]];
   R.benchArr=arr;
   R.ote=arr[lm[1]];                                     // 达标月收入（OTE）
@@ -760,7 +777,7 @@ function recalc(){
   document.getElementById('miniSum').innerHTML=
     '<div class="verdict-card">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'+
-    '<span class="badge b-gold"><span class="dot"></span>'+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+'</span>'+
+    '<span class="badge b-gold"><span class="dot"></span>'+esc(CITY_CN[o.city])+' · '+esc(levelLabel(o))+'</span>'+
     (R.redCount?'<span class="badge b-r"><span class="dot"></span>'+R.redCount+' 条红线</span>':'<span class="badge b-g"><span class="dot"></span>暂无硬红线</span>')+
     '</div>'+
     '<div class="kpis k3">'+
@@ -784,7 +801,7 @@ function renderPlan(){
   var o=readPost(), R=computePost(o), P=R.P;
   var h='';
   // A. 结论卡
-  h+='<div class="card"><div class="sec-h"><span class="n">A</span>定薪结论 · '+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+' · '+esc(CYCLE_CN[o.cycle])+'</div>'+
+  h+='<div class="card"><div class="sec-h"><span class="n">A</span>定薪结论 · '+esc(CITY_CN[o.city])+' · '+esc(levelLabel(o))+' · '+esc(CYCLE_CN[o.cycle])+'</div>'+
     '<div class="kpis">'+
     '<div class="kpi"><div class="k">建议底薪（'+esc(P.cn)+'）</div><div class="v">'+yuan(P.base)+'</div></div>'+
     '<div class="kpi"><div class="k">达标月提成额</div><div class="v">'+yuan(P.commT)+'</div></div>'+
@@ -852,7 +869,7 @@ function pickPlan(k){ PLAN_PICK=k; renderPlan(); recalc(); }
 /* ---------- Offer 说明书 ---------- */
 function offerDocHTML(o,R,forPrint){
   var P=R.P;
-  var post=val('ofPost')||o.name||(LEVEL_CN[o.level]);
+  var post=val('ofPost')||o.name||levelLabel(o);
   var scen=[
     ['保守（达标 50%）', P.base+P.commT*0.5],
     ['标准（达标 100%，含长期激励折算）', R.ote],
@@ -863,7 +880,7 @@ function offerDocHTML(o,R,forPrint){
     '<h3>薪 酬 说 明 书</h3><div class="doc-sub">SALARY STRUCTURE BRIEF · 仅供参考</div>'+
     '<table>'+
     (val('ofCompany')?'<tr><th>公司</th><td>'+esc(val('ofCompany'))+'</td></tr>':'')+
-    '<tr><th>岗位</th><td>'+esc(post)+'（'+esc(CITY_CN[o.city])+' · '+esc(LEVEL_CN[o.level])+'）</td></tr>'+
+    '<tr><th>岗位</th><td>'+esc(post)+'（'+esc(CITY_CN[o.city])+' · '+esc(levelLabel(o))+'）</td></tr>'+
     (val('ofWho')?'<tr><th>致</th><td>'+esc(val('ofWho'))+'</td></tr>':'')+
     '<tr><th>底薪</th><td class="sc">'+yuan(P.base)+' / 月（无责）'+(o.prob>0?'；试用期 '+o.prob+' 个月，试用期工资 '+yuan(probBase)+'（不低于转正 80% 且不低于当地最低工资）':'')+'</td></tr>'+
     (R.isMgr
@@ -892,7 +909,7 @@ function printOffer(){
 /* ---------- 存档 / 对比 ---------- */
 function savePost(){
   var o=readPost(), R=computePost(o);
-  var name=o.name||(CITY_CN[o.city]+'-'+LEVEL_CN[o.level]);
+  var name=o.name||(CITY_CN[o.city]+'-'+levelLabel(o));
   DB.records.unshift({ id:Date.now(), name:name, o:o,
     base:R.P.base, rateShow:R.P.rateShow, ote:R.ote, annual:R.ledger.total, red:R.redCount, plan:R.P.cn });
   DB.records=DB.records.slice(0,50); save();
@@ -938,7 +955,7 @@ function renderCmp(){
 function loadRec(id){
   var r=DB.records.filter(function(x){return x.id===id;})[0]; if(!r)return;
   var o=r.o;
-  SEG.city=o.city; SEG.level=o.level; SEG.cycle=o.cycle; SEG.lead=o.lead; SEG.commBase=o.commBase;
+  SEG.city=o.city; SEG.level=o.level; SEG.cycle=o.cycle; SEG.lead=o.lead; SEG.commBase=o.commBase; SEG.mgrGrade=o.mgrGrade||'1';
   PLAN_PICK=o.pick||'std';
   document.getElementById('aov').value=o.aov; document.getElementById('deals').value=o.deals;
   if(o.teamRev) document.getElementById('teamRev').value=o.teamRev;
@@ -984,7 +1001,7 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme', DB.me
 
 /* ---------- 示例数据 ---------- */
 function fillDemo(){
-  SEG={city:'tier2',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk'};
+  SEG={city:'tier2',level:'s2',cycle:'regular',lead:'0.5',commBase:'hk',mgrGrade:'1'};
   PLAN_PICK='std';
   document.getElementById('aov').value=30000; document.getElementById('deals').value=5;
   document.getElementById('margin').value=30; document.getElementById('prob').value=3;
