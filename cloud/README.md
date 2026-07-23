@@ -43,6 +43,15 @@ node tests/dingjia.test.mjs      # 单跑任一板块
 
 - ✅ C0 底座（31 断言全绿）：五级角色 / 事件流不可变 / action_card 状态机 / 席位配额与流水不可变 / 平台方零业务读路径 / 租户隔离零穿透
 - ✅ C1 L2 移植（109 条对拍）：定价 25 / 招人 24 / 算账 22 / 留人 19 / 育人 19
-- ⬜ C2 数据模型（公约 32 实体真表化 + 事件流复算 + 种子）
-- ⬜ C3–C9 业务七层（按角色拆端 + 接事件流）
-- ⬜ C10 推送层 / C11 白话原语 / C12 商业化 / C13 双向迁移
+- ✅ C2 数据模型（公约 32 实体真表化 + 事件流复算 + 种子）
+- ✅ C3–C9 业务七层（按角色拆端 + 接事件流）
+- ✅ C10 推送层（插卡两级限流 / 早报休息日零推送 / 播报剥金额 / 状态机）
+- ✅ C11 白话原语（`server/vernacular.mjs`）：静态模板兜底（五板块话术码内置，缺 var → '—' 零缺字）+
+  可插拔 AI 润色（client 抛错/超时/缺席 → 静态回退）+ 🔴 A-C07 出参审计（sanitizeForAI 白名单，
+  name/phone/clientName 剥离为 '员工A' 占位，prompt 机检无原值）
+- ✅ C12 商业化（`server/billing.mjs`）：boardsEnabled 板块级授权守卫（requireBoard 已接
+  m7.computePlan / m12.setRecipeSource / m29.computeIndices 三个示范入口）+ 到期降级
+  （suspended → writes.put/upsert/patch 全拒，🔴 导出永不拒 A-C05/授-2）+ 席位占用 vs 配额
+- ✅ C13 双向迁移（`server/migrate.mjs`）：importEnvelopes（单机 1–5 信封 → 实体白名单落真表 +
+  external_refs 整条覆盖 + 事件留痕；未知实体静默跳过；同 board 重复导入整条覆盖）/
+  exportAll（5 个 skab_v1 信封随时可出，回落单机版；停机豁免机检）

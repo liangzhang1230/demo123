@@ -21,11 +21,31 @@ function toPayload(obj) {
 const param = v => (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
 
 /**
+ * C12 · 到期降级业务写锁（v5.1 §12 C12 / 公约授-2 / A-C05）：
+ * subscriptions.status ∈ {suspended, closed} → 业务写入口（put/upsert/patch）一律拒。
+ * - 无订阅行（测试直建租户 / 迁移期）= 不拦；overdue = 提醒期，仍可写（到期只降级）。
+ * - 🔴 导出永不拒：migrate.exportAll 只读 + logEvent，不经本闸（billing 豁免名单）。
+ * - logEvent 不拦：事件流是审计与复算底座，停机期间的动作（导出/续费）仍须留痕。
+ */
+export async function assertTenantWritable(db, ctx) {
+  const { rows } = await db.query(
+    `select status from subscriptions where tenant_id = $1`, [ctx.tenantId]);
+  if (rows.length && (rows[0].status === 'suspended' || rows[0].status === 'closed')) {
+    const e = new Error(
+      `订阅已停机（${rows[0].status}）：业务写入锁定；数据导出不受影响（A-C05/授-2）`);
+    e.code = 'TENANT_SUSPENDED';
+    e.status = rows[0].status;
+    throw e;
+  }
+}
+
+/**
  * 表行 INSERT + 事件 append，同一事务（要么都进，要么都不进）。
  * row：snake_case 列名 → 值；tenant_id / created_by 由 ctx 注入（row 不必带）。
  * 返回插入的完整行（含注入列）。
  */
 export async function put(db, ctx, table, row, eventType) {
+  await assertTenantWritable(db, ctx);                              // C12 业务写锁（suspended → 拒）
   const full = { tenant_id: ctx.tenantId, created_by: ctx.actorId, ...row };
   const cols = Object.keys(full);
   const sql = `insert into ${table}(${cols.join(',')}) values (${cols.map((_, i) => '$' + (i + 1)).join(',')})`;
@@ -46,6 +66,7 @@ export async function put(db, ctx, table, row, eventType) {
  * 🔴 时间戳一律 DB now()，本函数零真实时钟调用（公约 C-14）。
  */
 export async function upsert(db, ctx, table, conflict, row, eventType, opts = {}) {
+  await assertTenantWritable(db, ctx);                              // C12 业务写锁（suspended → 拒）
   const full = { tenant_id: ctx.tenantId, created_by: ctx.actorId, ...row };
   const cols = Object.keys(full);
   const skip = new Set([...(conflict.cols || []), 'tenant_id', 'created_by']);
@@ -81,6 +102,7 @@ export async function logEvent(db, ctx, type, targetId, payload) {
  * 返回更新后的行。
  */
 export async function patch(db, ctx, table, keyCol, keyVal, changes, eventType) {
+  await assertTenantWritable(db, ctx);                              // C12 业务写锁（suspended → 拒）
   const cols = Object.keys(changes);
   const sets = cols.map((k, i) => `${k} = $${i + 1}`).join(', ');
   const sql = `update ${table}

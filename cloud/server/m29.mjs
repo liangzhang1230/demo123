@@ -28,6 +28,7 @@
 import { indices as domainIndices, selfRatingDeviation } from '../domain/liuren.mjs';
 import { getCoef, safeDiv, addDays, monthOf } from '../domain/shared.mjs';
 import { put, upsert } from './writes.mjs';
+import { requireBoard } from './billing.mjs';
 
 const one = async (db, sql, params) => (await db.query(sql, params)).rows[0];
 const cnt = async (db, sql, params) => Number((await one(db, sql, params)).n);
@@ -161,6 +162,7 @@ async function assembleGovernance(db, ctx, gc) {
  * UPSERT 覆盖式落表，带 computed_at（公约 A-21）。AHC 履约分母 0 → null"—（尚无记录）"。
  */
 export async function computeIndices(db, ctx, { gc = getCoef } = {}) {
+  await requireBoard(db, ctx, 'liuren');        // C12 板块级授权守卫（boardsEnabled，v5.1 §11）
   const g = await assembleGovernance(db, ctx, gc);
   const ind = domainIndices(g.ddb, ctx.today, gc);
   const cA = gc('liuren.ahc'), wA = cA.w, r = g.raw;

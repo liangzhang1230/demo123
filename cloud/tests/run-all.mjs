@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* C0+C1 统一验收：五板块 109 条对拍（25/24/22/19/19）+ C0 底座隔离
+/* C0–C13 统一验收：五板块 109 条对拍（25/24/22/19/19）+ C0 底座隔离 + C2–C13 全阶段
    v5.1 §2.1：109 条全绿 = L2 移植合格，一条不绿即视为改了口径 */
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -22,14 +22,18 @@ const suites = [
   ['C8 信用层验收', 'c8.test.mjs'],
   ['C9 罪证层验收', 'c9.test.mjs'],
   ['C10 推送层验收', 'c10.test.mjs'],
+  ['C11-13 收官验收', 'c11-13.test.mjs'],
 ];
 let bad = 0;
 for (const [name, file] of suites) {
-  // C9/C10 内嵌逐级回归（C10 ≈ 16min：自身 + c5/c8 改线回归 + c2–c9 全回归），timeout 放到 30min
-  const r = spawnSync('node', [join(here, file)], { encoding: 'utf8', timeout: 1800000 });
+  // C9/C10 内嵌逐级回归（C10 ≈ 16min：自身 + c5/c8 改线回归 + c2–c9 全回归），timeout 放到 30min；
+  // C11-13 内嵌 c2–c10 全回归（c10 又嵌 c2–c9，合计 ≈ 33min）——timeout 再放大到 60min
+  //（任务书要求"调大到 900s"，实测 900s 装不下嵌套链，按实测放大，宁大勿断）
+  const r = spawnSync('node', [join(here, file)],
+    { encoding: 'utf8', timeout: file === 'c11-13.test.mjs' ? 3600000 : 1800000 });
   const passed = r.status === 0;
   if (!passed) bad++;
   console.log(`${passed ? '✅' : '❌'} ${name}${passed ? '' : '\n' + (r.stdout + r.stderr).split('\n').filter(l => l.includes('✗')).slice(0, 10).join('\n')}`);
 }
-console.log(bad ? `\n❌ ${bad} 个套件未过——按 v5.1 铁律视为改了口径，禁止进入下一阶段` : '\n✅ C1 移植合格：五板块 109 条对拍全绿 + C0 底座验收通过');
+console.log(bad ? `\n❌ ${bad} 个套件未过——按 v5.1 铁律视为改了口径，禁止进入下一阶段` : '\n✅ 全量合格：五板块 109 条对拍全绿 + C0–C13 十四阶段验收全部通过（v5.1 §12 收官）');
 process.exit(bad ? 1 : 0);

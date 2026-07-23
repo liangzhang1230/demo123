@@ -26,6 +26,7 @@ import {
 } from '../domain/yuren.mjs';
 import { getCoef, safeDiv, addDays, monthOf } from '../domain/shared.mjs';
 import { put, patch, logEvent } from './writes.mjs';
+import { requireBoard } from './billing.mjs';
 import { requireM21, m21Done, prevMonth } from './m21.mjs';
 import { personUER } from './m32.mjs';
 import { loadShift, isWorkday as m1IsWorkday } from './m1.mjs';
@@ -80,6 +81,7 @@ export async function recipeGateFor(db, ctx, spId, { month, disc, gc = getCoef }
  * 任一不过 = 拒绝（零写入）→ 全过 = 落 recipe_sources + 事件 recipe_source_set。
  */
 export async function setRecipeSource(db, ctx, { sourceIds, gc = getCoef }) {
+  await requireBoard(db, ctx, 'yuren');                 // C12 板块级授权守卫（先于业务闸）
   await requireM21(db, ctx);                            // 🔴 闸①：配方在 A-11 锁清单里
   const month = await latestM21Month(db, ctx);
   const disc = await discountRates(db, ctx);

@@ -23,6 +23,7 @@ import { computeAll, makeMenuChoice } from '../domain/dingjia.mjs';
 import { makeGetCoef } from '../domain/shared.mjs';
 import { createPlanVersion } from './m2.mjs';
 import { put, logEvent } from './writes.mjs';
+import { requireBoard } from './billing.mjs';
 
 /* 信用书编号字符集（去 I/O/0/1 防混淆；1号件二 CovenantDoc.code） */
 export const COVENANT_CODE_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -77,6 +78,7 @@ async function assemble(db, ctx, inputs, targetYearMode) {
  * salesCount/managerCount 由库派生覆盖；p90Eff 走信封实时值（缺→1.8）。
  */
 export async function computePlan(db, ctx, { inputs, targetYearMode = 'next' }) {
+  await requireBoard(db, ctx, 'dingjia');       // C12 板块级授权守卫（boardsEnabled，v5.1 §11）
   return assemble(db, ctx, inputs, targetYearMode);
 }
 
