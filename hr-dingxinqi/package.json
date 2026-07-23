@@ -1,0 +1,10 @@
+{
+  "name": "hr-dingxinqi",
+  "private": true,
+  "type": "commonjs",
+  "description": "销售定薪器 HR 版:单文件产品 + 发码接口 + 离线发码器",
+  "scripts": {
+    "start": "node fama-server.js",
+    "test": "node tests/run-tests.js && bash tests/e2e-server.sh"
+  }
+}

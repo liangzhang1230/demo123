@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>销售定薪器 · HR 版</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💼</text></svg>">
+<style>
+:root{
+  --bg:#f5f5f2; --card:#ffffff; --ink:#1a1c22; --ink2:#5b6070; --ink3:#8a8f9c;
+  --line:#e5e5e0; --brand:#4f46e5; --brand-soft:#eef0fe;
+  --green:#137333; --green-soft:#e6f4ea; --amber:#b25e09; --amber-soft:#fdf1df;
+  --red:#c5221f; --red-soft:#fce8e6; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-feature-settings:"tnum"}
+#wrap{max-width:680px;margin:0 auto;padding:0 14px 60px}
+.screen{display:none}.screen.on{display:block}
+h1{font-size:26px;line-height:1.3;letter-spacing:-.01em;margin:18px 0 10px}
+h2{font-size:18px;margin:0 0 10px}
+.eyebrow{color:var(--brand);font-weight:700;font-size:12px;letter-spacing:.08em;margin-top:22px}
+.lead{color:var(--ink2);font-size:14.5px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(20,22,30,.04)}
+.sec-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-bottom:12px}
+.sec-h .n{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:650;font-size:13.5px;margin-bottom:5px}
+.hint{color:var(--ink3);font-size:12px;margin:3px 0 6px;line-height:1.5}
+input[type=number],input[type=text],input[type=tel]{width:100%;font:inherit;padding:9px 11px;
+  border:1px solid #d8d8d2;border-radius:9px;background:var(--card);color:var(--ink);outline:none}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.seg{padding:7px 12px;border:1px solid #d8d8d2;border-radius:99px;font-size:13px;color:var(--ink2);
+  background:var(--card);cursor:pointer;user-select:none}
+.seg.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:650}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:11px;background:var(--brand);
+  color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin-top:8px}
+.btn.ghost{background:var(--card);color:var(--brand);border:1.5px solid var(--brand)}
+.btn.sm{padding:8px;font-size:14px;width:auto;display:inline-block;padding-left:16px;padding-right:16px}
+.note{background:var(--brand-soft);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--ink2);margin:10px 0}
+.warnband{background:var(--amber-soft);color:var(--amber);border-radius:9px;padding:9px 12px;font-size:13px;margin:10px 0;font-weight:600}
+.foot{color:var(--ink3);font-size:11.5px;text-align:center;margin-top:26px;line-height:1.7}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.dot.g{background:var(--green)}.dot.a{background:var(--amber)}.dot.r{background:var(--red)}
+.big{font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.big.g{color:var(--green)}.big.a{color:var(--amber)}.big.r{color:var(--red)}
+#sumbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);padding:9px 14px;margin:0 -14px 8px;font-size:13px;font-weight:650;
+  display:flex;gap:14px;flex-wrap:wrap}
+.tier{border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
+.tier.rec{border-color:var(--brand);background:var(--brand-soft)}
+.tier .t-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tier .t-name{font-weight:750;font-size:14.5px}
+.badge{background:var(--brand);color:#fff;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700}
+.tgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12.5px}
+.tgrid .k{color:var(--ink3);font-size:11px}
+.tgrid .v{font-weight:700;font-size:14px}
+.tdesc{color:var(--ink2);font-size:12px;margin-top:7px}
+.pit{border-left:3px solid var(--red);background:var(--red-soft);border-radius:0 9px 9px 0;
+  padding:9px 12px;margin:8px 0;font-size:13px}
+.pit b{display:block;margin-bottom:2px}
+.pit.a{border-left-color:var(--amber);background:var(--amber-soft)}
+.ok-pit{border-left:3px solid var(--green);background:var(--green-soft);border-radius:0 9px 9px 0;padding:9px 12px;font-size:13.5px;font-weight:650;color:var(--green)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink2)}.kv b{font-feature-settings:"tnum"}
+details.acc{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);margin:12px 0}
+details.acc summary{padding:14px 16px;font-weight:700;cursor:pointer;list-style:none;font-size:15px}
+details.acc summary::-webkit-details-marker{display:none}
+details.acc .body{padding:0 16px 16px}
+.devcode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;font-weight:800;
+  letter-spacing:.08em;background:var(--brand-soft);border-radius:9px;padding:12px;text-align:center;margin:10px 0;word-break:break-all}
+.msg{font-size:13.5px;font-weight:650;margin-top:8px;min-height:20px}
+table.rpt{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+table.rpt th{color:var(--ink3);font-weight:600;text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);font-size:11.5px;white-space:nowrap}
+table.rpt td{padding:7px 6px;border-bottom:1px dashed var(--line);font-feature-settings:"tnum";white-space:nowrap}
+table.rpt tr.rec td{background:var(--brand-soft);font-weight:700}
+.rptwrap{overflow-x:auto}
+@media(min-width:560px){ .tgrid{grid-template-columns:repeat(6,1fr)} }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+<!-- ================= 激活闸 ================= -->
+<section class="screen" id="gate">
+  <p class="eyebrow">销售定薪器 · HR 版</p>
+  <h1>输入激活码</h1>
+  <div class="card">
+    <p class="hint">激活信息只存在你本机、不联网。首次激活按下面提示操作。</p>
+    <p style="font-size:13.5px;margin:8px 0">👉 <b style="color:var(--brand)">首次激活</b>：把下面这串「设备码」发给卖家，换你的专属激活码——</p>
+    <div class="devcode" id="devShow"></div>
+    <button class="btn ghost sm" onclick="copyDev()">复制设备码</button>
+    <div class="field" style="margin-top:14px">
+      <label>激活码</label>
+      <input id="actCode" type="text" placeholder="粘贴卖家发的激活码 XZ-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <button class="btn" onclick="doActivate()">激活</button>
+    <div class="msg" id="actMsg"></div>
+  </div>
+  <div class="card" id="claimCard" style="display:none">
+    <div class="sec-h"><span class="n">⚡</span>已购买？自助领码 / 补码</div>
+    <div class="field"><label>购买时登记的手机号</label>
+      <input id="claimPhone" type="tel" placeholder="例如 13800000000"></div>
+    <button class="btn ghost" onclick="doClaim()">自助领码</button>
+    <div class="msg" id="claimMsg"></div>
+  </div>
+  <div class="note">💡 建议收藏本页或添加到主屏幕，并<b>固定用激活时的浏览器</b>打开。若长期未打开导致需要重新激活，凭购买记录找卖家免费补码。<br>微信里若打不开，请复制网址到手机浏览器（苹果 Safari / 安卓自带浏览器）再打开激活。</div>
+</section>
+
+<!-- ================= 首页 ================= -->
+<section class="screen" id="home">
+  <p class="eyebrow">HR · 定薪 / 招人 / 防坑</p>
+  <h1>发 offer 之前，<br>先算清这三个数。</h1>
+  <p class="lead">输入月回款目标和预算，90 秒得到：<b>该给多少钱（三档方案）、这个价招不招得到人（好招指数）、方案里有几个坑（坑检测）</b>——附一页可以直接发老板的建议书。</p>
+  <div class="card" style="padding:14px 16px">
+    <div class="kv"><span class="k">定</span><b>该给多少——初/中/高三档底薪+提成率</b></div>
+    <div class="kv"><span class="k">验</span><b>招不招得到——好招指数红黄绿</b></div>
+    <div class="kv"><span class="k">查</span><b>有没有坑——会被候选人问穿的条款</b></div>
+  </div>
+  <button class="btn" onclick="nav('work')">开始定一个岗位 →</button>
+  <div class="field" style="margin-top:18px">
+    <label>报告署名（选填）</label>
+    <div class="hint">你的名字，会印在建议书页脚。</div>
+    <input type="text" id="buyerName" placeholder="例如：王晓" oninput="saveDB()">
+  </div>
+  <div class="note"><b>说明。</b>本工具是决策参考，不构成法律或用工意见。所有数据只存在你自己的设备里，不上传任何服务器。</div>
+  <div class="foot">销售定薪器 · HR 版 · 纯离线单文件 · 数据只在你设备<br>参数版本：<span class="pv"></span></div>
+</section>
+
+<!-- ================= 定薪工作台 ================= -->
+<section class="screen" id="work">
+  <div id="sumbar"></div>
+  <div id="expireBand"></div>
+  <div class="card">
+    <div class="sec-h"><span class="n">1</span>基本盘（30 秒）</div>
+    <div class="field"><label>行业</label>
+      <div class="hint">选行业自动带入常见提成率，可再改。</div>
+      <div class="segs" data-k="industry">
+        <div class="seg" data-v="general">通用</div><div class="seg" data-v="edu">教培</div>
+        <div class="seg" data-v="deco">装修建材</div><div class="seg" data-v="saas">企业服务/软件</div>
+      </div></div>
+    <div class="field"><label>城市</label>
+      <div class="segs" data-k="city">
+        <div class="seg" data-v="tier1">一线</div><div class="seg" data-v="tier2">二线/新一线</div>
+        <div class="seg" data-v="tier34">三四线</div>
+      </div></div>
+    <div class="field"><label>岗位层级</label>
+      <div class="hint">定薪三档会给出该层级初/中/高三档方案。</div>
+      <div class="segs" data-k="layer">
+        <div class="seg" data-v="sales">销售</div><div class="seg" data-v="manager">主管</div>
+        <div class="seg" data-v="executive">总监/高管</div>
+      </div></div>
+    <div class="field"><label>这个岗一个月该做多少回款（元）</label>
+      <div class="hint" id="hkHint">老板对这个岗位的月回款期望，张口就能说的那个数。</div>
+      <input type="number" id="targetHK" value="300000" min="0" oninput="recalc()"></div>
+    <div class="field"><label>预算底薪（元/月）</label>
+      <div class="hint">你现在打算给的底薪。</div>
+      <input type="number" id="budgetBase" value="6000" min="0" oninput="recalc()"></div>
+    <div class="field"><label>底薪性质</label>
+      <div class="hint">「有责底薪」在候选人眼里不是安全底，等于没有。</div>
+      <div class="segs" data-k="baseType">
+        <div class="seg" data-v="free">无责底薪</div><div class="seg" data-v="cond">有责底薪</div>
+        <div class="seg" data-v="zero">零底薪</div>
+      </div></div>
+  </div>
+
+  <details class="acc"><summary>② 展开精算 ▾</summary><div class="body">
+    <div class="field"><label>提成率（%）</label>
+      <input type="number" id="rate" value="6" min="0" step="0.1" oninput="touch('rate');recalc()"></div>
+    <div class="field"><label>提成基数</label>
+      <div class="hint">「按毛利」时名义提成率会被毛利率打折——候选人最容易翻脸的一条。</div>
+      <div class="segs" data-k="commBase">
+        <div class="seg" data-v="hk">按回款</div><div class="seg" data-v="ml">按毛利</div>
+        <div class="seg" data-v="bj">按标价</div>
+      </div></div>
+    <div class="field" id="marginField" style="display:none"><label>综合毛利率（%）</label>
+      <div class="hint">按毛利提成时参与折算；不知道就不动。</div>
+      <input type="number" id="margin" value="30" min="1" max="95" oninput="touch('margin');recalc()"></div>
+    <div class="field"><label>成交周期</label>
+      <div class="hint">周期越长底薪越厚（底薪矩阵自动按周期加成）。</div>
+      <div class="segs" data-k="cycle">
+        <div class="seg" data-v="short">短周期(≤30天)</div><div class="seg" data-v="regular">常规(1–3月)</div>
+        <div class="seg" data-v="midLong">中长(4–6月)</div><div class="seg" data-v="long">长(7–12月)</div>
+        <div class="seg" data-v="ultraLong">超长(>12月)</div>
+      </div></div>
+    <div class="field"><label>线索从哪来</label>
+      <div class="hint">纯冷启动岗位属开拓型任务，常规提成方案不适用（W-24）。本项只驱动坑检测，不参与计算。</div>
+      <div class="segs" data-k="lead">
+        <div class="seg" data-v="company">公司给</div><div class="seg" data-v="half">一半一半</div>
+        <div class="seg" data-v="self">纯自己找</div>
+      </div></div>
+    <div class="field"><label>打算在 JD/面试里说的「做得好月入」（元）</label>
+      <div class="hint">不填则跳过画饼检测。</div>
+      <input type="number" id="promised" placeholder="选填" min="0" oninput="recalc()"></div>
+  </div></details>
+
+  <div id="results"></div>
+  <button class="btn" id="rptBtn" onclick="nav('report')" style="display:none">生成定薪建议书 →</button>
+  <div class="foot">负担率口径：该岗现金浮动÷该岗月毛利 · 单岗健康带 18–26%（对应企业版全链 25–35%）<br>参数版本：<span class="pv"></span></div>
+</section>
+
+<!-- ================= 定薪建议书 ================= -->
+<section class="screen" id="report">
+  <div id="rptBody"></div>
+  <button class="btn ghost" onclick="nav('work')">← 返回修改</button>
+  <div class="foot">长按截图即可发送 · 本页为一屏长图设计</div>
+</section>
+
+</div>
+<script>
+'use strict';
+/* ============ 可改配置 ============ */
+var API_URL='';   // 发码接口地址,如 'http://1.2.3.4:8787'。留空=隐藏自助领码入口(纯离线)
+var ACT_SECRET='HRDX-2026-a7f3e9c1b5d24f8a6e0c9b3d1f5a7c2e-K9';  // 本品专属密钥,严禁与公司筛选器共用
+
+/* ===== ACT-BEGIN 激活与加密(纯函数,可独立测试) ===== */
+function sha256Bytes(bytes){
+  var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  function rot(v,n){return (v>>>n)|(v<<(32-n));}
+  var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  var msg=bytes.slice(), bits=bytes.length*8;
+  msg.push(0x80);
+  while(msg.length%64!==56)msg.push(0);
+  msg.push(0,0,0,0,(bits>>>24)&255,(bits>>>16)&255,(bits>>>8)&255,bits&255);
+  for(var i=0;i<msg.length;i+=64){
+    var w=new Array(64),t;
+    for(t=0;t<16;t++)w[t]=(msg[i+4*t]<<24)|(msg[i+4*t+1]<<16)|(msg[i+4*t+2]<<8)|(msg[i+4*t+3]);
+    for(t=16;t<64;t++){
+      var s0=rot(w[t-15],7)^rot(w[t-15],18)^(w[t-15]>>>3);
+      var s1=rot(w[t-2],17)^rot(w[t-2],19)^(w[t-2]>>>10);
+      w[t]=(w[t-16]+s0+w[t-7]+s1)|0;
+    }
+    var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+    for(t=0;t<64;t++){
+      var S1=rot(e,6)^rot(e,11)^rot(e,25), ch=(e&f)^(~e&g);
+      var t1=(h+S1+ch+K[t]+w[t])|0;
+      var S0=rot(a,2)^rot(a,13)^rot(a,22), maj=(a&b)^(a&c)^(b&c);
+      var t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;
+    H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;
+  }
+  var out=[];
+  for(var j=0;j<8;j++){out.push((H[j]>>>24)&255,(H[j]>>>16)&255,(H[j]>>>8)&255,H[j]&255);}
+  return out;
+}
+function strBytes(s){ var b=[],i,c; for(i=0;i<s.length;i++){ c=s.charCodeAt(i);
+  if(c<128)b.push(c); else if(c<2048){b.push(192|(c>>6),128|(c&63));}
+  else{b.push(224|(c>>12),128|((c>>6)&63),128|(c&63));} } return b; }
+function bytesHex(b){ var h='',i; for(i=0;i<b.length;i++)h+=(b[i]<16?'0':'')+b[i].toString(16); return h; }
+function sha256hex(s){ return bytesHex(sha256Bytes(strBytes(s))); }
+function hmac256(key,msg){
+  var kb=strBytes(key); if(kb.length>64)kb=sha256Bytes(kb);
+  while(kb.length<64)kb.push(0);
+  var i,ip=[],op=[];
+  for(i=0;i<64;i++){ip.push(kb[i]^0x36);op.push(kb[i]^0x5c);}
+  var inner=sha256Bytes(ip.concat(strBytes(msg)));
+  return bytesHex(sha256Bytes(op.concat(inner)));
+}
+function normHex(s){ return String(s||'').toLowerCase().replace(/[^0-9a-f]/g,''); }
+function verifyCode(input,devfp,secret){
+  try{
+    var p=String(input||'').trim().toLowerCase().split('-');
+    if(p[0]!=='xz'||p.length<3)return{ok:false,reason:'格式不对，请检查激活码'};
+    if(p[1]==='d'){
+      if(hmac256(secret,'D|'+normHex(devfp)).slice(0,20)===p[2])return{ok:true};
+      return{ok:false,reason:'无效激活码，或该码绑定的是另一台设备'};
+    }
+    if(p[1]==='g'){
+      if(p.length<4)return{ok:false,reason:'格式不对'};
+      if(hmac256(secret,'G|'+p[2]).slice(0,16)===p[3])return{ok:true};
+      return{ok:false,reason:'无效激活码（验签失败）'};
+    }
+    return{ok:false,reason:'未知激活码类型'};
+  }catch(e){return{ok:false,reason:'激活码损坏'};}
+}
+/* ===== ACT-END ===== */
+
+/* ===== ENGINE-BEGIN 计算引擎(纯函数,企业版母本对齐 v1.3) ===== */
+var PARAMS={
+  BENCH:{ tier1:{sales:[25000,30000,35000,40000],manager:[33000,40000,47000,54000],executive:[45000,54000,63000,72000]},
+          tier2:{sales:[20000,24000,28000,32000],manager:[27000,32000,37000,43000],executive:[36000,43000,50000,57000]},
+          tier34:{sales:[15000,18000,21000,24000],manager:[20000,24000,28000,32000],executive:[27000,32000,38000,43000]} },
+  CITY_BASE:{tier1:5000,tier2:4000,tier34:3000},
+  LV_MULT:{sales:[1.0,1.5,1.8,2.0],manager:[2.0,2.5,3.0,3.5],executive:[3.0,4.0,4.5,5.0]},
+  CYCLE_F:{short:1.0,regular:1.15,midLong:1.3225,long:1.5606,ultraLong:2.0},
+  MINWAGE:{tier1:2420,tier2:2000,tier34:1700},
+  LTR:0.10, ATTAIN:0.47, FLOAT_BAIT:0.65,
+  BURDEN_SINGLE:[0.18,0.26], GH_GREEN:1.15, GH_AMBER:1.00,
+  IND:{general:{name:'通用',rate:6,margin:30},edu:{name:'教培',rate:10,margin:60},
+       deco:{name:'装修建材',rate:4,margin:25},saas:{name:'企业服务/软件',rate:10,margin:55}},
+  PARAM_VERSION:'2026 下半年版', PARAM_EXPIRE:'2027-06-30'
+};
+var GRADE_CN={1:'初级（有效）',2:'中级（高效）',3:'高级（领先）'};
+var GRADE_DESC={1:'能独立签单、稳定达标的常规销售——多数团队按这档定薪',
+  2:'持续超额、能自己带节奏的骨干',3:'团队头部标杆，产出明显高于均值'};
+var LAYER_CN={sales:'销售',manager:'主管',executive:'总监/高管'};
+var CITY_CN={tier1:'一线',tier2:'二线/新一线',tier34:'三四线'};
+var CYCLE_CN={short:'短周期(≤30天)',regular:'常规(1–3月)',midLong:'中长(4–6月)',long:'长(7–12月)',ultraLong:'超长(>12月)'};
+var PIT_FIX={'K-W29':'把底薪提到当地最低工资以上。','K-W03':'把底薪提到该层级预警线以上。',
+  'K-W02':'压低底薪或抬高收入档位，让提成有存在感。','K-W04':'确认底薪足以生存，短周期可保留。',
+  'K-W0506低':'提成给厚一点——鱼饵不香，好手不来。','K-W0506高':'抬高回款目标，或按更低档位定薪。',
+  'K-有责':'改无责底薪，或白纸黑字写明考核线与兜底。','K-零底':'加保护期底薪（不挂业绩）。',
+  'K-毛利':'改按回款口径，或在 offer 里明示等效回款提成率。','K-画饼':'宣传口径降到领先档达标线以内。',
+  'K-裸奔':'按 W-24：保底期底薪不挂业绩＋里程碑奖三档＋季度结算，禁用月结提成。'};
+function fmtN(n){ n=Math.round(n); return n.toLocaleString('zh-CN'); }
+function r1(x){ return Math.round(x*10)/10; }
+function computeAll(o){
+  var P=PARAMS, cf=P.CYCLE_F[o.cycle];
+  var Bof=function(i){return Math.round(P.CITY_BASE[o.city]*P.LV_MULT[o.layer][i]*cf);};
+  var Tof=function(i){return P.BENCH[o.city][o.layer][i];};
+  var Bwarn=Bof(0), Twarn=Tof(0), minW=P.MINWAGE[o.city];
+  var marginUsed=(o.commBase==='ml')?o.margin:P.IND[o.industry].margin;
+  var G=o.targetHK*marginUsed/100;
+  var effRate=(o.commBase==='ml')?o.rate*o.margin/100:o.rate;
+  var FC=o.targetHK*effRate/100;
+  var FULL=o.budgetBase+FC;
+  var goodHire=Math.min(o.budgetBase/Bwarn, FULL/Twarn);
+  var ghLamp=goodHire>=P.GH_GREEN?'g':(goodHire>=P.GH_AMBER?'a':'r');
+  var safeFloor=(o.baseType==='free')?o.budgetBase:0;
+  var CALM=Math.round(safeFloor+FC*P.ATTAIN);
+  var floatShare=FULL>0?FC/FULL:0;
+  var burdenOwn=G>0?FC/G:null;
+  var tiers=[1,2,3].map(function(i){
+    var SB=Bof(i),T=Tof(i),cash=Math.round(T*0.9),gap=cash-SB,burden=G>0?gap/G:null;
+    var lamp=gap<=0?'x':(burden==null?'x':(burden<P.BURDEN_SINGLE[0]?'a':(burden>P.BURDEN_SINGLE[1]?'r':'g')));
+    return {i:i,SB:SB,T:T,L:Math.round(0.1*T),cash:cash,gap:gap,blocked:gap<=0,
+      r_hk:o.targetHK>0?gap/o.targetHK*100:0, r_ml:G>0?gap/G*100:0,
+      burden:burden, fs:gap/T, belowMin:SB<minW, bait:gap/T>=P.FLOAT_BAIT, lamp:lamp};
+  });
+  var pits=[];
+  if(o.baseType==='free'&&o.budgetBase>0&&o.budgetBase<minW)
+    pits.push({k:'K-W29',tone:'r',n:'底薪疑似违法',t:'¥'+fmtN(o.budgetBase)+' 低于该城市最低工资参考 ¥'+fmtN(minW)+'——员工可追讨差额并申请劳动仲裁。'});
+  if(o.budgetBase<Bwarn)
+    pits.push({k:'K-W03',tone:'r',n:'饥饿-鱼饵',t:'底薪压到预警线（¥'+fmtN(Bwarn)+'）以下——你不是在激励销售，是在制造一个必然作弊的人。'});
+  if(FULL>0&&o.budgetBase>=0.9*FULL)
+    pits.push({k:'K-W02',tone:'r',n:'固定工资化',t:'底薪吃穿现金目标——提成没有存在感，干多干少一个样。'});
+  if(floatShare>=P.FLOAT_BAIT)
+    pits.push({k:'K-W04',tone:'a',n:'鱼饵线',t:'浮动占比 '+Math.round(floatShare*100)+'% 已贴着鱼饵线 65%——短周期可用，但请确认底薪足以生存。'});
+  if(burdenOwn!=null&&burdenOwn<P.BURDEN_SINGLE[0])
+    pits.push({k:'K-W0506低',tone:'a',n:'负担偏低',t:'提成占该岗毛利仅 '+r1(burdenOwn*100)+'%——鱼饵不香，好手不来。'});
+  else if(burdenOwn!=null&&burdenOwn>P.BURDEN_SINGLE[1])
+    pits.push({k:'K-W0506高',tone:'r',n:'负担偏高',t:'提成占该岗毛利 '+r1(burdenOwn*100)+'%——这个回款撑不起这套薪酬，团队长大会把你撑穿。'});
+  if(o.baseType==='cond')
+    pits.push({k:'K-有责',tone:'r',n:'有责底薪坑',t:'候选人会把有责底薪当零看——它不是安全底。你以为给了 ¥'+fmtN(o.budgetBase)+'，他心里记的是 ¥0。'});
+  if(o.baseType==='zero')
+    pits.push({k:'K-零底',tone:'r',n:'零底薪坑',t:'零底薪只筛得出两种人：走投无路的，和路子太野的。'});
+  if(o.commBase==='ml')
+    pits.push({k:'K-毛利',tone:'a',n:'毛利提成幻觉',t:'名义 '+o.rate+'%，按 '+o.margin+'% 毛利折算，等效回款提成只有 '+r1(o.rate*o.margin/100)+'%——候选人入职后发现这条，是翻脸率最高的坑。'});
+  if(o.promised>0&&o.promised>Tof(3))
+    pits.push({k:'K-画饼',tone:'a',n:'画饼超标',t:'你打算说月入 ¥'+fmtN(o.promised)+'，已超过该城市该层级「领先档达标线」¥'+fmtN(Tof(3))+'——头部标杆才拿这个数，饼太大会反噬信任。'});
+  if(o.lead==='self')
+    pits.push({k:'K-裸奔',tone:'a',n:'线索裸奔',t:'不给线索 = 拿人家的头三个月做免费市场测试，爬坡期流失率翻倍。开拓型岗位请按 W-24 处理：保底期底薪不挂业绩＋里程碑奖三档＋季度结算，禁用月结提成。'});
+  return {Bwarn:Bwarn,Twarn:Twarn,minW:minW,marginUsed:marginUsed,G:G,effRate:effRate,
+    FC:FC,FULL:FULL,goodHire:goodHire,ghLamp:ghLamp,safeFloor:safeFloor,CALM:CALM,
+    floatShare:floatShare,burdenOwn:burdenOwn,tiers:tiers,pits:pits};
+}
+function selfTest(){
+  var out=[];
+  function ck(name,got,want){ var pass=String(got)===String(want);
+    out.push({name:name,got:got,want:want,pass:pass}); }
+  // 加密自检
+  ck('sha256("abc")',sha256hex('abc'),'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  ck('sha256("")',sha256hex(''),'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+  ck('hmac(key,fox)',hmac256('key','The quick brown fox jumps over the lazy dog'),
+    'f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8');
+  // 用例 A
+  var A=computeAll({industry:'general',city:'tier2',layer:'sales',cycle:'regular',
+    targetHK:300000,budgetBase:6000,baseType:'free',rate:6,commBase:'hk',margin:30,lead:'half',promised:0});
+  ck('A 满产提成',A.FC,18000); ck('A 满产现金',A.FULL,24000);
+  ck('A 好招指数',A.goodHire.toFixed(2),'1.20'); ck('A 好招灯',A.ghLamp,'g');
+  ck('A 冷静收入',A.CALM,14460);
+  ck('A 现方案负担%',r1(A.burdenOwn*100),20);
+  ck('A 坑数',A.pits.length,1); ck('A 坑1',A.pits[0]&&A.pits[0].k,'K-W04');
+  ck('A 档1底薪',A.tiers[0].SB,6900); ck('A 档1gap',A.tiers[0].gap,14700);
+  ck('A 档1 r回款',r1(A.tiers[0].r_hk),4.9); ck('A 档1负担%',r1(A.tiers[0].burden*100),16.3); ck('A 档1灯',A.tiers[0].lamp,'a');
+  ck('A 档2底薪',A.tiers[1].SB,8280); ck('A 档2gap',A.tiers[1].gap,16920);
+  ck('A 档2 r回款',r1(A.tiers[1].r_hk),5.6); ck('A 档2负担%',r1(A.tiers[1].burden*100),18.8); ck('A 档2灯',A.tiers[1].lamp,'g');
+  ck('A 档3底薪',A.tiers[2].SB,9200); ck('A 档3gap',A.tiers[2].gap,19600);
+  ck('A 档3 r回款',r1(A.tiers[2].r_hk),6.5); ck('A 档3负担%',r1(A.tiers[2].burden*100),21.8); ck('A 档3灯',A.tiers[2].lamp,'g');
+  ck('A 分红池档1',A.tiers[0].L,2400); ck('A 分红池档2',A.tiers[1].L,2800); ck('A 分红池档3',A.tiers[2].L,3200);
+  // 用例 B
+  var B=computeAll({industry:'general',city:'tier1',layer:'sales',cycle:'long',
+    targetHK:200000,budgetBase:8000,baseType:'cond',rate:10,commBase:'ml',margin:30,lead:'self',promised:45000});
+  ck('B 满产提成',B.FC,6000); ck('B 满产现金',B.FULL,14000);
+  ck('B 好招指数',B.goodHire.toFixed(2),'0.56'); ck('B 好招灯',B.ghLamp,'r');
+  ck('B 冷静收入',B.CALM,2820);
+  ck('B 坑数',B.pits.length,5);
+  ck('B 坑集合',B.pits.map(function(p){return p.k;}).sort().join(','),
+    ['K-W0506低','K-有责','K-毛利','K-画饼','K-裸奔'].sort().join(','));
+  ck('B 档1底薪',B.tiers[0].SB,11705); ck('B 档1gap',B.tiers[0].gap,15295);
+  ck('B 档1 r回款',r1(B.tiers[0].r_hk),7.6); ck('B 档1负担%',r1(B.tiers[0].burden*100),25.5); ck('B 档1灯',B.tiers[0].lamp,'g');
+  ck('B 档2底薪',B.tiers[1].SB,14045); ck('B 档2gap',B.tiers[1].gap,17455);
+  ck('B 档2 r回款',r1(B.tiers[1].r_hk),8.7); ck('B 档2负担%',r1(B.tiers[1].burden*100),29.1); ck('B 档2灯',B.tiers[1].lamp,'r');
+  ck('B 档3底薪',B.tiers[2].SB,15606); ck('B 档3gap',B.tiers[2].gap,20394);
+  ck('B 档3 r回款',r1(B.tiers[2].r_hk),10.2); ck('B 档3负担%',r1(B.tiers[2].burden*100),34.0); ck('B 档3灯',B.tiers[2].lamp,'r');
+  return out;
+}
+/* ===== ENGINE-END ===== */
+
+/* ============ 状态与存储 ============ */
+var DB_KEY='hrdx_db', DEV_KEY='hrdx_devid', ACT_KEY='hrdx_act';
+var SEG={industry:'general',city:null,layer:'sales',baseType:'free',commBase:'hk',cycle:'regular',lead:'half'};
+var TOUCHED={rate:false,margin:false};
+function lsGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+function lsSet(k,v){ try{localStorage.setItem(k,v);return true;}catch(e){return false;} }
+function deviceFP(){
+  var id=lsGet(DEV_KEY);
+  if(!id){ id=''; for(var i=0;i<12;i++)id+='0123456789abcdef'[Math.floor(Math.random()*16)];
+    if(!lsSet(DEV_KEY,id)) storageWarn(); }
+  return id;
+}
+function devDisplay(){ var f=deviceFP().toUpperCase(); return f.slice(0,4)+'-'+f.slice(4,8)+'-'+f.slice(8,12); }
+var storageWarned=false;
+function storageWarn(){ if(storageWarned)return; storageWarned=true;
+  var d=document.createElement('div'); d.className='warnband';
+  d.textContent='⚠ 当前浏览器无法保存数据，关闭页面后需重填/重新激活。';
+  document.getElementById('wrap').insertBefore(d,document.getElementById('wrap').firstChild); }
+function saveDB(){
+  var f={};
+  ['targetHK','budgetBase','rate','margin','promised'].forEach(function(id){
+    var e=document.getElementById(id); if(e)f[id]=e.value; });
+  f.seg=SEG; f.touched=TOUCHED;
+  var name=document.getElementById('buyerName').value||'';
+  var jt=(document.getElementById('jobTitle')||{}).value||DBjt;
+  if(!lsSet(DB_KEY,JSON.stringify({name:name,jobTitle:jt,form:f}))) storageWarn();
+}
+var DBjt='';
+function loadDB(){
+  var raw=lsGet(DB_KEY); if(!raw)return;
+  try{ var d=JSON.parse(raw);
+    if(d.name)document.getElementById('buyerName').value=d.name;
+    DBjt=d.jobTitle||'';
+    if(d.form){ ['targetHK','budgetBase','rate','margin','promised'].forEach(function(id){
+        if(d.form[id]!=null&&d.form[id]!==''){var e=document.getElementById(id);if(e)e.value=d.form[id];} });
+      if(d.form.seg)Object.keys(SEG).forEach(function(k){ if(d.form.seg[k]!=null)SEG[k]=d.form.seg[k]; });
+      if(d.form.touched)TOUCHED=d.form.touched;
+    }
+  }catch(e){}
+}
+function touch(k){ TOUCHED[k]=true; saveDB(); }
+
+/* ============ 激活流程 ============ */
+function activated(){
+  var raw=lsGet(ACT_KEY); if(!raw)return false;
+  try{ var a=JSON.parse(raw); return verifyCode(a.code,deviceFP(),ACT_SECRET).ok; }catch(e){return false;}
+}
+function doActivate(){
+  var inp=document.getElementById('actCode'), msg=document.getElementById('actMsg');
+  var r=verifyCode(inp.value,deviceFP(),ACT_SECRET);
+  if(r.ok){ lsSet(ACT_KEY,JSON.stringify({code:inp.value.trim()}));
+    msg.style.color='var(--green)'; msg.textContent='✓ 激活成功';
+    setTimeout(function(){ boot(); },500);
+  }else{ msg.style.color='var(--red)'; msg.textContent='✗ '+r.reason; }
+}
+function copyDev(){
+  var t=devDisplay();
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t); }
+  else{ var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);
+    ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta); }
+  var m=document.getElementById('actMsg'); m.style.color='var(--green)'; m.textContent='✓ 设备码已复制，发给卖家换激活码';
+}
+function doClaim(){
+  var phone=(document.getElementById('claimPhone').value||'').trim();
+  var msg=document.getElementById('claimMsg');
+  if(!phone){ msg.style.color='var(--red)'; msg.textContent='请先填手机号'; return; }
+  msg.style.color='var(--ink2)'; msg.textContent='领取中…';
+  fetch(API_URL+'/api/claim',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({phone:phone,product:'hrdx',deviceCode:deviceFP()})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){ document.getElementById('actCode').value=d.code;
+      msg.style.color='var(--green)'; msg.textContent='✓ 领码成功，已自动填入，点上方「激活」'; }
+    else{ msg.style.color='var(--red)'; msg.textContent='✗ '+(d.error||'领码失败'); }
+  })
+  .catch(function(){ msg.style.color='var(--red)';
+    msg.textContent='✗ 接口暂不可用，请把设备码发给卖家人工发码'; });
+}
+
+/* ============ UI ============ */
+function nav(id){
+  ['gate','home','work','report'].forEach(function(s){
+    document.getElementById(s).classList.toggle('on',s===id); });
+  if(id==='work')recalc();
+  if(id==='report')renderReport();
+  window.scrollTo(0,0);
+}
+function bindSegs(){
+  document.querySelectorAll('.segs').forEach(function(box){
+    var k=box.getAttribute('data-k');
+    box.querySelectorAll('.seg').forEach(function(s){
+      s.addEventListener('click',function(){
+        SEG[k]=s.getAttribute('data-v');
+        if(k==='industry'&&!TOUCHED.rate)document.getElementById('rate').value=PARAMS.IND[SEG.industry].rate;
+        if(k==='industry'&&!TOUCHED.margin)document.getElementById('margin').value=PARAMS.IND[SEG.industry].margin;
+        syncSegs(); saveDB(); recalc();
+      });
+    });
+  });
+}
+function syncSegs(){
+  document.querySelectorAll('.segs').forEach(function(box){
+    var k=box.getAttribute('data-k');
+    box.querySelectorAll('.seg').forEach(function(s){
+      s.classList.toggle('on',s.getAttribute('data-v')===SEG[k]); });
+  });
+  document.getElementById('marginField').style.display=(SEG.commBase==='ml')?'':'none';
+  document.getElementById('hkHint').textContent=(SEG.layer==='sales')
+    ?'老板对这个岗位的月回款期望，张口就能说的那个数。'
+    :'主管/高管请填其分管团队的月回款目标（企业版同口径）。';
+}
+function num(id){ var e=document.getElementById(id); var v=parseFloat(e&&e.value); return isFinite(v)?v:0; }
+function readInputs(){
+  return {industry:SEG.industry,city:SEG.city,layer:SEG.layer,cycle:SEG.cycle,
+    baseType:SEG.baseType,commBase:SEG.commBase,lead:SEG.lead,
+    targetHK:num('targetHK'),budgetBase:num('budgetBase'),
+    rate:num('rate'),margin:num('margin'),promised:num('promised')};
+}
+function lampWord(l){ return l==='g'?'绿':(l==='a'?'黄':'红'); }
+function paramBand(){
+  var el=document.getElementById('expireBand');
+  var expired=new Date().toISOString().slice(0,10)>PARAMS.PARAM_EXPIRE;
+  el.innerHTML=expired?'<div class="warnband">⚠ 城市基准与行业参数为 '+PARAMS.PARAM_VERSION+'，已过期。数字仅供参考，最新参数请联系卖家续费获取。</div>':'';
+}
+function recalc(){
+  saveDB(); paramBand();
+  var sum=document.getElementById('sumbar'), res=document.getElementById('results'),
+      btn=document.getElementById('rptBtn');
+  var o=readInputs();
+  if(!o.city){ sum.innerHTML='<span style="color:var(--ink3)">先选城市</span>';
+    res.innerHTML='<div class="card"><p class="hint">先在上方选择<b>城市</b>，结果会实时出现在这里。</p></div>';
+    btn.style.display='none'; return; }
+  if(!(o.targetHK>0)){ sum.innerHTML='<span style="color:var(--ink3)">先填月回款目标</span>';
+    res.innerHTML='<div class="card"><p class="hint">先填<b>月回款目标</b>，其他都算不出来。</p></div>';
+    btn.style.display='none'; return; }
+  var R=computeAll(o);
+  lastR=R; lastO=o;
+  sum.innerHTML='好招指数 <span class="dot '+R.ghLamp+'"></span>'+R.goodHire.toFixed(2)
+    +' <span style="color:var(--ink3)">·</span> 冷静折算 ¥'+fmtN(R.CALM)
+    +' <span style="color:var(--ink3)">·</span> 坑 '+R.pits.length+' 个';
+  var h='';
+  h+='<div class="card"><div class="sec-h"><span class="n">A</span>好招指数</div>'
+    +'<div class="big '+R.ghLamp+'">'+R.goodHire.toFixed(2)+' <span style="font-size:16px;font-weight:650">'
+    +(R.ghLamp==='g'?'绿灯 · 好招：底薪和满产都在行情预警线之上有余量':R.ghLamp==='a'?'黄灯 · 贴着预警线，能招但谈薪会被压':'红灯 · 难招：低于行情预警线，聪明的候选人算完就不来了')+'</span></div>'
+    +'<div class="hint" style="margin-top:8px">底薪对预警线 '+ (o.budgetBase/R.Bwarn).toFixed(2)
+    +' · 满产对预警达标线 '+(R.FULL/R.Twarn).toFixed(2)+'（取小者）· 预警线：底薪 ¥'+fmtN(R.Bwarn)+' / 达标 ¥'+fmtN(R.Twarn)+'</div>'
+    +'<div class="kv" style="margin-top:6px"><span class="k">满产月现金（底薪+满产提成）</span><b>¥'+fmtN(R.FULL)+'</b></div>'
+    +'<div class="kv"><span class="k">候选人冷静折算 <span class="hint" style="display:inline">= 安全底 + 满产提成 × 47%（全球真实达标率 43–51%，企业版口径）</span></span><b>¥'+fmtN(R.CALM)+'/月</b></div>'
+    +'<div class="kv"><span class="k">现方案提成负担（占该岗毛利）</span><b>'+(R.burdenOwn!=null?r1(R.burdenOwn*100)+'%':'—')+'</b></div>'
+    +'</div>';
+  h+='<div class="card"><div class="sec-h"><span class="n">B</span>定薪三档 <span class="hint" style="display:inline;font-weight:400">'+CITY_CN[o.city]+' · '+LAYER_CN[o.layer]+' · '+CYCLE_CN[o.cycle]+'</span></div>';
+  R.tiers.forEach(function(t){
+    h+='<div class="tier'+(t.i===1?' rec':'')+'"><div class="t-head"><span class="t-name">'
+      +GRADE_CN[t.i]+'</span>'+(t.i===1?'<span class="badge">推荐</span>':'')+'</div>'
+      +'<div class="tgrid">'
+      +'<div><div class="k">建议底薪</div><div class="v">¥'+fmtN(t.SB)+'</div></div>'
+      +'<div><div class="k">提成率(回款)</div><div class="v">'+r1(t.r_hk)+'%</div></div>'
+      +'<div><div class="k">负担率</div><div class="v"><span class="dot '+(t.lamp==='x'?'r':t.lamp)+'"></span>'+r1(t.burden*100)+'%</div></div>'
+      +'<div><div class="k">满产月现金</div><div class="v">¥'+fmtN(t.cash)+'</div></div>'
+      +'<div><div class="k">长期分红池/月</div><div class="v">¥'+fmtN(t.L)+'</div></div>'
+      +'<div><div class="k">毛利口径提成率</div><div class="v">'+r1(t.r_ml)+'%</div></div>'
+      +'</div>'
+      +(t.blocked?'<div class="pit" style="margin-top:8px"><b>W-02 该档作废</b>底薪吃穿现金目标——这不是方案，是固定工资。</div>':'')
+      +(t.belowMin?'<div class="pit" style="margin-top:8px"><b>W-29</b>该档底薪低于最低工资参考。</div>':'')
+      +'<div class="tdesc">'+GRADE_DESC[t.i]+'</div></div>';
+  });
+  var allHigh=R.tiers.every(function(t){return t.burden!=null&&t.burden>PARAMS.BURDEN_SINGLE[1];});
+  if(allHigh)h+='<div class="warnband">⚠ 三档负担全线偏高——月回款 '+fmtN(o.targetHK)+' 撑不起'+CITY_CN[o.city]+LAYER_CN[o.layer]+'——要么抬回款目标，要么降层级/档位定薪。</div>';
+  h+='<div class="hint">负担率口径：该档现金浮动÷该岗月毛利（毛利率按 '+R.marginUsed+'%）· 单岗健康带 18–26%，对应企业版全链 25–35% · 长期分红池为独立年度奖金池（年兑），不是扣发提成</div></div>';
+  h+='<div class="card"><div class="sec-h"><span class="n">C</span>坑检测</div>';
+  if(R.pits.length===0)h+='<div class="ok-pit">✓ 未发现结构性坑</div>';
+  else{ h+='<div class="warnband">⚠ 有 '+R.pits.length+' 个坑会被聪明的候选人当面问穿</div>';
+    R.pits.forEach(function(p){ h+='<div class="pit '+(p.tone==='a'?'a':'')+'"><b>'+p.n+'</b>'+p.t+'</div>'; }); }
+  h+='</div>';
+  res.innerHTML=h; btn.style.display='';
+}
+var lastR=null,lastO=null;
+function renderReport(){
+  var el=document.getElementById('rptBody');
+  if(!lastR){ el.innerHTML='<div class="card"><p class="hint">先回工作台把数填全。</p></div>'; return; }
+  var R=lastR,o=lastO;
+  var name=document.getElementById('buyerName').value||'—';
+  var today=new Date(); var ds=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var expired=new Date().toISOString().slice(0,10)>PARAMS.PARAM_EXPIRE;
+  var h='<div class="card">';
+  h+='<p class="eyebrow" style="margin-top:0">销售岗定薪建议书</p>';
+  h+='<div class="field" style="margin:8px 0"><input type="text" id="jobTitle" placeholder="岗位备注名（选填，如：华东区销售）" value="'+DBjt.replace(/"/g,'&quot;')+'" oninput="DBjt=this.value;saveDB()"></div>';
+  h+='<div class="hint">'+ds+' · '+CITY_CN[o.city]+' · '+LAYER_CN[o.layer]+' · '+PARAMS.IND[o.industry].name+' · 月回款目标 ¥'+fmtN(o.targetHK)+' · '+CYCLE_CN[o.cycle]+'</div>';
+  if(expired)h+='<div class="warnband">⚠ 参数版本已过期，数字仅供参考</div>';
+  h+='<div class="rptwrap"><table class="rpt"><tr><th>档位</th><th>建议底薪</th><th>提成率(回款)</th><th>满产月现金</th><th>长期分红池/月</th><th>负担率</th></tr>';
+  R.tiers.forEach(function(t){
+    h+='<tr'+(t.i===1?' class="rec"':'')+'><td>'+GRADE_CN[t.i]+(t.i===1?' ★推荐':'')+'</td><td>¥'+fmtN(t.SB)+'</td><td>'
+      +r1(t.r_hk)+'%<span style="color:var(--ink3);font-size:10.5px"> (毛利口径'+r1(t.r_ml)+'%)</span></td><td>¥'+fmtN(t.cash)+'</td><td>¥'+fmtN(t.L)+'</td><td><span class="dot '+(t.lamp==='x'?'r':t.lamp)+'"></span>'+r1(t.burden*100)+'%</td></tr>';
+  });
+  h+='</table></div>';
+  h+='<div class="hint">长期分红池为独立年度奖金池（年度兑现），不是扣发提成 · 负担率=现金浮动÷该岗毛利（毛利率按'+R.marginUsed+'%），单岗健康带 18–26%</div>';
+  h+='<div class="kv" style="margin-top:10px"><span class="k">好招指数（现预算方案）</span><b><span class="dot '+R.ghLamp+'"></span>'+R.goodHire.toFixed(2)+'（'+lampWord(R.ghLamp)+'灯）</b></div>';
+  h+='<div class="kv"><span class="k">候选人冷静折算</span><b>¥'+fmtN(R.CALM)+'/月</b></div>';
+  if(R.pits.length){ h+='<div style="margin-top:12px;font-weight:700;font-size:14px">坑与对策（'+R.pits.length+'）</div>';
+    R.pits.forEach(function(p){ h+='<div class="pit '+(p.tone==='a'?'a':'')+'" style="font-size:12.5px"><b>'+p.n+'</b>'+p.t+'<div style="margin-top:4px;color:var(--green);font-weight:650">对策：'+(PIT_FIX[p.k]||'—')+'</div></div>'; });
+  } else h+='<div class="ok-pit" style="margin-top:12px">✓ 未发现结构性坑</div>';
+  h+='<div class="foot" style="margin-top:16px">制表：'+name+' · 参数版本 '+PARAMS.PARAM_VERSION+' · 本建议为决策参考，不构成法律意见</div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+/* ============ 启动 ============ */
+function boot(){
+  document.querySelectorAll('.pv').forEach(function(e){e.textContent=PARAMS.PARAM_VERSION;});
+  document.getElementById('devShow').textContent=devDisplay();
+  if(API_URL)document.getElementById('claimCard').style.display='';
+  if(!activated()){ nav('gate'); return; }
+  loadDB(); bindSegs(); syncSegs();
+  if(!TOUCHED.rate)document.getElementById('rate').value=PARAMS.IND[SEG.industry].rate;
+  if(!TOUCHED.margin)document.getElementById('margin').value=PARAMS.IND[SEG.industry].margin;
+  nav('home');
+  // 黄金自检(控制台)
+  try{ var t=selfTest(), fail=t.filter(function(x){return !x.pass;});
+    if(fail.length){ console.warn('[自检] 未通过 '+fail.length+' 项',fail); }
+    else console.log('[自检] '+t.length+' 项全部通过 ✓');
+  }catch(e){ console.warn('[自检] 异常',e); }
+}
+if(typeof window!=='undefined'&&typeof document!=='undefined'){
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
+  else boot();
+  window.__ENGINE={computeAll:computeAll,selfTest:selfTest,PARAMS:PARAMS};
+  window.__ACT={sha256hex:sha256hex,hmac256:hmac256,verifyCode:verifyCode,normHex:normHex};
+}
+</script>
+</body>
+</html>
