@@ -625,15 +625,15 @@ function computePost(o){
   R.benchArr=arr;
   R.ote=arr[lm[1]];                                     // 达标月收入（OTE）
   R.minWage=MINWAGE[o.city];
-  var leadUp = (parseFloat(o.lead)===0)?1.08:1;         // 纯自拓：底薪上浮 8% 补偿
-  R.baseRef=r100(CITY_BASE[o.city]*LV_MULT[lm[0]][lm[1]]*(CYCLE_F[o.cycle]||1.15)*leadUp);
+  // 参考底薪 = 城市底薪基数 × 档位倍数 × 周期系数，四舍五入到元（严格对齐企业版 Bof/roundYuanFen）
+  R.baseRef=Math.round(CITY_BASE[o.city]*LV_MULT[lm[0]][lm[1]]*(CYCLE_F[o.cycle]||1.15));
   R.leadFactor=0.4+0.6*parseFloat(o.lead);
 
   // 三档等价方案：同一 OTE，不同固浮比。
   // 企业版口径：达标收入 T = 底薪 B + 月度提成 gap + 长期激励 long，其中 long = T×10%（longTermRate），
   // 月度提成 gap = T×90% − B；社保负担只计在底薪上（fullNum = B×(1+social)+gap+long）。
   function mkPlan(key,cn,base,fit){
-    base=r100(clamp(base, R.minWage, R.ote*0.85));
+    base=Math.round(clamp(base, R.minWage, R.ote*0.85));   // 到元；std 传入 baseRef 时与企业版底薪逐元一致
     var longAmt=Math.round(R.ote*LTR);                       // 长期/年度激励（月折算）
     var commT=Math.max(0,Math.round(R.ote*(1-LTR))-base);    // 达标月提成额（企业版 gapAmt）
     var perDeal=isMgr?null:safeDiv(commT,o.deals);
@@ -694,7 +694,7 @@ function computePost(o){
   // ===== 红线 / 提醒（对齐企业版账单A六道闸：W-01/02/03/04/29；W-05/06 负担率需全司目标，单岗位不适用） =====
   var G=R.gates;
   var blocked=P.base>=Math.round(R.ote*(1-LTR));
-  var Bwarn=r100(CITY_BASE[o.city]*LV_MULT[lm[0]][0]*(CYCLE_F[o.cycle]||1.15));
+  var Bwarn=Math.round(CITY_BASE[o.city]*LV_MULT[lm[0]][0]*(CYCLE_F[o.cycle]||1.15));
   if(P.base<R.minWage) G.push(['red','⛔','<b>底薪低于最低工资</b>：'+yuan(P.base)+' < 当地参考下限 '+yuan(R.minWage)+'，直接违法风险，必须调高。']);
   if(o.margin>0&&o.margin<20) G.push(['red','⛔','<b>毛利率过低</b>：综合毛利 '+o.margin+'% 低于 20% 警戒线——提成没肉、养销售队伍大概率亏钱。先解决定价/成本，再谈定薪。']);
   if(blocked) G.push(['red','⛔','<b>底薪挤死浮动空间</b>：底薪 ≥ 达标收入的 90%，提成无从谈起，这不是销售岗的结构。']);
@@ -797,7 +797,7 @@ function renderPlan(){
     (R.isMgr
       ? '<b>管理岗提成 = 团队/公司回款的 override 点数</b>（与企业版一致：主管按团队回款、总监按公司回款反推，非个人客单×单数）：（90%×达标收入−底薪）÷ '+(o.level==='e'?'公司':'团队')+'月回款 '+yuan(o.teamRev)+' = '+P.rateShow+'（管理岗常规 1–8%）。'
       : '提成率由（90%×达标收入−底薪）÷ 月目标单量 ÷ 客单价反推，'+(o.commBase==='ml'?'已按 '+o.margin+'% 毛利折算；':'按'+BASIS_CN[o.commBase]+'计；')+'单笔达标提成约 '+yuan(P.perDeal)+'。')+
-    '社保负担只计在底薪上（约 '+Math.round(SOCIAL*100)+'%）；行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现'+(parseFloat(o.lead)===0?'；纯自拓岗位参考底薪已上浮 8%（本工具补偿系数，企业版无）':'')+'。仅供参考。</div></div>';
+    '底薪 = 城市底薪基数 × 档位倍数 × 周期系数（与企业版逐元一致）；社保负担只计在底薪上（约 '+Math.round(SOCIAL*100)+'%）；行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现。仅供参考。</div></div>';
 
   // B. 三档方案
   h+='<div class="card"><div class="sec-h"><span class="n">B</span>三档等价方案 · 同一达标收入，不同风险分配 · 点选</div><div class="menu">';
