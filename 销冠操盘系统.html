@@ -93,8 +93,9 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
 .lv-cell .v.red{color:var(--red-hero)} .lv-cell .v.green{color:var(--green)} .lv-cell .v.amber{color:var(--amber)} .lv-cell .v.dim{color:var(--ink3);font-weight:550}
 
 /* ---------- 子导航（跟随吸顶：topnav 48 + livebar 45 = 93） ---------- */
-#subnav{position:sticky;top:93px;z-index:54;display:flex;gap:4px;align-items:center;
-  padding:10px 18px;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+#subnav{position:sticky;top:93px;z-index:54;padding:10px 18px;max-width:1280px;margin:0 auto}
+.sub-tabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.sub-picker{display:none}
 #subnav::before{content:"";position:absolute;top:0;bottom:0;left:calc(-50vw + 50%);width:100vw;
   background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(160%) blur(10px);
   border-bottom:1px solid var(--line);z-index:-1}
@@ -132,11 +133,26 @@ code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font
   .lv-cell .k{white-space:normal}
   .lv-cell .v{font-size:16px;white-space:normal}
 
-  /* —— 子导航吸顶到品牌栏之下（指标条已不吸顶） —— */
-  #subnav{top:48px;z-index:54;padding:9px 12px;max-width:none;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
-  #subnav::-webkit-scrollbar{display:none}
+  /* —— 二级导航：下拉选择器（当前页 + 一览全部，永不横滑藏页；与底部一级栏区分） —— */
+  #subnav{top:48px;z-index:54;padding:8px 12px;max-width:none}
   #subnav::before{background:color-mix(in srgb,var(--card) 92%,transparent)}
-  .sub-tab{flex:0 0 auto}
+  .sub-picker{display:flex;align-items:center;gap:8px;width:100%;padding:10px 13px;border-radius:12px;
+    border:1px solid var(--line2);background:var(--card);font-size:13.5px;font-weight:650;color:var(--ink);box-shadow:var(--shadow)}
+  .sub-picker .sp-cur{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub-picker .sp-meta{flex:0 0 auto;font-size:11px;color:var(--ink3);font-weight:600;background:var(--panel);border-radius:99px;padding:1px 8px}
+  .sub-picker .sp-car{flex:0 0 auto;color:var(--ink3);font-size:11px;transition:transform .16s}
+  .sub-picker[aria-expanded="true"] .sp-car{transform:rotate(180deg)}
+  .sub-tabs{display:none}
+  .sub-tabs.open{display:flex;flex-direction:column;gap:2px;position:absolute;left:12px;right:12px;top:calc(100% - 3px);
+    z-index:70;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 18px 46px -12px rgba(0,0,0,.38);max-height:64vh;overflow:auto}
+  .sub-tabs.open .sub-tab{width:100%;text-align:left;border:none;border-radius:9px;padding:11px 12px;
+    font-size:13.5px;font-weight:600;background:transparent;color:var(--ink2)}
+  .sub-tabs.open .sub-tab.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:700}
+
+  /* —— 落地内容：区段标题「一上一下」——标题在上、副标在下，不再左右挤压 —— */
+  .sect{flex-direction:column;align-items:flex-start;gap:2px;margin:16px 0 8px}
+  .sect .sub{font-size:12px;line-height:1.55}
 
   /* —— 定价下拉在移动端不用（底部栏 + 吸顶子标签已覆盖切换） —— */
   .nav-caret, .nav-drop::after{display:none}
@@ -788,7 +804,8 @@ const SK = (() => {
     const m = location.hash.replace(/^#\/?/, '').split('/');
     route.board = m[0] || 'dash'; route.sub = m[1] || null;
   }
-  function nav(board, sub) { moreOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
+  let subnavOpen = false;
+  function nav(board, sub) { moreOpen = false; subnavOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
 
   /* ---------- 数据绑定 ---------- */
   function setPath(obj, path, val) {
@@ -853,7 +870,14 @@ const SK = (() => {
     const m = boardById(route.board);
     if (!m || !m.subnav || !m.subnav.length) { el.innerHTML = ''; return; }
     if (!route.sub || !m.subnav.some(s => s.id === route.sub)) route.sub = m.subnav[0].id;
-    el.innerHTML = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+    const idx = Math.max(0, m.subnav.findIndex(s => s.id === route.sub)), cur = m.subnav[idx];
+    const chips = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+    // 桌面：胶囊 tab 一排(.sub-tabs)；手机/平板：下拉选择器(.sub-picker)展开同一批 tab——不横滑藏页、与底部一级栏区分
+    el.innerHTML =
+      `<button class="sub-picker" data-act="ui.subnav-toggle" aria-expanded="${subnavOpen ? 'true' : 'false'}">
+        <span class="sp-cur">${cur.label}</span><span class="sp-meta">${idx + 1}/${m.subnav.length}</span><span class="sp-car">▾</span>
+      </button>
+      <div class="sub-tabs ${subnavOpen ? 'open' : ''}">${chips}</div>`;
   }
   /* ---------- 手机 / 平板：底部标签栏 + 「更多」抽屉 ---------- */
   const BN_PRIMARY = 4;                                   // 底部常驻前 4 个板块，其余进「更多」
@@ -892,6 +916,7 @@ const SK = (() => {
   function render() {
     SK.xReset();
     parseHash();
+    subnavOpen = false;                                  // 任何整页渲染(含前进/后退)都收起二级下拉
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
     renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
@@ -954,6 +979,7 @@ const SK = (() => {
     'ui.nav': d => nav(d.board, d.sub || null),
     'ui.more': () => { moreOpen = !moreOpen; renderMoresheet(); renderBottomnav(); },
     'ui.more-close': () => { moreOpen = false; renderMoresheet(); renderBottomnav(); },
+    'ui.subnav-toggle': () => { subnavOpen = !subnavOpen; renderSubnav(); },
     'ui.theme': () => {
       const seq = ['auto', 'light', 'dark'];
       SK.DB.ui.theme = seq[(seq.indexOf(SK.DB.ui.theme || 'auto') + 1) % 3];
@@ -978,6 +1004,7 @@ const SK = (() => {
       if (pal) { const it = palItems[+pal.dataset.pal]; closePalette(); it && it.run(); return; }
       if (ev.target.id === 'palette') { closePalette(); return; }
       if (ev.target.id === 'modal-root') { closeModal(); return; }
+      if (subnavOpen && !ev.target.closest('#subnav')) { subnavOpen = false; renderSubnav(); }  // 点外部收起二级下拉
       const el = ev.target.closest('[data-act]');
       if (!el) return;
       const fn = SK.actions[el.dataset.act];

@@ -62,7 +62,8 @@
     const m = location.hash.replace(/^#\/?/, '').split('/');
     route.board = m[0] || 'dash'; route.sub = m[1] || null;
   }
-  function nav(board, sub) { moreOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
+  let subnavOpen = false;
+  function nav(board, sub) { moreOpen = false; subnavOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
 
   /* ---------- 数据绑定 ---------- */
   function setPath(obj, path, val) {
@@ -127,7 +128,14 @@
     const m = boardById(route.board);
     if (!m || !m.subnav || !m.subnav.length) { el.innerHTML = ''; return; }
     if (!route.sub || !m.subnav.some(s => s.id === route.sub)) route.sub = m.subnav[0].id;
-    el.innerHTML = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+    const idx = Math.max(0, m.subnav.findIndex(s => s.id === route.sub)), cur = m.subnav[idx];
+    const chips = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+    // 桌面：胶囊 tab 一排(.sub-tabs)；手机/平板：下拉选择器(.sub-picker)展开同一批 tab——不横滑藏页、与底部一级栏区分
+    el.innerHTML =
+      `<button class="sub-picker" data-act="ui.subnav-toggle" aria-expanded="${subnavOpen ? 'true' : 'false'}">
+        <span class="sp-cur">${cur.label}</span><span class="sp-meta">${idx + 1}/${m.subnav.length}</span><span class="sp-car">▾</span>
+      </button>
+      <div class="sub-tabs ${subnavOpen ? 'open' : ''}">${chips}</div>`;
   }
   /* ---------- 手机 / 平板：底部标签栏 + 「更多」抽屉 ---------- */
   const BN_PRIMARY = 4;                                   // 底部常驻前 4 个板块，其余进「更多」
@@ -166,6 +174,7 @@
   function render() {
     SK.xReset();
     parseHash();
+    subnavOpen = false;                                  // 任何整页渲染(含前进/后退)都收起二级下拉
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
     renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
@@ -228,6 +237,7 @@
     'ui.nav': d => nav(d.board, d.sub || null),
     'ui.more': () => { moreOpen = !moreOpen; renderMoresheet(); renderBottomnav(); },
     'ui.more-close': () => { moreOpen = false; renderMoresheet(); renderBottomnav(); },
+    'ui.subnav-toggle': () => { subnavOpen = !subnavOpen; renderSubnav(); },
     'ui.theme': () => {
       const seq = ['auto', 'light', 'dark'];
       SK.DB.ui.theme = seq[(seq.indexOf(SK.DB.ui.theme || 'auto') + 1) % 3];
@@ -252,6 +262,7 @@
       if (pal) { const it = palItems[+pal.dataset.pal]; closePalette(); it && it.run(); return; }
       if (ev.target.id === 'palette') { closePalette(); return; }
       if (ev.target.id === 'modal-root') { closeModal(); return; }
+      if (subnavOpen && !ev.target.closest('#subnav')) { subnavOpen = false; renderSubnav(); }  // 点外部收起二级下拉
       const el = ev.target.closest('[data-act]');
       if (!el) return;
       const fn = SK.actions[el.dataset.act];
