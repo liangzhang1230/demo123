@@ -19,6 +19,7 @@ const suites = [
   ['C5 定价器接入验收', 'c5.test.mjs'],
   ['C6 真相层验收', 'c6.test.mjs'],
   ['C7 育人层验收', 'c7.test.mjs'],
+  ['C8 信用层验收', 'c8.test.mjs'],
 ];
 let bad = 0;
 for (const [name, file] of suites) {

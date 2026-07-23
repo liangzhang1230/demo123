@@ -383,7 +383,8 @@ create table if not exists ledger_entries (
   primary key (tenant_id, id)
 );
 
--- #24 ObjectionEntry → objection_entries（通道A；pending>7天负面标记失效在应用层/日切）
+-- #24 ObjectionEntry → objection_entries（通道A；pending>7天 → mark_active=false 负面标记失效
+--     ——L-D6 默认保护员工，惰性 sweep 在应用层 m30.sweepObjections）
 create table if not exists objection_entries (
   tenant_id   uuid not null references tenants(id) on delete cascade,
   id          text not null,                                        -- objId
@@ -393,6 +394,7 @@ create table if not exists objection_entries (
   reason      text,
   note        text,
   status      text not null default 'pending' check (status in ('pending','accepted','upheld','recheck')),          -- LE-02
+  mark_active boolean not null default true,                        -- 关联负面标记是否仍有效（sweep 置 false）
   resolved_at timestamptz,
   created_by uuid, updated_by uuid,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), deleted_at timestamptz,
@@ -443,18 +445,30 @@ create table if not exists menu_choices (
   primary key (tenant_id, id)
 );
 
--- #28 OverrideEvent → override_events（面试推翻；🔴 仅由推荐≠终决自动生成，零手工）
+-- #28 OverrideEvent → override_events（双形实体，形状互斥 CHECK）：
+--   A 形＝面试推翻（2号 ZE-10；🔴 仅由推荐≠终决自动生成，零手工）
+--   B 形＝治理留痕（4号 G3：try_downgrade M28 拦截 / force_dividend_risk_ack 分红强启——
+--     🔴 L-D1：尝试下调即留痕 + AHC 扣分 + 全员可见（visible_to_all 恒 true））
 create table if not exists override_events (
   tenant_id        uuid not null references tenants(id) on delete cascade,
   id               text not null,                                   -- ovId
-  interviewer_name text not null,
-  cand_id          text not null,
-  direction        text not null check (direction in ('hire_against','reject_against')),  -- ZE-10
-  system_recommend text not null check (system_recommend in ('hire','reject')),
+  interviewer_name text,                                            -- A 形必填
+  cand_id          text,                                            -- A 形必填
+  direction        text check (direction in ('hire_against','reject_against')),  -- ZE-10
+  system_recommend text check (system_recommend in ('hire','reject')),
   event_date       date,
+  action           text check (action in ('try_downgrade','force_dividend_risk_ack')),  -- B 形必填
+  m28_id           text,                                            -- B 形：被拦截的 M28 协议
+  note             text,
+  visible_to_all   boolean not null default true,                   -- 🔴 B 形留痕全员可见
   created_by uuid, updated_by uuid,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(), deleted_at timestamptz,
-  primary key (tenant_id, id)
+  primary key (tenant_id, id),
+  constraint override_events_shape_ck check (
+    (interviewer_name is not null and cand_id is not null and direction is not null
+      and system_recommend is not null and action is null)
+    or (action is not null and interviewer_name is null and cand_id is null
+      and direction is null and system_recommend is null))
 );
 
 -- #29 Experiment → experiments（M31 系数实验；🔴 分组=按 M21 归一化历史分层随机，老板不能手选——应用层）
@@ -788,3 +802,12 @@ end $$;
 drop trigger if exists trg_ledger_guard on ledger_entries;
 create trigger trg_ledger_guard
   before update or delete on ledger_entries for each row execute function ledger_guard();
+
+-- G4 · handover_cards：🔴 无删除路径（L-D12：交接卡只可标记完成/指派 receiver，不可删）
+create or replace function handover_guard() returns trigger language plpgsql as $$
+begin
+  raise exception 'handover_cards: DELETE has no success path (L-D12 只可标记完成)';
+end $$;
+drop trigger if exists trg_handover_guard on handover_cards;
+create trigger trg_handover_guard
+  before delete on handover_cards for each row execute function handover_guard();
