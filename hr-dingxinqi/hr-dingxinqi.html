@@ -359,11 +359,11 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
           <label>成交周期</label>
           <div class="hint">周期越长，底薪占比应该越高，否则人熬不到开单就走了。</div>
           <div class="segs" data-seg="cycle">
-            <div class="seg" data-v="short">快消(1-3月)</div>
-            <div class="seg" data-v="regular">普通(3-6月)</div>
-            <div class="seg" data-v="midLong">中长(6-9月)</div>
-            <div class="seg" data-v="long">大客户(9-15月)</div>
-            <div class="seg" data-v="ultraLong">项目制(15月+)</div>
+            <div class="seg" data-v="short">短期(≤30天)</div>
+            <div class="seg" data-v="regular">常规(1-3月)</div>
+            <div class="seg" data-v="midLong">中长(4-6月)</div>
+            <div class="seg" data-v="long">长期(7-12月)</div>
+            <div class="seg" data-v="ultraLong">超长(>12月)</div>
           </div>
         </div>
         <div class="field">
@@ -567,7 +567,8 @@ var RAMP={
   long:[0,0,0,5,10,18,27,36,45,54,62,70],
   ultraLong:[0,0,0,0,5,10,16,23,30,37,44,50]
 };
-var SOCIAL=0.30;                 // 五险一金及杂费近似（占工资）
+var SOCIAL=0.30;                 // 五险一金及杂费近似（企业版口径：只计在底薪上）
+var LTR=0.10;                    // 长期/年度激励占达标收入比（企业版 longTermRate）
 var ATTAIN_MID=0.47;             // 行业达标率中位（企业版 globalAttainRate 0.43–0.51 取中）
 var ATTAIN_LO=0.43, ATTAIN_HI=0.51;
 var RECRUIT_FEE=5000;            // 单次招聘费默认（元）
@@ -575,7 +576,7 @@ var TURNOVER_X=[1.5,2.0];        // 流失重置成本 ≈ 1.5–2 × 月度 OTE
 var LEVEL_MAP={s1:['sales',1],s2:['sales',2],s3:['sales',3],m:['manager',2],e:['executive',2]};
 var LEVEL_CN={s1:'销售·初级',s2:'销售·中级',s3:'销售·高级',m:'销售主管',e:'总监/高管'};
 var CITY_CN={tier1:'一线',tier2:'二线/新一线',tier34:'三四线'};
-var CYCLE_CN={short:'快消(1-3月)',regular:'普通(3-6月)',midLong:'中长(6-9月)',long:'大客户(9-15月)',ultraLong:'项目制(15月+)'};
+var CYCLE_CN={short:'短期(≤30天)',regular:'常规(1-3月)',midLong:'中长(4-6月)',long:'长期(7-12月)',ultraLong:'超长(>12月)'};
 var BASIS_CN={hk:'回款',ml:'毛利',bj:'标价/GMV'};
 var GRADE_CN=['预警线','初级达标','中级达标','高级达标'];
 
@@ -619,10 +620,13 @@ function computePost(o){
   R.baseRef=r100(CITY_BASE[o.city]*LV_MULT[lm[0]][lm[1]]*(CYCLE_F[o.cycle]||1.15)*leadUp);
   R.leadFactor=0.4+0.6*parseFloat(o.lead);
 
-  // 三档等价方案：同一 OTE，不同固浮比
+  // 三档等价方案：同一 OTE，不同固浮比。
+  // 企业版口径：达标收入 T = 底薪 B + 月度提成 gap + 长期激励 long，其中 long = T×10%（longTermRate），
+  // 月度提成 gap = T×90% − B；社保负担只计在底薪上（fullNum = B×(1+social)+gap+long）。
   function mkPlan(key,cn,base,fit){
     base=r100(clamp(base, R.minWage, R.ote*0.85));
-    var commT=Math.max(0,R.ote-base);                   // 达标月提成额
+    var longAmt=Math.round(R.ote*LTR);                       // 长期/年度激励（月折算）
+    var commT=Math.max(0,Math.round(R.ote*(1-LTR))-base);    // 达标月提成额（企业版 gapAmt）
     var perDeal=safeDiv(commT,o.deals);
     var rate=null, rateShow='—';
     if(perDeal!=null&&o.aov>0){
@@ -630,11 +634,11 @@ function computePost(o){
       else{ rate=perDeal/o.aov*100; }
       rateShow=pctf(rate, rate<10?1:0);
     }
-    // 公司年成本（现实口径：底薪全付 + 提成按行业达标率中位兑付，均含社保负担）
-    var annual=(base*12+commT*12*ATTAIN_MID)*(1+SOCIAL);
-    var annualHi=(base*12+commT*12)*(1+SOCIAL);          // 满产上限
-    return {key:key,cn:cn,base:base,commT:commT,perDeal:perDeal,rate:rate,rateShow:rateShow,
-      fixShare:base/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
+    // 公司年成本：底薪全付含社保 + 浮动（提成+长期）按行业达标率中位兑付
+    var annual=base*12*(1+SOCIAL)+(commT+longAmt)*12*ATTAIN_MID;
+    var annualHi=base*12*(1+SOCIAL)+(commT+longAmt)*12;      // 满产上限
+    return {key:key,cn:cn,base:base,commT:commT,longAmt:longAmt,perDeal:perDeal,rate:rate,rateShow:rateShow,
+      fixShare:base/R.ote*100,floatShare:(commT+longAmt)/R.ote*100,annual:annual,annualHi:annualHi,fit:fit};
   }
   R.plans={
     cons:  mkPlan('cons','稳健型', R.baseRef*1.15,'成交周期长 / 想留住人 / 候选人看重安全感'),
@@ -647,13 +651,15 @@ function computePost(o){
   R.gradeIdx=lm[1];
   R.basePos = safeDiv(P.base-arr[0], arr[3]-arr[0]);     // 仅作刻度参考
 
-  // 员工前 12 月到手（含爬坡×线索折减；试用期 80% 但不低于最低工资）
-  R.flow=[]; R.dryMonths=0;
+  // 员工前 12 月到手（含爬坡×线索折减；试用期 80% 但不低于最低工资；长期激励年度发放，不计入月到手）
+  R.flow=[]; R.costFlow=[]; R.dryMonths=0;
   var ramp=RAMP[o.cycle]||RAMP.regular;
   for(var m=1;m<=12;m++){
     var b=(m<=o.prob)?Math.max(P.base*0.8,R.minWage):P.base;
-    var take=b+P.commT*(ramp[m-1]/100)*R.leadFactor;
+    var rp=(ramp[m-1]/100)*R.leadFactor;
+    var take=b+P.commT*rp;
     R.flow.push(take);
+    R.costFlow.push(b*(1+SOCIAL)+(P.commT+P.longAmt)*rp);   // 公司口径：社保只计底薪，长期激励计提
     if(take<R.minWage*1.2) R.dryMonths++;
   }
   // 公司毛利回本点：第 N 月毛利 ≥ 当月人力成本
@@ -661,20 +667,26 @@ function computePost(o){
   if(o.aov>0&&o.deals>0&&o.margin>0){
     for(var m2=1;m2<=12;m2++){
       var gp=o.aov*o.deals*(ramp[m2-1]/100)*R.leadFactor*(o.margin/100);
-      var cost=R.flow[m2-1]*(1+SOCIAL);
-      if(gp>=cost){ R.breakeven=m2; break; }
+      if(gp>=R.costFlow[m2-1]){ R.breakeven=m2; break; }
     }
   }
 
-  // 成本账（年）
-  var commPaid=P.commT*12*ATTAIN_MID;
-  R.ledger={ base:P.base*12, comm:commPaid, social:(P.base*12+commPaid)*SOCIAL, recruit:RECRUIT_FEE };
-  R.ledger.total=R.ledger.base+R.ledger.comm+R.ledger.social+R.ledger.recruit;
-  R.attritionCost=[R.ote*TURNOVER_X[0]*(CYCLE_F[o.cycle]||1.15), R.ote*TURNOVER_X[1]*(CYCLE_F[o.cycle]||1.15)];
+  // 成本账（年）——社保只计底薪（企业版口径）
+  var commPaid=P.commT*12*ATTAIN_MID, longPaid=P.longAmt*12*ATTAIN_MID;
+  R.ledger={ base:P.base*12, comm:commPaid, longPay:longPaid, social:P.base*12*SOCIAL, recruit:RECRUIT_FEE };
+  R.ledger.total=R.ledger.base+R.ledger.comm+R.ledger.longPay+R.ledger.social+R.ledger.recruit;
+  // 流失重置成本（企业版口径：1.5–2 × 年度达标收入，含空窗+爬坡产能损失+重招费）
+  R.attritionCost=[R.ote*12*TURNOVER_X[0], R.ote*12*TURNOVER_X[1]];
 
-  // ===== 红线 / 提醒 =====
+  // ===== 红线 / 提醒（对齐企业版账单A六道闸：W-01/02/03/04/29；W-05/06 负担率需全司目标，单岗位不适用） =====
   var G=R.gates;
+  var blocked=P.base>=Math.round(R.ote*(1-LTR));
+  var Bwarn=r100(CITY_BASE[o.city]*LV_MULT[lm[0]][0]*(CYCLE_F[o.cycle]||1.15));
   if(P.base<R.minWage) G.push(['red','⛔','<b>底薪低于最低工资</b>：'+yuan(P.base)+' < 当地参考下限 '+yuan(R.minWage)+'，直接违法风险，必须调高。']);
+  if(o.margin>0&&o.margin<20) G.push(['red','⛔','<b>毛利率过低</b>：综合毛利 '+o.margin+'% 低于 20% 警戒线——提成没肉、养销售队伍大概率亏钱。先解决定价/成本，再谈定薪。']);
+  if(blocked) G.push(['red','⛔','<b>底薪挤死浮动空间</b>：底薪 ≥ 达标收入的 90%，提成无从谈起，这不是销售岗的结构。']);
+  if(P.base<Bwarn) G.push(['red','⛔','<b>底薪低于预警档</b>：该城市该层级预警档参考底薪约 '+yuan(Bwarn)+'，再往下招到的多半是「没得选的人」。']);
+  if(P.floatShare>=65) G.push(['amber','⚠️','<b>浮动占比过高</b>：浮动部分占达标收入 '+pctf(P.floatShare,0)+'（≥65%），饥饿游戏结构——短期冲单猛，人留不住、动作变形。']);
   if(P.base<R.baseRef*0.7) G.push(['amber','⚠️','<b>底薪偏低难招人</b>：低于该城市该档参考底薪（约 '+yuan(R.baseRef)+'）的七成，候选人大概率拿去比价后放弃。']);
   if(P.base>R.ote*0.7) G.push(['amber','⚠️','<b>固浮比失衡</b>：底薪占达标收入 '+pctf(P.fixShare,0)+'，超过 70% 容易养出「躺平单」，建议压回 40%–65%。']);
   if(o.commBase==='ml'&&o.margin<30&&P.rate!=null) G.push(['amber','⚠️','<b>按毛利提成要讲清楚</b>：名义 '+P.rateShow+' 提成按 '+o.margin+'% 毛利折算，只相当于回款的 '+pctf(P.rate*o.margin/100,1)+'。入职前不说清，三个月后必闹矛盾。']);
@@ -751,10 +763,10 @@ function renderPlan(){
     '<div class="kpi"><div class="k">达标月提成额</div><div class="v">'+yuan(P.commT)+'</div></div>'+
     '<div class="kpi"><div class="k">建议提成率 · 按'+esc(BASIS_CN[o.commBase])+'</div><div class="v">'+P.rateShow+'</div></div>'+
     '<div class="kpi"><div class="k">达标月收入 OTE</div><div class="v">'+yuan(R.ote)+'</div></div>'+
+    '<div class="kpi"><div class="k">长期/年度激励（月折算）</div><div class="v">'+yuan(P.longAmt)+'</div></div>'+
     '<div class="kpi"><div class="k">固浮比（底薪占比）</div><div class="v">'+pctf(P.fixShare,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">单笔达标提成</div><div class="v">'+yuan(P.perDeal)+'</div></div>'+
     '</div>'+
-    '<div class="note" style="margin-top:12px"><b>口径。</b>达标月收入取自企业版「城市×档位达标收入表」；提成率由（达标收入−底薪）÷ 月目标单量 ÷ 客单价反推，'+(o.commBase==='ml'?'已按 '+o.margin+'% 毛利折算。':'按'+BASIS_CN[o.commBase]+'计。')+'行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现。仅供参考。</div></div>';
+    '<div class="note" style="margin-top:12px"><b>口径（对齐企业版定薪系统）。</b>达标月收入取自「城市×档位达标收入表」，其中 <b>90%</b> 由底薪+月度提成构成、<b>10%</b> 预留为长期/年度激励（留人钱，年度或季度兑付）；提成率由（90%×达标收入−底薪）÷ 月目标单量 ÷ 客单价反推，'+(o.commBase==='ml'?'已按 '+o.margin+'% 毛利折算；':'按'+BASIS_CN[o.commBase]+'计；')+'单笔达标提成约 '+yuan(P.perDeal)+'。社保负担只计在底薪上（约 '+Math.round(SOCIAL*100)+'%）；行业达标率中位约 '+Math.round(ATTAIN_MID*100)+'%（区间 '+Math.round(ATTAIN_LO*100)+'–'+Math.round(ATTAIN_HI*100)+'%），成本账按此折现'+(parseFloat(o.lead)===0?'；纯自拓岗位参考底薪已上浮 8%（本工具补偿系数，企业版无）':'')+'。仅供参考。</div></div>';
 
   // B. 三档方案
   h+='<div class="card"><div class="sec-h"><span class="n">B</span>三档等价方案 · 同一达标收入，不同风险分配 · 点选</div><div class="menu">';
@@ -784,11 +796,12 @@ function renderPlan(){
   var L=R.ledger;
   h+='<div class="card"><div class="sec-h"><span class="n">E</span>成本账 · 拿去跟老板汇报</div><table class="ledger">'+
     '<tr><td>底薪 × 12</td><td>'+yuan(L.base)+'</td></tr>'+
-    '<tr><td>提成（按行业达标率 '+Math.round(ATTAIN_MID*100)+'% 折现）</td><td>'+yuan(L.comm)+'</td></tr>'+
-    '<tr><td>社保公积金等（约 '+Math.round(SOCIAL*100)+'%）</td><td>'+yuan(L.social)+'</td></tr>'+
-    '<tr><td>招聘费（可在设置改）</td><td>'+yuan(L.recruit)+'</td></tr>'+
+    '<tr><td>月度提成（按行业达标率 '+Math.round(ATTAIN_MID*100)+'% 折现）</td><td>'+yuan(L.comm)+'</td></tr>'+
+    '<tr><td>长期/年度激励（同口径折现）</td><td>'+yuan(L.longPay)+'</td></tr>'+
+    '<tr><td>社保公积金等（只计底薪，约 '+Math.round(SOCIAL*100)+'%）</td><td>'+yuan(L.social)+'</td></tr>'+
+    '<tr><td>招聘费（参考值）</td><td>'+yuan(L.recruit)+'</td></tr>'+
     '<tr class="sum"><td>首年总成本</td><td>'+yuan(L.total)+'</td></tr></table>'+
-    '<div class="dim" style="margin-top:9px">⚑ 若 6 个月内流失重招：一次损失约 <b style="color:var(--red)">'+wan(R.attritionCost[0])+' – '+wan(R.attritionCost[1])+'</b>（重置成本≈1.5–2 × 月度达标收入 × 周期系数）。定薪别只压成本，流失才是最贵的。</div></div>';
+    '<div class="dim" style="margin-top:9px">⚑ 招错人/干半年就走的代价（企业版口径）：约 <b style="color:var(--red)">'+wan(R.attritionCost[0])+' – '+wan(R.attritionCost[1])+'</b>（≈1.5–2 × 年度达标收入，含空窗期、爬坡期产能损失与重招费用）。定薪别只压成本，流失才是最贵的。</div></div>';
 
   // F. 对标
   var arr=R.benchArr;
@@ -811,8 +824,8 @@ function offerDocHTML(o,R,forPrint){
   var post=val('ofPost')||o.name||(LEVEL_CN[o.level]);
   var scen=[
     ['保守（达标 50%）', P.base+P.commT*0.5],
-    ['标准（达标 100%）', R.ote],
-    ['超额（达标 120%）', P.base+P.commT*1.2]
+    ['标准（达标 100%，含长期激励折算）', R.ote],
+    ['超额（达标 120%）', P.base+P.commT*1.2+P.longAmt]
   ];
   var probBase=Math.max(P.base*0.8,R.minWage);
   return '<div class="doc">'+
@@ -825,6 +838,7 @@ function offerDocHTML(o,R,forPrint){
     '<tr><th>提成</th><td class="sc">按'+esc(BASIS_CN[o.commBase])+'的 '+P.rateShow+
       (o.commBase==='ml'?'（即毛利提成；折算回款口径约 '+pctf((P.rate||0)*o.margin/100,1)+'）':'')+
       '；月目标 '+o.deals+' 单 × 客单 '+yuan(o.aov)+'</td></tr>'+
+    '<tr><th>长期激励</th><td class="sc">达标另设长期/年度激励约 '+yuan(P.longAmt*12)+' / 年（≈达标收入的 '+Math.round(LTR*100)+'%，兑付节奏与条件以合同为准）</td></tr>'+
     '<tr><th>收入测算</th><td class="sc">'+scen.map(function(s){return s[0]+'：'+yuan(s[1])+'/月';}).join('<br>')+'</td></tr>'+
     '<tr><th>发放说明</th><td>底薪按月发放；提成核算与发放时点、离职结算规则以劳动合同及附件为准</td></tr>'+
     '</table>'+
