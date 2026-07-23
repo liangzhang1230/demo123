@@ -91,6 +91,10 @@ create table if not exists action_cards (
   updated_at  timestamptz not null default now()
 );
 create index if not exists ac_tenant_idx on action_cards(tenant_id, state);
+-- 🔴 防疲劳去重的原子兜底（修复 cardBus TOCTOU）：同租户同 dedupKey 至多一张「活跃」卡。
+--    活跃 = state 未终结（done/filled 除外）。卡完结或冷却期后可合法重插，故用部分唯一索引而非全量唯一。
+create unique index if not exists ac_dedup_active on action_cards (tenant_id, (payload->>'dedupKey'))
+  where payload->>'dedupKey' is not null and state not in ('done','filled');
 
 -- ---------- 推送与审计 ----------
 create table if not exists push_log (
@@ -233,12 +237,17 @@ end $$;
 
 create or replace function join_tenant(invite_code text, member_email text default null)
 returns uuid language plpgsql security definer set search_path = public as $$
-declare inv invites%rowtype;
+declare inv invites%rowtype; used int; quota int;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
   if exists(select 1 from members where user_id = auth.uid()) then raise exception 'already in a tenant'; end if;
   select * into inv from invites where code = upper(invite_code) and used_by is null and expires_at > now() for update;
   if not found then raise exception 'invalid or expired invite'; end if;
+  -- 🔴 席位配额兑现侧硬校验（修复缺陷：发码不占席位，唯一可靠的关卡在兑现侧）。
+  --    锁订阅行 → 串行化同租户并发 join，杜绝 TOCTOU 超卖。
+  select seat_quota into quota from subscriptions where tenant_id = inv.tenant_id for update;
+  select count(*) into used from seats where tenant_id = inv.tenant_id and released_at is null;
+  if used >= quota then raise exception 'seat quota exceeded'; end if;
   insert into members(user_id, tenant_id, role, email) values (auth.uid(), inv.tenant_id, inv.role, member_email);
   insert into seats(tenant_id, user_id) values (inv.tenant_id, auth.uid());
   update invites set used_by = auth.uid() where code = inv.code;

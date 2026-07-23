@@ -88,17 +88,26 @@ export async function insertCard(db, ctx, {
   const trail = [{ at: ctx.today, by: ctx.actorId, action: 'created', state: 'pending' }];
 
   let cardId = null;
-  await db.transaction(async tx => {                     // 表行 + 事件同一事务（双写）
-    const r = await tx.query(
-      `insert into action_cards(tenant_id, kind, state, target_id, payload, assigned_to, trail)
-       values ($1,$2,'pending',$3,$4,$5,$6) returning card_id`,
-      [ctx.tenantId, kind, targetId, JSON.stringify(fullPayload), assignedTo, JSON.stringify(trail)]);
-    cardId = Number(r.rows[0].card_id);
-    await tx.query(
-      `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
-      [ctx.tenantId, eventType, ctx.actorId, String(cardId),
-       JSON.stringify({ cardId, kind, targetId, ...fullPayload })]);
-  });
+  try {
+    await db.transaction(async tx => {                   // 表行 + 事件同一事务（双写）
+      const r = await tx.query(
+        `insert into action_cards(tenant_id, kind, state, target_id, payload, assigned_to, trail)
+         values ($1,$2,'pending',$3,$4,$5,$6) returning card_id`,
+        [ctx.tenantId, kind, targetId, JSON.stringify(fullPayload), assignedTo, JSON.stringify(trail)]);
+      cardId = Number(r.rows[0].card_id);
+      await tx.query(
+        `insert into event_stream(tenant_id, type, actor_id, target_id, payload) values ($1,$2,$3,$4,$5)`,
+        [ctx.tenantId, eventType, ctx.actorId, String(cardId),
+         JSON.stringify({ cardId, kind, targetId, ...fullPayload })]);
+    });
+  } catch (e) {
+    // 🔴 并发去重兜底：ac_dedup_active 唯一索引冲突 = 同 dedupKey 已有活跃卡先落库 → 按去重跳过。
+    //    弥补 check-then-act 的 TOCTOU 窗口（SELECT 查重与 INSERT 之间的并发穿插）。
+    if (dedupKey != null && /unique|duplicate key|ac_dedup_active/i.test(e.message)) {
+      return { skipped: 'dedup_race' };
+    }
+    throw e;
+  }
   return { cardId, folded, level };
 }
 
