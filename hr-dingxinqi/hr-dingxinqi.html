@@ -203,6 +203,24 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
 .cmp th{color:var(--faint);font-size:11px;font-weight:600}
 .win{color:var(--green);font-weight:700}
 
+/* 档位实算表 */
+.tierlab{font-size:13px;font-weight:700;color:var(--ink);margin:6px 0 2px}
+.tierlab .lh{font-weight:400;color:var(--faint);font-size:11.5px}
+.gtbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gtbl table{width:100%;border-collapse:collapse;font-size:13px;min-width:340px}
+.gtbl th,.gtbl td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.gtbl th:first-child,.gtbl td:first-child,.gtbl th:last-child,.gtbl td:last-child{text-align:left;white-space:normal}
+.gtbl th{font-size:10.5px;color:var(--faint);font-weight:600;letter-spacing:.03em;text-transform:none}
+.gtbl td.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.gtbl .grow{cursor:pointer;transition:background .12s}
+.gtbl .grow:hover{background:var(--card2)}
+.gtbl .grow.on{background:var(--brand-soft);box-shadow:inset 3px 0 0 var(--brand)}
+.gtbl .grow.on td:first-child b{color:var(--brand)}
+.gtbl .grow td:first-child b{font-size:13.5px}
+.gtbl .grow .gt{color:var(--faint);font-weight:400;font-size:11.5px;margin-left:2px}
+.gtbl .grow .gd{color:var(--mute);font-size:11.5px;max-width:230px;line-height:1.45;font-weight:400}
+.gtbl .grow.on td:first-child::after{content:"✓ 已选";color:var(--brand);font-size:11px;font-weight:700;margin-left:7px;white-space:nowrap}
+
 /* 折叠 */
 .acc{border:1px solid var(--line);border-radius:14px;margin:12px 0;overflow:hidden;background:var(--card)}
 .acc>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px}
@@ -333,11 +351,12 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
 
       <div class="summary" id="miniSum"></div>
 
+      <!-- 第一步：城市 + 成交周期（用户看得懂的两个输入） -->
       <div class="card">
-        <div class="sec-h"><span class="n">1</span>基本盘（30 秒）</div>
+        <div class="sec-h"><span class="n">1</span>定薪基准 · 城市 + 成交周期</div>
         <div class="cols2">
         <div class="field">
-          <label>城市</label>
+          <label>城市线级</label>
           <div class="segs" data-seg="city">
             <div class="seg" data-v="tier1">一线</div>
             <div class="seg" data-v="tier2">二线/新一线</div>
@@ -345,39 +364,47 @@ p.lead{color:var(--lead);font-size:14.5px;margin:0 0 14px}
           </div>
         </div>
         <div class="field">
-          <label>岗位档位</label>
-          <div class="hint">取「该城市该档达标月收入」做基准。</div>
-          <div class="segs" data-seg="level">
-            <div class="seg" data-v="s1">销售·初级</div>
-            <div class="seg" data-v="s2">销售·中级</div>
-            <div class="seg" data-v="s3">销售·高级</div>
-            <div class="seg" data-v="m">销售主管</div>
-            <div class="seg" data-v="e">总监/高管</div>
-          </div>
-        </div>
-        <div class="field mgr-only" style="display:none">
-          <label>主管 / 高管层级</label>
-          <div class="hint">管理层单独定档（对齐企业版），默认「有效」。<b>有效</b>=能独立带队达标；<b>高效</b>=持续超额；<b>领先</b>=标杆。</div>
-          <div class="segs" data-seg="mgrGrade">
-            <div class="seg" data-v="1">有效</div>
-            <div class="seg" data-v="2">高效</div>
-            <div class="seg" data-v="3">领先</div>
-          </div>
-        </div>
-        <div class="field">
           <label>成交周期</label>
-          <div class="hint">周期越长，底薪占比应该越高，否则人熬不到开单就走了。</div>
+          <div class="hint">周期越长，底薪越厚（噪音越大、底薪保险越高）；达标月收入只随城市与档位变。</div>
           <div class="segs" data-seg="cycle">
-            <div class="seg" data-v="short">短期(≤30天)</div>
-            <div class="seg" data-v="regular">常规(1-3月)</div>
-            <div class="seg" data-v="midLong">中长(4-6月)</div>
-            <div class="seg" data-v="long">长期(7-12月)</div>
-            <div class="seg" data-v="ultraLong">超长(>12月)</div>
+            <div class="seg" data-v="short">短期≤30天</div>
+            <div class="seg" data-v="regular">常规1-3月</div>
+            <div class="seg" data-v="midLong">中长4-6月</div>
+            <div class="seg" data-v="long">长期7-12月</div>
+            <div class="seg" data-v="ultraLong">超长>12月</div>
           </div>
         </div>
+        </div>
+      </div>
+
+      <!-- 第二步：选档（实算底薪/达标，把"有效/高效/领先"翻成真实数字） -->
+      <div class="card">
+        <div class="sec-h"><span class="n">2</span>选档位 · <span id="basisCityCyc" class="dim" style="text-transform:none;letter-spacing:0"></span></div>
+        <div class="dim" style="margin:2px 0 8px">下面都是当前城市·周期<b>实算</b>的底薪 / 达标月收入。点一行即选定。</div>
+        <div class="tierlab">① 一线销售 · 三档 <span class="lh">（初级=有效 / 中级=高效 / 高级=领先，指同一销售的薪资水平）</span></div>
+        <div class="gtbl" id="salesGradeTbl"></div>
+
+        <details class="acc" id="mgrAcc" style="margin-top:12px">
+          <summary>② 主管 / 高管 <span class="lh" style="font-weight:400;color:var(--faint);font-size:12px">（管理层单独定档，点此展开）</span> <span class="chev">▾</span></summary>
+          <div class="body">
+            <div class="dim" style="margin-bottom:8px"><b>主管、高管本身就是层级</b>；下面的「有效 / 高效 / 领先」指的是<b>这个主管（或高管）的薪资水平</b>。选一个薪资水平，再点主管或高管那一行。</div>
+            <div class="segs" data-seg="mgrGrade" style="margin-bottom:8px">
+              <div class="seg" data-v="1">有效（标准）</div>
+              <div class="seg" data-v="2">高效</div>
+              <div class="seg" data-v="3">领先</div>
+            </div>
+            <div class="gtbl" id="mgrGradeTbl"></div>
+          </div>
+        </details>
+      </div>
+
+      <!-- 第三步：这个岗位的业务盘子 -->
+      <div class="card">
+        <div class="sec-h"><span class="n">3</span>岗位盘子</div>
+        <div class="cols2">
         <div class="field">
           <label>线索从哪来</label>
-          <div class="hint">纯自拓的岗位，爬坡更慢、要价更高。</div>
+          <div class="hint">纯自拓的岗位爬坡更慢（只影响到手现金流测算，不改底薪）。</div>
           <div class="segs" data-seg="lead">
             <div class="seg" data-v="1">公司给</div>
             <div class="seg" data-v="0.5">一半一半</div>
@@ -753,6 +780,40 @@ function bindSegs(){
       SEG[key]=s.getAttribute('data-v'); syncSegs(); recalc();
     });
   });
+  // 档位表：点一行选定（销售三档 / 主管·高管）
+  var st=document.getElementById('salesGradeTbl'), mt=document.getElementById('mgrGradeTbl');
+  if(st) st.addEventListener('click',function(e){ var r=e.target.closest('.grow'); if(!r)return; SEG.level=r.getAttribute('data-lvl'); syncSegs(); recalc(); });
+  if(mt) mt.addEventListener('click',function(e){ var r=e.target.closest('.grow'); if(!r)return; SEG.level=r.getAttribute('data-lvl'); syncSegs(); recalc(); });
+}
+/* 某城市·某周期·某层级·某档 的实算底薪/达标（口径与 computePost 完全一致） */
+function gradeBaseOTE(city,cycle,layer,idx){
+  return { base:Math.round(CITY_BASE[city]*LV_MULT[layer][idx]*(CYCLE_F[cycle]||1.15)), ote:BENCH[city][layer][idx] };
+}
+var SALES_DESC={s1:'能独立签单、稳定达标的常规销售——多数团队按这档定薪',s2:'持续超额、能自己带节奏的骨干',s3:'团队头部标杆，产出明显高于均值'};
+var MGR_DESC={m:'带 5–8 人的一线主管，约三成时间用于管人',e:'定战略、背全盘目标，按 1 人计'};
+function renderGradeTables(){
+  var city=SEG.city, cyc=SEG.cycle;
+  var cc=document.getElementById('basisCityCyc'); if(cc) cc.textContent=CITY_CN[city]+' · '+CYCLE_CN[cyc]+' 实算';
+  // 销售三档
+  var rows=[['s1','初级','有效'],['s2','中级','高效'],['s3','高级','领先']];
+  var h='<table><tr><th>销售档位</th><th>底薪/月</th><th>达标月收入</th><th>这是什么人</th></tr>';
+  rows.forEach(function(r){
+    var idx=LEVEL_MAP[r[0]][1], v=gradeBaseOTE(city,cyc,'sales',idx);
+    h+='<tr class="grow'+(SEG.level===r[0]?' on':'')+'" data-lvl="'+r[0]+'"><td><b>销售·'+r[1]+'</b><span class="gt">（'+r[2]+'）</span></td>'+
+       '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="gd">'+SALES_DESC[r[0]]+'</td></tr>';
+  });
+  h+='</table>';
+  var st=document.getElementById('salesGradeTbl'); if(st) st.innerHTML=h;
+  // 主管/高管：按选定薪资档（mgrGrade）显示两行
+  var gi=parseInt(SEG.mgrGrade||'1',10);
+  var mh='<table><tr><th>层级（'+MGR_GRADE_CN[SEG.mgrGrade||'1']+'档薪资）</th><th>底薪/月</th><th>达标月收入</th><th>说明</th></tr>';
+  [['m','manager','销售主管'],['e','executive','总监/高管']].forEach(function(r){
+    var v=gradeBaseOTE(city,cyc,r[1],gi);
+    mh+='<tr class="grow'+(SEG.level===r[0]?' on':'')+'" data-lvl="'+r[0]+'"><td><b>'+r[2]+'</b></td>'+
+        '<td class="mono">'+yuan(v.base)+'</td><td class="mono">'+yuan(v.ote)+'</td><td class="gd">'+MGR_DESC[r[0]]+'</td></tr>';
+  });
+  mh+='</table>';
+  var mt=document.getElementById('mgrGradeTbl'); if(mt) mt.innerHTML=mh;
 }
 function syncSegs(){
   document.querySelectorAll('[data-seg]').forEach(function(box){
@@ -772,6 +833,8 @@ function rateLabel(o,R){ return R&&R.isMgr ? (o.level==='e'?'团队/公司回款
 
 /* ---------- 渲染：迷你结论 + 实时条 ---------- */
 function recalc(){
+  renderGradeTables();
+  var acc=document.getElementById('mgrAcc'); if(acc&&isMgrLevel(SEG.level)) acc.open=true;
   var o=readPost(), R=computePost(o);
   var P=R.P;
   document.getElementById('miniSum').innerHTML=
