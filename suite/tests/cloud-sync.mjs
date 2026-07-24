@@ -134,6 +134,20 @@ await boss.waitForTimeout(900);
   ok(got.ar === 0.5 && got.v === 4, '选择拉取云端 → 老板端拿到销售端改动，版本对齐 4');
 }
 
+/* ═══ 成员与席位卡片（Step 4 壳）＋ 网页版静态托管 ═══ */
+console.log('— 成员与席位 + 网页版托管 —');
+{
+  await boss.click('[data-act="cloud.team-refresh"]');
+  await boss.waitForTimeout(900);
+  const txt = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(txt.includes('sales@x.com') && txt.includes('2 / '), '老板端成员卡：见 sales 成员 + 席位 2/N');
+  ok(txt.includes('定价') && txt.includes('留人'), '板块授权徽章齐全');
+  const web = await fetch(apiBase + '/');
+  const html = await web.text();
+  ok(web.status === 200 && /text\/html/.test(web.headers.get('content-type')) && html.includes('销冠操盘系统'),
+    'GET / → 同一服务托管网页版（零安装入口）');
+}
+
 /* ═══ 会话失效自动回登录页 ═══ */
 console.log('— 会话失效处理 —');
 {

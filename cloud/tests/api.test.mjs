@@ -209,6 +209,29 @@ console.log('— ⑨ 载荷防线 —');
   ok(stateBig.status === 200, '状态信封 200KB doc（5MB 限内）→ 200');
 }
 
+/* ── ⑦″ 成员列表 + 静态托管（Step 4 壳） ── */
+console.log('— ⑦″ 成员列表与静态托管 —');
+{
+  const mem = await call('GET', '/v1/members', { actor: U.bossA });
+  ok(mem.status === 200 && mem.body.members.length === 2
+    && mem.body.members.some(m => m.user_id === U.sales1 && m.role === 'sales'),
+    'boss 读成员列表 → 2 人含 sales');
+  const salesMem = await call('GET', '/v1/members', { actor: U.sales1 });
+  ok(salesMem.status === 403 && salesMem.body.error.code === 'MGMT_ONLY', 'sales 读成员列表 → 403');
+  const crossMem = await call('GET', '/v1/members', { actor: U.bossB });
+  ok(crossMem.status === 200 && crossMem.body.members.length === 1
+    && crossMem.body.members.every(m => m.user_id !== U.sales1), 'bossB 只见自己租户成员（隔离）');
+  const app = await fetch(base + '/');
+  if (app.status === 200) {
+    const html = await app.text();
+    ok(/text\/html/.test(app.headers.get('content-type')) && html.includes('销冠操盘系统'),
+      'GET / → 网页版单文件（text/html + 标题命中）');
+  } else {
+    const j = await app.json();
+    ok(app.status === 404 && j.error.code === 'NO_APP', 'GET / 未构建时 → 404 + 明确提示');
+  }
+}
+
 /* ── ⑩′ CORS（suite 单文件跨源直连的前提） ── */
 console.log('— ⑩′ CORS —');
 {

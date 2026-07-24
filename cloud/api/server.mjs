@@ -10,6 +10,9 @@
    - 租户上下文一律 whoami() 推导；业务写统一过 C12 写锁；业务日期仅 API 边界注入（C-14）
    ============================================================ */
 import { createServer } from 'node:http';
+import { readFileSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ApiError, send, readJson, errorToHttp, matchRoute } from './http.mjs';
 import { makeActorGate, isUuid, todayShanghai } from './db.mjs';
 import { register, login, logout, sessionUser } from './auth.mjs';
@@ -23,6 +26,20 @@ const ROLES = ['boss', 'exec', 'manager', 'recruiter', 'sales'];
 const MGMT = new Set(['boss', 'exec', 'manager']);
 
 const q = async (db, sql, params = []) => (await db.query(sql, params)).rows;
+
+/* ---- 静态托管：suite 单文件（GET / 即开即用的网页版；生产同源零 CORS 依赖）
+   缺省 suite/dist/index.html，API_APP_FILE 可覆盖；mtime 变了自动重读（热更新构建产物） ---- */
+const APP_FILE = process.env.API_APP_FILE
+  || join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), 'suite', 'dist', 'index.html');
+let appCache = null;                                     // { mtimeMs, buf }
+function appHtml() {
+  try {
+    const { mtimeMs } = statSync(APP_FILE);
+    if (!appCache || appCache.mtimeMs !== mtimeMs)
+      appCache = { mtimeMs, buf: readFileSync(APP_FILE) };
+    return appCache.buf;
+  } catch { return null; }
+}
 
 /* ---- Cookie 工具（无依赖，够用且严谨） ---- */
 function parseCookie(header) {
@@ -178,6 +195,14 @@ export function buildServer(db, {
         return { status: 200, body: r };
       } },
 
+    { method: 'GET', re: /^\/v1\/members$/, opts: { member: true, mgmt: true },
+      handler: async ({ db, ctx }) => {
+        const rows = await q(db,
+          `select user_id, role, email, sp_id, is_active, joined_at from members
+            where tenant_id = $1 order by joined_at`, [ctx.tenantId]);
+        return { status: 200, body: { members: rows } };
+      } },
+
     { method: 'GET', re: /^\/v1\/events$/, opts: { member: true, mgmt: true },
       handler: async ({ db, ctx, query }) => {
         let limit = Number(query.get('limit') ?? 50);
@@ -244,6 +269,16 @@ export function buildServer(db, {
     for (const [k, v] of Object.entries(CORS)) res.setHeader(k, v);
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
     try {
+      /* 网页版入口：GET / 直接吐 suite 单文件（同源部署 = 客户浏览器打开即用） */
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/app')) {
+        const buf = appHtml();
+        if (!buf) throw new ApiError(404, 'NO_APP', '应用文件未构建——先在 suite/ 运行 node build.mjs');
+        status = 200;
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8',
+          'content-length': buf.length, 'cache-control': 'no-cache' });
+        res.end(buf);
+        return;
+      }
       const hit = matchRoute(routes, req.method, url.pathname);
       if (!hit) throw new ApiError(404, 'NO_ROUTE', `无此接口：${req.method} ${url.pathname}`);
       const { route, params } = hit;

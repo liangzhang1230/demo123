@@ -122,11 +122,13 @@
       clearTimeout(pushTimer);
       try { if (connected()) await api('/v1/auth/logout', { method: 'POST', body: {} }); } catch (e) {}
       Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null });
+      teamCache = null;
       saveCfg(); UI.commit(); UI.toast('已退出（本地数据保留）');
     },
     'cloud.create-tenant': async () => {
       try {
         await api('/v1/tenants', { method: 'POST', body: { name: g('cl-tname').value.trim() || '我的公司', email: C.email } });
+        teamCache = null;
         await loadIdentity(); await pullNow();
         UI.toast('租户已创建，你是老板（boss）——本地数据已作为首版推送云端');
       } catch (e) { UI.toast('创建失败：' + e.message); }
@@ -134,6 +136,7 @@
     'cloud.join-tenant': async () => {
       try {
         await api('/v1/join', { method: 'POST', body: { code: g('cl-code').value.trim(), email: C.email } });
+        teamCache = null;
         await loadIdentity(); await pullNow();
         UI.toast('已加入 ' + (C.tenantName || '租户') + '——云端数据已拉取到本机');
       } catch (e) { UI.toast('加入失败：' + e.message); }
@@ -146,6 +149,15 @@
           <p class="hint">发给同事：TA 在自己电脑打开本系统 → 云端协同 → 注册登录 → 凭码加入。角色：${d.role === 'boss' ? '老板' : '销售'}。</p>
           <div style="display:flex;justify-content:flex-end;margin-top:12px">${h.btn('关闭', 'ui.modal-close')}</div>`);
       } catch (e) { UI.toast('生成失败：' + e.message); }
+    },
+    'cloud.team-refresh': async () => {
+      try {
+        teamLoading = true; UI.render();
+        const [mem, sub] = await Promise.all([api('/v1/members'), api('/v1/subscription')]);
+        teamCache = { members: mem.members, sub: sub.subscription, seats: sub.seats, at: new Date().toISOString(), error: null };
+      } catch (e) {
+        teamCache = { members: null, error: e.status === 403 ? '成员列表仅管理层可见' : e.message };
+      } finally { teamLoading = false; UI.render(); }
     },
     'cloud.push': () => pushNow(),
     'cloud.pull': async () => { try { await pullNow(); UI.toast('已拉取云端最新版本 ' + C.version); } catch (e) { UI.toast('拉取失败：' + e.message); } },
@@ -163,6 +175,35 @@
 
   /* ---------- 视图 ---------- */
   const ROLE_CN = { boss: '老板', exec: '高管', manager: '主管', recruiter: '招聘', sales: '销售' };
+  const BOARD_CN = { dingjia: '定价', zhaoren: '招人', suanzhang: '算账', liuren: '留人', yuren: '育人' };
+  let teamCache = null, teamLoading = false;             // 成员/席位/订阅缓存（进租户视图首渲自动拉一次）
+  const isMgmt = () => ['boss', 'exec', 'manager'].includes(C.role);
+  function teamCardHtml() {
+    if (isMgmt() && !teamCache && !teamLoading) SK.actions['cloud.team-refresh']();   // 首渲自动加载
+    const seats = teamCache && teamCache.seats, sub = teamCache && teamCache.sub;
+    const boards = (sub && sub.boards_enabled || []).map(b => `<span class="badge acc plain">${BOARD_CN[b] || b}</span>`).join(' ');
+    const memRows = (teamCache && teamCache.members || []).map(m =>
+      `<tr><td>${esc(m.email || m.user_id.slice(0, 8) + '…')}</td>
+        <td>${ROLE_CN[m.role] || esc(m.role)}</td>
+        <td>${m.is_active ? '在职' : '<span style="color:var(--ink3)">停用</span>'}</td>
+        <td class="hint">${String(m.joined_at || '').slice(0, 10)}</td></tr>`).join('');
+    return h.card('👥 成员与席位', `
+      ${teamLoading ? '<p class="hint">加载中…</p>' : ''}
+      ${teamCache && teamCache.error ? h.banner(esc(teamCache.error), 'n') : ''}
+      ${seats ? h.kv([
+        { k: '席位', v: `<b>${seats.used} / ${seats.quota}</b>` },
+        { k: '订阅状态', v: sub && sub.status === 'active' ? '<span style="color:var(--green)">正常</span>' : esc(sub && sub.status || '—') },
+        { k: '板块授权', v: boards || '—' },
+      ]) : ''}
+      ${memRows ? `<div class="tbl-wrap" style="margin-top:8px"><table class="tbl">
+        <thead><tr><th>成员</th><th>角色</th><th>状态</th><th>加入</th></tr></thead>
+        <tbody>${memRows}</tbody></table></div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        ${isMgmt() ? h.btn(teamLoading ? '刷新中…' : '刷新', 'cloud.team-refresh', { cls: 'sm' }) : ''}
+        ${C.role === 'boss' ? h.btn('生成销售邀请码', 'cloud.invite', { cls: 'sm pri', data: 'data-role="sales"' }) + h.btn('生成老板邀请码', 'cloud.invite', { cls: 'sm', data: 'data-role="boss"' }) : ''}
+      </div>
+      <p class="hint" style="margin-top:8px">邀请码 7 天有效、一次性；同事注册登录后凭码加入，即与你共享同一租户数据。</p>`);
+  }
   SK.registerModule({
     id: 'cloud', title: '云端', icon: '☁️', order: 98,
     subnav: [],
@@ -208,11 +249,9 @@
           { k: '自动同步（改动后 3 秒推送）', v: `<button class="btn sm ${C.autoSync ? 'pri' : ''}" data-act="cloud.autosync">${C.autoSync ? '已开启' : '已关闭'}</button>` },
         ]) + `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           ${h.btn('立即推送', 'cloud.push', { cls: 'pri' })}${h.btn('拉取云端', 'cloud.pull')}${h.btn('退出登录', 'cloud.logout')}</div>`)}
-        ${h.card('👥 邀请同事', `
-          <p class="hint" style="margin-bottom:8px">邀请码 7 天有效、一次性。同事登录后凭码加入，即与你共享同一租户数据（实时总线照常，改动互相同步）。</p>
-          ${C.role === 'boss' ? `<div style="display:flex;gap:8px">${h.btn('生成销售邀请码', 'cloud.invite', { cls: 'pri', data: 'data-role="sales"' })}${h.btn('生成老板邀请码', 'cloud.invite', { data: 'data-role="boss"' })}</div>` : h.banner('只有老板角色能生成邀请码', 'n')}
-          ${h.banner('v1 说明：同租户成员共享整库读写（销售端页面自我约束展示）；细粒度行级角色权限（销售只能写自己的日报/回执）在 v2 拆表时由 RLS 落库。', 'a')}`)}
+        ${teamCardHtml()}
       </div>
+      ${h.banner('v1 说明：同租户成员共享整库读写（销售端页面自我约束展示）；细粒度行级角色权限（销售只能写自己的日报/回执）在 v2 拆表时由 RLS 落库。', 'a')}
       ${h.banner('冲突策略：推送带乐观锁版本号，云端更新时会弹窗让你选保留哪份——不会静默覆盖。多设备同时编辑建议错峰，或以老板机为主录入端。', 'n')}`;
     },
   });
