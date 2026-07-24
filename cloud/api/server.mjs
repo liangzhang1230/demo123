@@ -228,10 +228,21 @@ export function buildServer(db, {
     return req.socket.remoteAddress ?? '?';
   }
 
+  /* ---- CORS：suite 单文件从 file:// 或任意站点直连 API（Bearer 令牌，不靠 Cookie，
+     故 '*' 对认证安全无损；要收紧设 API_CORS_ORIGIN） ---- */
+  const CORS = {
+    'access-control-allow-origin': process.env.API_CORS_ORIGIN || '*',
+    'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+    'access-control-allow-headers': 'authorization, content-type, x-actor-id, x-today',
+    'access-control-max-age': '600',
+  };
+
   const server = createServer(async (req, res) => {
     const t0 = process.hrtime.bigint();
     const url = new URL(req.url, 'http://local');
     let status = 500;
+    for (const [k, v] of Object.entries(CORS)) res.setHeader(k, v);
+    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
     try {
       const hit = matchRoute(routes, req.method, url.pathname);
       if (!hit) throw new ApiError(404, 'NO_ROUTE', `无此接口：${req.method} ${url.pathname}`);

@@ -209,6 +209,19 @@ console.log('— ⑨ 载荷防线 —');
   ok(stateBig.status === 200, '状态信封 200KB doc（5MB 限内）→ 200');
 }
 
+/* ── ⑩′ CORS（suite 单文件跨源直连的前提） ── */
+console.log('— ⑩′ CORS —');
+{
+  const pre = await fetch(base + '/v1/state', { method: 'OPTIONS' });
+  ok(pre.status === 204 && pre.headers.get('access-control-allow-origin') === '*'
+    && /authorization/i.test(pre.headers.get('access-control-allow-headers') ?? ''),
+    'OPTIONS 预检 → 204 + ACAO:* + 允许 authorization 头');
+  const normal = await call('GET', '/healthz');
+  const h2 = await fetch(base + '/healthz');
+  ok(h2.headers.get('access-control-allow-origin') === '*' && normal.status === 200,
+    '普通响应亦带 ACAO 头');
+}
+
 /* ── ⑩ 并发身份不串（互斥闸） ── */
 console.log('— ⑩ 并发身份不串 —');
 {
