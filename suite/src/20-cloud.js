@@ -173,11 +173,45 @@
     'cloud.team-refresh': async () => {
       try {
         teamLoading = true; UI.render();
-        const [mem, sub] = await Promise.all([api('/v1/members'), api('/v1/subscription')]);
-        teamCache = { members: mem.members, sub: sub.subscription, seats: sub.seats, at: new Date().toISOString(), error: null };
+        const [mem, sub, wl] = await Promise.all([
+          api('/v1/members'), api('/v1/subscription'),
+          isMgmt() ? api('/v1/whitelist') : Promise.resolve({ whitelist: [] }),
+        ]);
+        teamCache = { members: mem.members, sub: sub.subscription, seats: sub.seats,
+          whitelist: wl.whitelist, at: new Date().toISOString(), error: null };
       } catch (e) {
         teamCache = { members: null, error: e.status === 403 ? '成员列表仅管理层可见' : e.message };
       } finally { teamLoading = false; UI.render(); }
+    },
+    'cloud.wl-add': async () => {
+      const contact = (g('wl-contact') || {}).value || '', role = (g('wl-role') || {}).value || 'sales';
+      if (!contact.trim()) { UI.toast('先填邮箱或手机号'); return; }
+      try {
+        await api('/v1/whitelist', { method: 'POST', body: { contact, role } });
+        UI.toast('已加入白名单——对方注册/登录即自动入位');
+        SK.actions['cloud.team-refresh']();
+      } catch (e) { UI.toast('添加失败：' + e.message); }
+    },
+    'cloud.wl-del': async d => {
+      try {
+        await api('/v1/whitelist/' + encodeURIComponent(d.contact), { method: 'DELETE' });
+        UI.toast('已移出白名单');
+        SK.actions['cloud.team-refresh']();
+      } catch (e) { UI.toast('删除失败：' + e.message); }
+    },
+    'cloud.member-off': async d => {
+      try {
+        await api('/v1/members/' + d.uid + '/deactivate', { method: 'POST', body: {} });
+        UI.toast('已停用：档案与业绩留在公司，席位已释放');
+        SK.actions['cloud.team-refresh']();
+      } catch (e) { UI.toast('停用失败：' + e.message); }
+    },
+    'cloud.member-on': async d => {
+      try {
+        await api('/v1/members/' + d.uid + '/reactivate', { method: 'POST', body: {} });
+        UI.toast('已复职：新席位已占用');
+        SK.actions['cloud.team-refresh']();
+      } catch (e) { UI.toast('复职失败：' + e.message); }
     },
     'cloud.push': () => pushNow(),
     'cloud.pull': async () => { try { await pullNow(); UI.toast('已拉取云端最新版本 ' + C.version); } catch (e) { UI.toast('拉取失败：' + e.message); } },
@@ -246,11 +280,23 @@
     if (isMgmt() && !teamCache && !teamLoading) SK.actions['cloud.team-refresh']();   // 首渲自动加载
     const seats = teamCache && teamCache.seats, sub = teamCache && teamCache.sub;
     const boards = (sub && sub.boards_enabled || []).map(b => `<span class="badge acc plain">${BOARD_CN[b] || b}</span>`).join(' ');
+    const isBoss = C.role === 'boss';
     const memRows = (teamCache && teamCache.members || []).map(m =>
       `<tr><td>${esc(m.email || m.user_id.slice(0, 8) + '…')}</td>
         <td>${ROLE_CN[m.role] || esc(m.role)}</td>
         <td>${m.is_active ? '在职' : '<span style="color:var(--ink3)">停用</span>'}</td>
-        <td class="hint">${String(m.joined_at || '').slice(0, 10)}</td></tr>`).join('');
+        <td class="hint">${String(m.joined_at || '').slice(0, 10)}</td>
+        <td>${isBoss && m.user_id !== C.userId
+          ? (m.is_active
+            ? `<button class="btn sm ghost" data-act="cloud.member-off" data-uid="${m.user_id}">停用</button>`
+            : `<button class="btn sm" data-act="cloud.member-on" data-uid="${m.user_id}">复职</button>`)
+          : ''}</td></tr>`).join('');
+    const wlRows = (teamCache && teamCache.whitelist || []).map(w =>
+      `<tr><td class="mono">${esc(w.contact)}</td>
+        <td>${w.kind === 'phone' ? '手机' : '邮箱'}</td>
+        <td>${ROLE_CN[w.role] || esc(w.role)}</td>
+        <td>${w.used_by ? '<span style="color:var(--green)">已入位</span>' : '<span class="hint">待注册</span>'}</td>
+        <td>${isBoss && !w.used_by ? `<button class="btn sm ghost" data-act="cloud.wl-del" data-contact="${esc(w.contact)}">移除</button>` : ''}</td></tr>`).join('');
     return h.card('👥 成员与席位', `
       ${teamLoading ? '<p class="hint">加载中…</p>' : ''}
       ${teamCache && teamCache.error ? h.banner(esc(teamCache.error), 'n') : ''}
@@ -260,13 +306,23 @@
         { k: '板块授权', v: boards || '—' },
       ]) : ''}
       ${memRows ? `<div class="tbl-wrap" style="margin-top:8px"><table class="tbl">
-        <thead><tr><th>成员</th><th>角色</th><th>状态</th><th>加入</th></tr></thead>
+        <thead><tr><th>成员</th><th>角色</th><th>状态</th><th>加入</th><th></th></tr></thead>
         <tbody>${memRows}</tbody></table></div>` : ''}
+      ${isMgmt() ? `<div style="margin-top:12px"><b style="font-size:12.8px">📋 注册白名单</b>
+        <span class="hint">（预登记邮箱/手机号+角色，对方注册或登录即自动入位，免邀请码；换人=停用旧人+登记新人）</span></div>
+      ${wlRows ? `<div class="tbl-wrap" style="margin-top:6px"><table class="tbl">
+        <thead><tr><th>联系方式</th><th>类型</th><th>预设角色</th><th>状态</th><th></th></tr></thead>
+        <tbody>${wlRows}</tbody></table></div>` : '<p class="hint" style="margin-top:4px">还没有白名单条目</p>'}
+      ${isBoss ? `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <input id="wl-contact" type="text" placeholder="邮箱 或 11 位手机号" style="flex:1 1 160px;min-width:140px">
+        <select id="wl-role"><option value="sales">销售</option><option value="manager">主管</option><option value="recruiter">招聘</option><option value="exec">高管</option><option value="boss">老板</option></select>
+        ${h.btn('加入白名单', 'cloud.wl-add', { cls: 'sm pri' })}</div>
+        <p class="hint" style="margin-top:5px">手机号可先登记（短信验证上线后即用手机号注册）；邮箱现在就生效。</p>` : ''}` : ''}
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         ${isMgmt() ? h.btn(teamLoading ? '刷新中…' : '刷新', 'cloud.team-refresh', { cls: 'sm' }) : ''}
-        ${C.role === 'boss' ? h.btn('生成销售邀请码', 'cloud.invite', { cls: 'sm pri', data: 'data-role="sales"' }) + h.btn('生成老板邀请码', 'cloud.invite', { cls: 'sm', data: 'data-role="boss"' }) : ''}
+        ${isBoss ? h.btn('邀请码(兜底)', 'cloud.invite', { cls: 'sm ghost', data: 'data-role="sales"' }) : ''}
       </div>
-      <p class="hint" style="margin-top:8px">邀请码 7 天有效、一次性；同事注册登录后凭码加入，即与你共享同一租户数据。</p>`);
+      <p class="hint" style="margin-top:8px">停用成员：档案与业绩留在公司（审计不灭），席位释放给新人；复职需席位配额内。</p>`);
   }
   SK.registerModule({
     id: 'cloud', title: '云端', icon: '☁️', order: 98,

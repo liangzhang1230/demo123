@@ -59,6 +59,8 @@ const MSG_MAP = [
   [/invalid or expired invite/i,    [400, 'BAD_INVITE']],
   [/version conflict/i,             [409, 'VERSION_CONFLICT']],
   [/未知板块|boards 必须是数组/,      [400, 'BAD_BOARDS']],
+  [/cannot deactivate self/i,       [400, 'SELF_DEACTIVATE']],
+  [/member not found or already/i,  [404, 'MEMBER_STATE']],
   [/不存在/,                         [404, 'NOT_FOUND']],
   [/violates row-level security/i,  [403, 'RLS_DENIED']],
   [/permission denied/i,            [403, 'DB_DENIED']],

@@ -22,6 +22,7 @@ import { submitDailyReport } from '../server/m1.mjs';
 import { subscription, seatUsage, setBoards, expireTenant, resumeTenant, ALL_BOARDS } from '../server/billing.mjs';
 import { morningBrief } from '../server/briefing.mjs';
 import { logEvent } from '../server/writes.mjs';
+import { tryAutoJoin, normalizeContact } from './whitelist.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROLES = ['boss', 'exec', 'manager', 'recruiter', 'sales'];
@@ -88,14 +89,24 @@ export function buildServer(db, {
         if (process.env.AUTH_ALLOW_REGISTER === '0')
           throw new ApiError(403, 'REGISTER_CLOSED', '注册暂未开放（内测邀请制）');
         const r = await register(db, { email: body.email, password: body.password, ip, ua });
-        return { status: 201, body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs },
+        /* 白名单自动入位（§10.2）：老板已预登记该邮箱 → 注册即入租户、绑预设角色 */
+        const joined = await tryAutoJoin(db, { userId: r.userId, contact: r.email });
+        return { status: 201,
+          body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs,
+                  joinedTenant: joined && joined.tenantId && !joined.skipped ? joined : null },
           headers: { 'set-cookie': sessionCookie(r.token, r.expiresInMs) } };
       } },
 
     { method: 'POST', re: /^\/v1\/auth\/login$/, opts: { public: true, system: true, auth: true },
       handler: async ({ db, body, ip, ua }) => {
         const r = await login(db, { email: body.email, password: body.password, ip, ua });
-        return { status: 200, body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs },
+        /* 老账号后补白名单：登录时若尚无租户 → 自动入位（席位满则静默跳过，扩容后再登即入） */
+        let joined = null;
+        const { rows: mem } = await db.query(`select 1 from members where user_id = $1`, [r.userId]);
+        if (!mem.length) joined = await tryAutoJoin(db, { userId: r.userId, contact: r.email });
+        return { status: 200,
+          body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs,
+                  joinedTenant: joined && joined.tenantId && !joined.skipped ? joined : null },
           headers: { 'set-cookie': sessionCookie(r.token, r.expiresInMs) } };
       } },
 
@@ -210,6 +221,57 @@ export function buildServer(db, {
           `select user_id, role, email, sp_id, is_active, joined_at from members
             where tenant_id = $1 order by joined_at`, [ctx.tenantId]);
         return { status: 200, body: { members: rows } };
+      } },
+
+    /* ══════════ 白名单（§10.2）+ 成员停用/复职（账号继承） ══════════ */
+    { method: 'GET', re: /^\/v1\/whitelist$/, opts: { member: true, mgmt: true },
+      handler: async ({ db, ctx }) => {
+        const rows = await q(db,
+          `select contact, kind, role, sp_id, note, used_by, used_at, created_at
+             from member_whitelist where tenant_id = $1 order by created_at`, [ctx.tenantId]);
+        return { status: 200, body: { whitelist: rows } };
+      } },
+
+    { method: 'POST', re: /^\/v1\/whitelist$/, opts: { member: true },
+      handler: async ({ db, ctx, me, body }) => {
+        if (me.role !== 'boss') throw new ApiError(403, 'BOSS_ONLY', '白名单仅老板可维护');
+        const norm = normalizeContact(body.contact);
+        if (!norm) throw new ApiError(400, 'BAD_CONTACT', 'contact 须为邮箱或大陆手机号（11 位）');
+        const role = body.role ?? 'sales';
+        if (!ROLES.includes(role)) throw new ApiError(400, 'BAD_ROLE', `role ∈ ${ROLES.join('|')}`);
+        const dup = await q(db, `select 1 from member_whitelist where tenant_id = $1 and contact = $2`,
+          [ctx.tenantId, norm.contact]);
+        if (dup.length) throw new ApiError(409, 'WL_EXISTS', '该联系方式已在白名单');
+        await q(db,
+          `insert into member_whitelist(tenant_id, contact, kind, role, sp_id, note, created_by)
+           values ($1,$2,$3,$4,$5,$6,$7)`,
+          [ctx.tenantId, norm.contact, norm.kind, role,
+           body.spId ?? null, typeof body.note === 'string' ? body.note.slice(0, 120) : null, ctx.actorId]);
+        await logEvent(db, ctx, 'whitelist_added', norm.contact, { contact: norm.contact, kind: norm.kind, role });
+        return { status: 201, body: { contact: norm.contact, kind: norm.kind, role } };
+      } },
+
+    { method: 'DELETE', re: /^\/v1\/whitelist\/(?<contact>[^/]{3,80})$/, opts: { member: true },
+      handler: async ({ db, ctx, me, params }) => {
+        if (me.role !== 'boss') throw new ApiError(403, 'BOSS_ONLY', '白名单仅老板可维护');
+        const contact = decodeURIComponent(params.contact);
+        const r = await db.query(
+          `delete from member_whitelist where tenant_id = $1 and contact = $2`, [ctx.tenantId, contact]);
+        if (!(r.affectedRows > 0)) throw new ApiError(404, 'NOT_FOUND', '白名单中无此联系方式');
+        await logEvent(db, ctx, 'whitelist_removed', contact, { contact });
+        return { status: 200, body: { removed: contact } };
+      } },
+
+    { method: 'POST', re: /^\/v1\/members\/(?<uid>[0-9a-f-]{36})\/deactivate$/, opts: { member: true, write: true },
+      handler: async ({ db, ctx, params }) => {
+        await q(db, `select deactivate_member($1)`, [params.uid]);   // boss 校验/自停保护在函数内
+        return { status: 200, body: { userId: params.uid, isActive: false } };
+      } },
+
+    { method: 'POST', re: /^\/v1\/members\/(?<uid>[0-9a-f-]{36})\/reactivate$/, opts: { member: true, write: true },
+      handler: async ({ db, ctx, params }) => {
+        await q(db, `select reactivate_member($1)`, [params.uid]);   // 配额硬校验在函数内
+        return { status: 200, body: { userId: params.uid, isActive: true } };
       } },
 
     { method: 'GET', re: /^\/v1\/events$/, opts: { member: true, mgmt: true },

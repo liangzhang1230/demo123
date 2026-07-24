@@ -149,6 +149,28 @@ console.log('— 成员与席位 + 网页版托管 —');
     'GET / → 同一服务托管网页版（零安装入口）');
 }
 
+/* ═══ 白名单（§10.2）：老板 UI 登记 → 新人注册即自动入位 ═══ */
+console.log('— 白名单自动入位 —');
+{
+  await boss.fill('#wl-contact', 'wl-new@x.com');
+  await boss.selectOption('#wl-role', 'sales');
+  await boss.click('[data-act="cloud.wl-add"]');
+  await boss.waitForTimeout(900);
+  const t1 = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(t1.includes('wl-new@x.com') && t1.includes('待注册'), '老板 UI 登记白名单 → 列表显示待注册');
+  const r = await fetch(apiBase + '/v1/auth/register', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'wl-new@x.com', password: PASS }),
+  }).then(x => x.json());
+  ok(r.joinedTenant && r.joinedTenant.role === 'sales', '新人注册 → 免邀请码自动入位(角色 sales)');
+  await boss.click('[data-act="cloud.team-refresh"]');
+  await boss.waitForTimeout(900);
+  const t2 = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(t2.includes('已入位') && t2.includes('3 / '), '老板端：白名单转已入位 · 席位 3/N');
+  const hasOff = await boss.evaluate(() => !!document.querySelector('[data-act="cloud.member-off"]'));
+  ok(hasOff, '成员行带「停用」按钮（继承入口）');
+}
+
 /* ═══ 今日一件事：插卡 → UI 显示 → 认领流转（Step 5） ═══ */
 console.log('— 今日一件事插卡 —');
 let tenantId, bossUid;

@@ -14,9 +14,9 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));   // cloud/
 
 const SCHEMA_FILES = ['schema.sql', 'schema-c2.sql', 'schema-c3.sql', 'schema-c4.sql', 'schema-c6.sql'];
-/* 🔴 auth 表必须在 GRANTS 之后装载：它 revoke app_user 对 accounts/sessions 的权限，
-   若先装载会被 GRANTS 的 "grant all tables" 重新授权（顺序即安全） */
-const AUTH_SCHEMA_FILE = 'schema-auth.sql';
+/* 🔴 auth/白名单表必须在 GRANTS 之后装载：auth 要 revoke app_user 权限
+   （先装会被 "grant all tables" 冲掉），白名单要精确授权（顺序即安全） */
+const POST_GRANT_FILES = ['schema-auth.sql', 'schema-whitelist.sql'];
 
 /* auth 兼容层 + 角色：与 tests/c*.test.mjs 引导完全同源（一字不差的语义） */
 const AUTH_SHIM = `
@@ -52,10 +52,12 @@ export async function openDb({ dataDir } = {}) {
     await db.exec(AUTH_SHIM);
     for (const f of SCHEMA_FILES) await db.exec(readFileSync(join(root, 'db', f), 'utf8'));
     await db.exec(GRANTS);
-    await db.exec(readFileSync(join(root, 'db', AUTH_SCHEMA_FILE), 'utf8'));   // revoke 在 GRANTS 后生效
+    for (const f of POST_GRANT_FILES) await db.exec(readFileSync(join(root, 'db', f), 'utf8'));
   } else {
-    const { rows: a } = await db.query(`select to_regclass('public.accounts') as t`);
-    if (!a[0].t) await db.exec(readFileSync(join(root, 'db', AUTH_SCHEMA_FILE), 'utf8'));
+    /* 老库增量补装（幂等）：accounts / member_whitelist 各自缺则补 */
+    const { rows: a } = await db.query(`select to_regclass('public.accounts') as a, to_regclass('public.member_whitelist') as w`);
+    if (!a[0].a) await db.exec(readFileSync(join(root, 'db', 'schema-auth.sql'), 'utf8'));
+    if (!a[0].w) await db.exec(readFileSync(join(root, 'db', 'schema-whitelist.sql'), 'utf8'));
   }
   return db;
 }
