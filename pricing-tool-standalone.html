@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>销售定价器 · PRO</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+<style>
+/* ============================================================
+   销冠操盘系统 · 一体版 — 设计系统（双极简：Linear/Stripe 密度 + 金融级数字排版）
+   亮/暗双主题；全部数字 tabular-nums；1px 发丝线承重；高信息密度
+   ============================================================ */
+:root{
+  --bg:#f5f5f2; --card:#ffffff; --panel:#f7f7f4; --panel2:#efefeb;
+  --ink:#191a1e; --ink2:#5b6070; --ink3:#8a8f9c; --ink4:#c6c9d1;
+  --line:#e5e5e0; --line2:#d8d8d2;
+  --accent:#4f46e5; --accent2:#7c5cf6; --accent-soft:#eef0fe; --accent-ink:#3730a3;
+  --green:#137333; --green-soft:#e6f4ea;
+  --amber:#b25e09; --amber-soft:#fdf1df;
+  --red:#c5221f;  --red-soft:#fce8e6; --red-hero:#d93025;
+  --gold:#8a6d1b; --gold-soft:#faf3d9;
+  --blue:#1a56db; --blue-soft:#eaf1fe;
+  --shadow:0 1px 2px rgba(20,22,30,.05),0 4px 14px rgba(20,22,30,.04);
+  --radius:10px; --radius-sm:7px;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1015; --card:#161921; --panel:#1b1f29; --panel2:#222633;
+  --ink:#e8eaf0; --ink2:#a2a8b8; --ink3:#6d7385; --ink4:#3c4152;
+  --line:#262b38; --line2:#303648;
+  --accent:#8b85ff; --accent2:#a78bfa; --accent-soft:#232345; --accent-ink:#c4c0ff;
+  --green:#5dc389; --green-soft:#12291c;
+  --amber:#e5a558; --amber-soft:#2e2214;
+  --red:#f28b82;  --red-soft:#331b19; --red-hero:#ff6b60;
+  --gold:#d9bc6a; --gold-soft:#2c2513;
+  --blue:#7ab0ff; --blue-soft:#15233a;
+  --shadow:0 1px 2px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font:13.5px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,sans-serif;
+  font-feature-settings:"tnum","cnum";
+}
+::selection{background:var(--accent);color:#fff}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;cursor:pointer;color:inherit;background:none;border:none}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:5px 8px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+input[type=range]{padding:0;border:none;box-shadow:none;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px}
+input.err{border-color:var(--red);box-shadow:0 0 0 2px var(--red-soft)}
+h1,h2,h3,h4{font-weight:650;letter-spacing:-.01em}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+
+/* ---------- 顶部导航 ---------- */
+#topnav{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--card) 88%,transparent);
+  backdrop-filter:saturate(160%) blur(10px);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:2px;padding:0 14px;height:48px}
+#topnav .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-right:14px;white-space:nowrap}
+#topnav .brand .logo{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+#topnav .brand small{color:var(--ink3);font-weight:500;font-size:11px}
+.nav-tab{padding:5px 11px;border-radius:8px;color:var(--ink2);font-weight:550;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.nav-tab:hover{background:var(--panel);color:var(--ink)}
+.nav-tab.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:650}
+.nav-tab .dotwarn{width:6px;height:6px;border-radius:50%;background:var(--red-hero);display:inline-block}
+#topnav .sp{flex:1}
+/* 定价板块：顶部导航项下拉快速跳转（悬停 / 键盘聚焦展开） */
+.nav-drop{position:relative;display:inline-flex}
+.nav-caret{font-size:9px;opacity:.65;margin-left:1px}
+.nav-drop::after{content:"";position:absolute;top:100%;left:0;right:0;height:8px}   /* 悬停桥，跨过间隙不丢焦 */
+.nav-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:172px;z-index:70;
+  display:none;flex-direction:column;gap:2px;padding:6px;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.30)}
+.nav-drop:hover>.nav-menu,.nav-drop:focus-within>.nav-menu{display:flex}
+.nav-menu-item{text-align:left;padding:7px 11px;border-radius:8px;font-size:12.8px;font-weight:550;color:var(--ink2);white-space:nowrap}
+.nav-menu-item:hover{background:var(--panel);color:var(--ink)}
+.nav-menu-item.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:650}
+.icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-size:14px}
+.icon-btn:hover{background:var(--panel);color:var(--ink)}
+
+/* ---------- 全局实时指标条 ---------- */
+#livebar{position:sticky;top:48px;z-index:55;display:flex;align-items:stretch;overflow-x:auto;
+  background:var(--card);border-bottom:1px solid var(--line);padding:0 10px;min-height:44px;scrollbar-width:none}
+#livebar::-webkit-scrollbar{display:none}
+.lv-cell{flex:1;min-width:96px;padding:5px 10px;border-right:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;justify-content:center}
+.lv-cell:last-child{border-right:none}
+.lv-cell:hover{background:var(--panel)}
+.lv-cell .k{font-size:10.5px;color:var(--ink3);white-space:nowrap;letter-spacing:.02em}
+.lv-cell .v{font-size:14.5px;font-weight:700;white-space:nowrap;line-height:1.25}
+.lv-cell .v.red{color:var(--red-hero)} .lv-cell .v.green{color:var(--green)} .lv-cell .v.amber{color:var(--amber)} .lv-cell .v.dim{color:var(--ink3);font-weight:550}
+
+/* ---------- 子导航（跟随吸顶：topnav 48 + livebar 45 = 93） ---------- */
+#subnav{position:sticky;top:93px;z-index:54;padding:10px 18px;max-width:1280px;margin:0 auto}
+.sub-tabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.sub-picker{display:none}
+#subnav::before{content:"";position:absolute;top:0;bottom:0;left:calc(-50vw + 50%);width:100vw;
+  background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(160%) blur(10px);
+  border-bottom:1px solid var(--line);z-index:-1}
+#subnav:empty{display:none}
+.sub-tab{padding:4px 11px;border-radius:99px;border:1px solid var(--line2);color:var(--ink2);font-size:12.5px;font-weight:550;background:var(--card)}
+.sub-tab:hover{color:var(--ink);border-color:var(--ink4)}
+.sub-tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:root[data-theme="dark"] .sub-tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---------- 主体 ---------- */
+#view{max-width:1280px;margin:0 auto;padding:14px 18px 90px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+.g23{grid-template-columns:2fr 1fr}.g32{grid-template-columns:1fr 2fr}
+.span2{grid-column:span 2}
+.g-hero{grid-template-columns:1.5fr 1fr;align-items:start}
+@media (max-width:980px){.g2,.g3,.g4,.g23,.g32{grid-template-columns:1fr}.span2{grid-column:span 1}}
+@media (max-width:760px){.g-hero{grid-template-columns:1fr}}
+/* ═══════════ 手机 / 平板移动壳（桌面 ≥1024 完全不受影响） ═══════════
+   世界顶级做法：主导航下沉为底部标签栏(4 常驻 + 更多)，横排指标重排为 KPI 卡片网格，
+   子导航吸顶胶囊，内容单列。渐进披露：一眼见核心，细节点开。 */
+#bottomnav, #moresheet{display:none}                    /* 桌面隐藏，仅移动壳启用 */
+
+@media (max-width:1023px){
+  /* —— 顶部：仅留品牌 + 右侧工具（板块切换交给底部栏） —— */
+  #topnav{padding:0 12px}
+  #topnav .nav-tab, #topnav .nav-drop{display:none}     /* 顶部板块 tab 让位给底部栏 */
+  #topnav .brand small{display:none}
+
+  /* —— 指标条 → KPI 卡片网格（重排不缩放，滚动即见全部） —— */
+  #livebar{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    gap:8px;padding:10px 12px;overflow:visible;min-height:0;border-bottom:none;background:transparent}
+  .lv-cell{border:1px solid var(--line);border-right:1px solid var(--line);border-radius:11px;
+    background:var(--card);padding:9px 11px;box-shadow:var(--shadow);min-width:0}
+  .lv-cell .k{white-space:normal}
+  .lv-cell .v{font-size:16px;white-space:normal}
+
+  /* —— 二级导航：下拉选择器（当前页 + 一览全部，永不横滑藏页；与底部一级栏区分） —— */
+  #subnav{top:48px;z-index:54;padding:8px 12px;max-width:none}
+  #subnav::before{background:color-mix(in srgb,var(--card) 92%,transparent)}
+  .sub-picker{display:flex;align-items:center;gap:8px;width:100%;padding:10px 13px;border-radius:12px;
+    border:1px solid var(--line2);background:var(--card);font-size:13.5px;font-weight:650;color:var(--ink);box-shadow:var(--shadow)}
+  .sub-picker .sp-cur{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub-picker .sp-meta{flex:0 0 auto;font-size:11px;color:var(--ink3);font-weight:600;background:var(--panel);border-radius:99px;padding:1px 8px}
+  .sub-picker .sp-car{flex:0 0 auto;color:var(--ink3);font-size:11px;transition:transform .16s}
+  .sub-picker[aria-expanded="true"] .sp-car{transform:rotate(180deg)}
+  .sub-tabs{display:none}
+  .sub-tabs.open{display:flex;flex-direction:column;gap:2px;position:absolute;left:12px;right:12px;top:calc(100% - 3px);
+    z-index:70;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 18px 46px -12px rgba(0,0,0,.38);max-height:64vh;overflow:auto}
+  .sub-tabs.open .sub-tab{width:100%;text-align:left;border:none;border-radius:9px;padding:11px 12px;
+    font-size:13.5px;font-weight:600;background:transparent;color:var(--ink2)}
+  .sub-tabs.open .sub-tab.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:700}
+
+  /* —— 落地内容：区段标题「一上一下」——标题在上、副标在下，不再左右挤压 —— */
+  .sect{flex-direction:column;align-items:flex-start;gap:2px;margin:16px 0 8px}
+  .sect .sub{font-size:12px;line-height:1.55}
+
+  /* —— 定价下拉在移动端不用（底部栏 + 吸顶子标签已覆盖切换） —— */
+  .nav-caret, .nav-drop::after{display:none}
+  .nav-menu{display:none!important}
+
+  /* —— 内容：单列 + 让出底部栏高度 —— */
+  #view{padding:12px 14px calc(66px + env(safe-area-inset-bottom))}
+  .footer-note{padding-bottom:calc(20px + 66px + env(safe-area-inset-bottom))}
+  .g-hero{grid-template-columns:1fr}
+
+  /* —— 底部标签栏（拇指区，5 槽：4 板块 + 更多） —— */
+  #bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:80;
+    background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:saturate(160%) blur(12px);
+    border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    box-shadow:0 -6px 20px -12px rgba(0,0,0,.25)}
+  .bn-tab{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:5px 2px;border-radius:12px;color:var(--ink3);font-weight:600;min-width:0}
+  .bn-tab .bn-ic{position:relative;font-size:19px;line-height:1}
+  .bn-tab .bn-lb{font-size:10.5px;letter-spacing:.01em;white-space:nowrap}
+  .bn-tab.on{color:var(--accent-ink);background:var(--accent-soft)}
+  .bn-dot{position:absolute;top:-2px;right:-6px;width:7px;height:7px;border-radius:50%;
+    background:var(--red-hero);border:1.5px solid var(--card)}
+
+  /* —— 「更多」抽屉（底部半屏卡片，遮罩点击关闭） —— */
+  #moresheet.open{display:block;position:fixed;inset:0;z-index:90}
+  #moresheet .ms-scrim{position:absolute;inset:0;background:rgba(15,18,30,.42);
+    animation:ms-fade .18s ease}
+  #moresheet .ms-panel{position:absolute;left:0;right:0;bottom:0;
+    background:var(--card);border-radius:18px 18px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -14px 40px -12px rgba(0,0,0,.4);animation:ms-up .22s cubic-bezier(.22,1,.36,1)}
+  .ms-grab{width:38px;height:4px;border-radius:99px;background:var(--line2);margin:6px auto 12px}
+  .ms-head{font-size:13px;font-weight:700;color:var(--ink2);margin:0 2px 12px}
+  .ms-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .ms-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:14px 6px;border:1px solid var(--line);border-radius:14px;background:var(--panel);
+    color:var(--ink2);font-weight:600}
+  .ms-item .ms-ic{font-size:24px;line-height:1}
+  .ms-item .ms-lb{font-size:11.5px}
+  .ms-item.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+  .ms-item .bn-dot{top:8px;right:calc(50% - 22px)}
+  @keyframes ms-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes ms-fade{from{opacity:0}to{opacity:1}}
+}
+@media (max-width:560px){ .ms-grid{grid-template-columns:repeat(3,1fr)} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;min-width:0}
+.card.flat{box-shadow:none}
+.card>h3{font-size:13.5px;display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.card>h3 .sub{color:var(--ink3);font-weight:450;font-size:12px}
+.card>h3 .right{margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:450}
+.sect{margin:18px 0 8px;display:flex;align-items:baseline;gap:8px}
+.sect h2{font-size:16px}
+.sect .sub{color:var(--ink3);font-size:12.5px}
+.hero{font-size:40px;font-weight:750;letter-spacing:-.02em;line-height:1.1;margin:2px 0}
+.hero.sm{font-size:28px}
+.hero.red{color:var(--red-hero)} .hero.green{color:var(--green)} .hero.amber{color:var(--amber)} .hero.accent{color:var(--accent)}
+.hint{color:var(--ink3);font-size:12px}
+.src{color:var(--ink3);font-size:11.5px;margin-top:6px;line-height:1.45}
+.src::before{content:"📎 "}
+.divider{border-top:1px solid var(--line);margin:10px 0}
+
+/* ---------- 徽章 / 灯 / 仪表 ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:1.5px 8px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.plain::before{display:none}
+.badge.g{background:var(--green-soft);color:var(--green)}
+.badge.a{background:var(--amber-soft);color:var(--amber)}
+.badge.r{background:var(--red-soft);color:var(--red)}
+.badge.b{background:var(--blue-soft);color:var(--blue)}
+.badge.n{background:var(--panel2);color:var(--ink2)}
+.badge.gold{background:var(--gold-soft);color:var(--gold)}
+.badge.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.meter{height:5px;border-radius:3px;background:var(--panel2);overflow:hidden;position:relative;margin-top:4px}
+.meter>i{display:block;height:100%;border-radius:3px;background:var(--green)}
+.meter>i.a{background:var(--amber)} .meter>i.r{background:var(--red-hero)} .meter>i.acc{background:var(--accent)}
+.meter .band{position:absolute;top:-2px;bottom:-2px;border-left:1.5px solid var(--ink4);opacity:.85}
+
+/* ---------- 键值行 / 表格 ---------- */
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4.5px 0;border-bottom:1px dashed var(--line);font-size:12.8px}
+.kv:last-child{border-bottom:none}
+.kv b{font-weight:650;white-space:nowrap}
+.kv .k{color:var(--ink2)}
+.kv.total{border-top:1.5px solid var(--line2);border-bottom:none;padding-top:7px;font-weight:700}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{color:var(--ink3);font-weight:600;text-align:left;padding:5px 8px;border-bottom:1px solid var(--line2);white-space:nowrap;font-size:11.5px}
+.tbl td{padding:5.5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--panel)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:5.5px 13px;border-radius:8px;font-size:12.8px;font-weight:600;
+  border:1px solid var(--line2);background:var(--card);color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:var(--ink4);background:var(--panel)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line2))}
+.btn.sm{padding:2.5px 9px;font-size:11.8px;border-radius:7px}
+.btn.ghost{border-color:transparent;color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- 提示条 / 行动卡 ---------- */
+.banner{border-radius:var(--radius-sm);padding:9px 12px;font-size:12.6px;margin:8px 0;border:1px solid transparent;line-height:1.5}
+.banner.r{background:var(--red-soft);color:var(--red);border-color:color-mix(in srgb,var(--red) 22%,transparent)}
+.banner.a{background:var(--amber-soft);color:var(--amber);border-color:color-mix(in srgb,var(--amber) 22%,transparent)}
+.banner.g{background:var(--green-soft);color:var(--green)}
+.banner.b{background:var(--blue-soft);color:var(--blue)}
+.banner.n{background:var(--panel);color:var(--ink2)}
+.action-card{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius-sm);
+  padding:10px 12px;margin:8px 0;background:var(--card);font-size:12.8px}
+.action-card.r{border-left-color:var(--red-hero)} .action-card.a{border-left-color:var(--amber)}
+.action-card.g{border-left-color:var(--green)} .action-card.gold{border-left-color:var(--gold)}
+.action-card h4{font-size:12.8px;margin-bottom:3px}
+.killer{background:var(--panel);border-radius:var(--radius-sm);padding:9px 12px;font-size:12.6px;color:var(--ink2);margin-top:9px;font-style:normal}
+.callout{border:1px dashed var(--line2);border-radius:var(--radius-sm);padding:9px 12px;color:var(--ink2);font-size:12.3px;margin-top:8px}
+
+/* ---------- 折叠 ---------- */
+details.acc{border:1px solid var(--line);border-radius:var(--radius-sm);margin:7px 0;background:var(--card)}
+details.acc>summary{cursor:pointer;padding:8px 12px;font-weight:600;font-size:12.8px;list-style:none;display:flex;align-items:center;gap:8px}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary::after{content:"›";margin-left:auto;color:var(--ink3);transform:rotate(90deg);transition:transform .15s}
+details.acc[open]>summary::after{transform:rotate(-90deg)}
+details.acc>.acc-body{padding:2px 12px 11px;font-size:12.6px;border-top:1px solid var(--line)}
+
+/* ---------- 表单 ---------- */
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field>label{font-size:11.8px;color:var(--ink2);font-weight:600;display:flex;gap:5px;align-items:center}
+.field .hint{font-size:11px}
+.frm{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
+@media (max-width:700px){.frm{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg>button{padding:4.5px 11px;font-size:12.3px;color:var(--ink2);border-right:1px solid var(--line2);background:var(--card);font-weight:550}
+.seg>button:last-child{border-right:none}
+.seg>button.on{background:var(--accent);color:#fff}
+.linked{color:var(--accent);font-size:10.5px;font-weight:650;border:1px solid currentColor;border-radius:4px;padding:0 4px}
+
+/* ---------- 状态点 ---------- */
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle}
+.dot.g{background:var(--green)} .dot.a{background:var(--amber)} .dot.r{background:var(--red-hero)} .dot.n{background:var(--ink4)}
+
+/* ---------- 弹层 / toast / 命令面板 ---------- */
+#modal-root{position:fixed;inset:0;z-index:90;display:none;align-items:flex-start;justify-content:center;
+  background:rgba(12,14,20,.45);padding:7vh 16px;overflow:auto}
+#modal-root.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.28);
+  width:min(660px,100%);padding:18px 20px}
+.modal h3{font-size:15px;margin-bottom:10px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:99;
+  background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:99px;font-size:12.8px;font-weight:600;
+  transition:all .22s;pointer-events:none;max-width:80vw}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#palette{position:fixed;inset:0;z-index:95;display:none;align-items:flex-start;justify-content:center;background:rgba(12,14,20,.4);padding-top:12vh}
+#palette.open{display:flex}
+#palette .pal{width:min(520px,92vw);background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.3)}
+#palette input{width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:12px 16px;font-size:14px;background:transparent}
+#palette .pal-list{max-height:330px;overflow:auto;padding:6px}
+#palette .pal-it{padding:8px 12px;border-radius:8px;font-size:13px;display:flex;gap:8px;cursor:pointer}
+#palette .pal-it.sel,#palette .pal-it:hover{background:var(--accent-soft);color:var(--accent-ink)}
+#palette .pal-it small{margin-left:auto;color:var(--ink3)}
+
+/* ---------- sparkline / 散点 ---------- */
+.spark{width:100%;height:46px}
+svg text{fill:var(--ink3);font-size:9.5px}
+svg .axis{stroke:var(--line2)}
+
+/* ---------- KPI 网格 ---------- */
+.kpi{display:flex;flex-direction:column;gap:1px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card);cursor:pointer;min-width:0}
+.kpi:hover{border-color:var(--ink4)}
+.kpi .k{font-size:11px;color:var(--ink3);white-space:nowrap}
+.kpi .v{font-size:20px;font-weight:750;letter-spacing:-.01em;line-height:1.2;white-space:nowrap}
+.kpi .s{font-size:11px;color:var(--ink3)}
+.kpi .v.red{color:var(--red-hero)}.kpi .v.green{color:var(--green)}.kpi .v.amber{color:var(--amber)}.kpi .v.accent{color:var(--accent)}
+
+/* ---------- 打印 ---------- */
+@media print{
+  #topnav,#livebar,#subnav,.no-print,#toast,#modal-root,#palette{display:none!important}
+  body{background:#fff;color:#000}
+  #view{max-width:none;padding:0}
+  .card{box-shadow:none;break-inside:avoid}
+  .print-foot{display:block!important;margin-top:16px;padding-top:8px;border-top:1px solid #999;font-size:10.5px;color:#555}
+}
+.print-foot{display:none}
+.footer-note{max-width:1280px;margin:0 auto;padding:0 18px 26px;color:var(--ink3);font-size:11.5px}
+
+/* ---------- 独立版：品牌 + 单工具导航微调 ---------- */
+.nav-pages{display:flex;gap:3px;align-items:center;overflow-x:auto;scrollbar-width:none}
+.nav-pages::-webkit-scrollbar{display:none}
+
+</style>
+</head>
+<body>
+<nav id="topnav"></nav>
+<div id="livebar"></div>
+<div id="subnav"></div>
+<main id="view"></main>
+<div class="footer-note" id="backup-note"></div>
+<div class="footer-note">销售定价器 · 单文件 · 无后端 · 无网络 · 数据只在你的电脑 · 测算结果仅供参考</div>
+<nav id="bottomnav"></nav>
+<div id="moresheet"></div>
+<div id="modal-root"></div>
+<div id="palette"></div>
+<div id="toast"></div>
+<script>
+const SK = (() => {
+  'use strict';
+  const YUAN = 100, WAN = 1000000;
+
+  /* ---------- 基础工具 ---------- */
+  const safeDiv = (a, b) => (b === 0 || b == null || a == null || !isFinite(b)) ? null : a / b;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const roundTo = (v, step) => v == null ? null : Math.round(v / step) * step;
+  const round100 = x => Math.round(x / 100) * 100;
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const stddevP = a => { if (a.length < 2) return null; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length); };
+  const stddevS = a => { if (a.length < 2) return null; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+  function pearson(xs, ys) {
+    const n = xs.length; if (n < 2) return null;
+    let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+    for (let i = 0; i < n; i++) { sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; syy += ys[i] * ys[i]; sxy += xs[i] * ys[i]; }
+    const cov = n * sxy - sx * sy, dx = Math.sqrt(n * sxx - sx * sx), dy = Math.sqrt(n * syy - sy * sy), den = dx * dy;
+    return den === 0 ? null : cov / den;
+  }
+  function percentileR7(sorted, p) { const n = sorted.length; if (!n) return null; const h = (n - 1) * p, lo = Math.floor(h), f = h - lo; return lo + 1 >= n ? sorted[n - 1] : sorted[lo] + f * (sorted[lo + 1] - sorted[lo]); }
+  let _seq = 0;
+  const uid = p => p + '_' + Date.now().toString(36) + '_' + (++_seq) + Math.floor(Math.random() * 900 + 100);
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function mulberry32(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  /* ---------- 日期（UTC，字符串口径） ---------- */
+  const dParse = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  const dNum = s => Math.floor(dParse(s) / 864e5);
+  const numDate = n => { const d = new Date(n * 864e5); return d.toISOString().slice(0, 10); };
+  const ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const addDays = (s, n) => numDate(dNum(s) + n);
+  const diffDays = (a, b) => dNum(b) - dNum(a);           // b − a
+  const daysBetween = (a, b) => dNum(b) - dNum(a);
+  const monthOf = s => s.slice(0, 7);
+  const firstDay = (y, m) => ymd(y, m, 1);
+  const weekdayOf = s => new Date(dParse(s)).getUTCDay(); // 0=周日
+  let _todayOverride = null;                              // 测试时钟注入（C-14）
+  const today = () => _todayOverride || new Date().toISOString().slice(0, 10);
+  const setTestToday = s => { _todayOverride = s; };
+
+  /* ---------- 展示层格式化（null → “—”，从不假装知道） ---------- */
+  const DASH = '—';
+  const fmt = {
+    yuan: fen => fen == null ? DASH : '¥' + Math.round(fen / YUAN).toLocaleString('zh-CN'),
+    wan: (fen, dp = 1) => fen == null ? DASH : (fen / WAN).toFixed(dp) + '万',
+    pct: (r, dp = 1) => r == null ? DASH : (r * 100).toFixed(dp) + '%',
+    num: (n, dp = 0) => n == null ? DASH : Number(n).toFixed(dp),
+    x: n => n == null ? DASH : Number(n).toFixed(1) + ' 倍',
+    d: s => s == null ? DASH : s,
+  };
+
+  /* ---------- 全系统唯一 S 曲线（🔧C-04 头部和口径，四板块共用） ---------- */
+  const RAMP = {
+    short:     [0, 12, 25, 42, 60, 73, 85, 93, 100, 100, 100, 100],
+    regular:   [0, 5, 12, 22, 35, 48, 60, 72, 82, 90, 96, 100],
+    midLong:   [0, 0, 5, 12, 20, 30, 42, 53, 63, 72, 80, 87],
+    long:      [0, 0, 0, 5, 10, 18, 27, 36, 45, 54, 62, 70],
+    ultraLong: [0, 0, 0, 0, 5, 10, 16, 23, 30, 37, 44, 50],
+  };
+  const SEGMENT_MAP = { short: 'smb', regular: 'smb', midLong: 'mid', long: 'ent', ultraLong: 'strategic' };
+  const CYCLE_CN = { short: '短周期（≤30天）', regular: '常规（1–3月）', midLong: '中长（4–6月）', long: '长（7–12月）', ultraLong: '超长（>12月）' };
+  function newHireYearRate(cycle, m) {
+    const arr = RAMP[cycle]; if (!arr || m < 1 || m > 12) return null;
+    let s = 0; for (let i = 0; i < 13 - m && i < 12; i++) s += arr[i];
+    return s / 12 / 100;                                  // 咬合基准 short,1 → 65.8%；short,5 → 32.5%
+  }
+  function calcRamp80(cycle) { const arr = RAMP[cycle]; for (let p = 1; p <= 12; p++) if (arr[p - 1] >= 80) return p; return 12; }
+
+  /* ---------- 系数总表（唯一阈值权威源；分区命名空间；可被 DB.coefOverrides 按 path 覆盖） ---------- */
+  const COEF_DEFAULT = {
+    shared: {
+      socialCostRate: 0.30, attritionRateDefault: 0.35, hiringCostDefaultAmt: 15000_00,
+      recruitFeeDefaultAmt: 5000_00, minSampleDefault: 5, midYearAttritionFactor: 0.5,
+      longTermRate: 0.10, backupNudgeDays: 14, ahcTrustLine: 60,
+      minWageTable: { tier1: 2420_00, tier2: 2000_00, tier34: 1700_00 },
+      threeYearScaleFactor: 1.18, pipelineDecayResidual: 0.65,
+      spanDefault: { manageTimeShare: 0.30, weeklyHrs: 40 },
+      fixedMeetingHrs: 3, perHeadMgmtHrs: 1.1, perHeadAdminHrs: 0.6,
+      p90ColdFactor: 1.8, imbalanceGlobal: 0.56,
+    },
+    dingjia: {
+      cityBase: { tier1: 500000, tier2: 400000, tier34: 300000 },
+      levelMultiplier: { sales: [1.0, 1.5, 1.8, 2.0], manager: [2.0, 2.5, 3.0, 3.5], executive: [3.0, 4.0, 4.5, 5.0] },
+      cycleFactor: { short: 1.0000, regular: 1.1500, midLong: 1.3225, long: 1.5606, ultraLong: 2.0000 },
+      thresholdTTable: {
+        tier1: { sales: [25000, 30000, 35000, 40000], manager: [33000, 40000, 47000, 54000], executive: [45000, 54000, 63000, 72000] },
+        tier2: { sales: [20000, 24000, 28000, 32000], manager: [27000, 32000, 37000, 43000], executive: [36000, 43000, 50000, 57000] },
+        tier34: { sales: [15000, 18000, 21000, 24000], manager: [20000, 24000, 28000, 32000], executive: [27000, 32000, 38000, 43000] } },
+      fullRampRatio: { smb: 0.70, mid: 0.67, ent: 0.63, strategic: 0.60 },
+      globalAttainRate: [0.43, 0.51], turnoverCostOteRate: [1.5, 2.0],
+      teamBonusTIS: { w: [0.4, 0.3, 0.3], sizeFull: 8, sizeZero: 20, complementEnum: { solo: 0, partial: 50, chained: 100 }, green: 70, red: 40 },
+      burdenBand: [0.25, 0.35],
+      menuQuotaSteps: [0.8, 1.0, 1.2], menuAttainMid: 0.47, menuAttainSlope: 0.75,
+      menuEquivalenceTolerance: 0.03, menuRound: 10000,
+      attainabilityRedline: 1.3, hungerBufferRate: 1.1, processRedlineWarnCount: 3,
+    },
+    suanzhang: {
+      redrawGainBand: [0.02, 0.07], territoryBand: [0.90, 1.10], selfDevBonusFactor: 0.5,
+      discountLeakRedline: 0.06, pushShareRedline: 0.40, scissorsAlert: 0.30, uerMinObs: 48,
+      propertyMinEach: { people: 4, months: 6 }, dviMinDeals: 10,
+      categoryFuseMarginRate: 0.22, categoryFuseShareRate: 0.20, winRateCeiling: 0.20,
+      refundConcentrationX: 3, forcedDiscount: { rate: 0.15, share: 0.60 },
+      leaverCategoryX: 1.5, stopBleedDays: 30, territoryStarveIdx: 0.7,
+      dataGapWarn: 0.10, personLeakX: 1.5, p90MinSample: 8,
+      m34TailShare: 1 / 3, m34BunchBand: 0.10, m34DiffRedline: 0.02, m34BunchRedline: 1.5,
+      m35RankJumpShare: 0.30, m36Band: 0.15, m36Redline: 0.40, m36MinManDays: 30,
+      hongbaoDailyX: 2, hongbaoRepeatN: 3, scissorsBunchBand: 0.15,
+    },
+    zhaoren: {
+      overestimateRedline: 0.20, fullRampBand: [0.55, 0.75],
+      practiceMinCount14d: 50, practiceCurveShiftMonths: 2, cognitiveGapRedline: 0.30,
+      ackAutoConfirmDays: 7, coachingDose: { floorHrsMonth: 3, ceilHrsMonth: 5, weeklyMin: 0.5 },
+      validityMinSample: 12, calibrateMinSample: 30,
+      weightCaps: { experience: 0, charisma: 0.10 },
+      collapseRule: { scoreGt: 70, monthIn: [10, 18], dropLt: -0.40, minSample: 8 },
+      rpiRedline: 0.60, rpiGreen: 0.35, overrideQuotaDefault: 0.20, epsMinSampleEach: 3,
+      referralBonusRate: 0.01, qcsWeights: [0.4, 0.3, 0.3],
+      tempLightThresholds: { offerAccept: [0.60, 0.40], noshow: [0.15, 0.30], cycleWorse: [0.20, 0.50], poachShare: 0.30 },
+      hiringWeightsFactory: { achievement: 35, cognitive: 25, integrity: 20, situational: 15, charisma: 0, experience: 0, adaptive: 5 },
+      hiringCycleDaysDefault: 45, systemRecommendThreshold: 60,
+    },
+    yuren: {
+      momentumTrigger: { lossStreak: 3, score: 0.6 },
+      recipeGate: { topN: 3, uerMin: 0, discountLeMean: true, complaintLeMean: true },
+      rxRules: { volumeLt: 0.70, qualityLt: 0.60, doseGe: 0.70, ratioGe: 0.80, speedX: 1.5 },
+      psi: { w: [25, 25, 25, 25], bands: [40, 70] },
+      newbieWindow: { days: 7, thresholdRate: 0.80, redStreakDays: 3, redLine: 0.60, holdDays: 3 },
+      effectiveScore: { newbieBandFactor: 0.60 },
+      spotCheck: { weeklyK: 2, kRange: [0, 5], flagWeight: 3 },
+      backlogAlert: { managerDays: 30, bossDays: 60, surgeUp: 0.50, dropDown: 0.30 },
+      joltRule: { stallX: 1.5, discountX: 1.5 },
+      floorLift: { minEach: 3, windowDays: 90 },
+      m40: { coachTopN: 3, learnerBand: [0.20, 0.80], pairWeeksMax: 3, sessionMinutes: 20 },
+      m41: { lossStreakTrigger: 3, scoreTrigger: 0.60, w: [0.6, 0.4], streakCap: 5, winRateWindowDays: 30, smallDealAovX: 0.5 },
+      m42: { laggardBand: 1 / 3, trajMonths: 6 },
+      m43: { accel: [0.60, 0.95], quitLt: 0.40, protectBigDealShare: 0.50, subGoalX: 1.1, middleCoachWeight: 0.60 },
+      m44: { tenureYears: 2, neglectRatioLt: 0.5 },
+      cullGuard: { leadsIndexLt: 0.70, practice14Min: 50 },
+    },
+    liuren: {
+      pipelineDecayInPriceTag: 0.35, handoverLossRate: 0.40, handoverSavableShare: 0.50,
+      rampGapShareRedline: 0.45, silentMonthsDefault: 6, dividendPayoutDelayDays: 45,
+      refRound: 10000, aftershockTalkDays: 7,
+      secondPlaceRankBand: [2, 3], secondPlaceMonths: 3,
+      sii: { w: [25, 15, 15, 15, 20, 10], spotCap: 5, approveCap: 3, viewPerCapMonth: 4, rxPerCapMonth: 20, bands: [30, 60] },
+      ei: { w: [30, 25, 25, 20], objectionPerCapQuarter: 0.5, bands: [30, 60] },
+      ahc: { w: [40, 25, 20, 15], interceptCap: 10, ratchetCap: 3, bands: [60, 80] },
+      mc: { w: [40, 30, 20, 10], bands: [40, 65] },
+      m28: { mentorRate: 0.05, royaltyRate: 0.02, mentorDur: 12, royaltyDur: 24, oneOffAmt: 500_00 },
+      dependency: { warn: 0.40, danger: 0.60 }, collapseMonthIn: [10, 18], freeRiderRules: { discountX: 2, complaintX: 1.5 },
+    },
+  };
+  function getPath(obj, path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+  function getCoef(path) {
+    const ov = DB && DB.coefOverrides ? DB.coefOverrides[path] : undefined;
+    if (ov !== undefined && ov !== null && ov !== '') return ov;
+    const v = getPath(COEF_DEFAULT, path);
+    return typeof v === 'object' && v !== null ? JSON.parse(JSON.stringify(v)) : v;
+  }
+
+  /* ---------- 统一数据库 ---------- */
+  const LS_KEY = 'skab_suite_v1';
+  const CITY_CN = { tier1: '一线', tier2: '二线', tier34: '三四线' };
+  const POS_CN = { sales: '销售', manager: '主管', executive: '高管' };
+  function emptyDB() {
+    return {
+      meta: { createdAt: today(), dataVersion: 1, seeded: false },
+      ui: { theme: 'auto', lastExportAt: null, openCards: { A: true, B: true, C: false, D: false, E: false }, tierOpen: { sales: true, mgr: false } },
+      company: {
+        name: '我的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
+        complementLevel: 'partial', attributableLevel: 'partial', targetYearMode: 'next',
+        targetYearGrossWan: 1000, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
+        attritionRate: 0.35, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
+        salesCount: 5, managerCount: 1,
+        rMode: 'auto', rManual: 0.2706,
+      },
+      people: [], categories: [], leads: [], deals: [], discounts: [], payouts: [], refunds: [], opcosts: [],
+      candidates: [], weights: JSON.parse(JSON.stringify(COEF_DEFAULT.zhaoren.hiringWeightsFactory)),
+      dt: { externalAttrib: 40, detailMissing: 35, charisma: 60, detail: 55, selfMention: 45 },
+      criteria: { minExperienceYears: 0, ageRange: null },
+      dailyReports: [], prescriptions: [], coachingAcks: [], bounties: [], spotChecks: [], practiceLogs: [],
+      recipeSource: null, pairAssignments: [], oxygen: {}, insistLog: [],
+      paceConfig: { manualQuotaBySp: {} }, shiftConfig: { '*': [0] }, silentTrackOn: false,
+      governance: {
+        sii: { dailyReportOn: true, rollcallOn: true, spotChecksPerWeek: 3, approvalLevels: 2, monthlyViewsTotal: 20, rxCountTotal: 80 },
+        ei: { objectionsRaisedQuarter: 0, suggestionsRaised: 0, suggestionsAdopted: 0, cardIgnoreRate: 0.82 },
+        ahcInputs: { achievedCount: 41, honoredCount: 25, interceptCount: 4, ratchetCount: 2 },
+        selfRating: { sii: 40, ei: 70, dvi: 80, ahc: 85 },
+      },
+      priceTag: { spId: null, hireMonths: 1.5, raiseMonthlyAmt: 3000_00, shortenPct: 0.37 },
+      dividend: {
+        poolRate: 0.10,
+        gates: { companyCollect: { enabled: true, pass: true }, companyNet: { enabled: true, pass: true }, personalCollect: { enabled: true, pass: true } },
+      },
+      blueprint: { milestones: [] },
+      m28Agreements: [], covenants: [], objections: [], suggestions: [], overrideEvents: [], handoverCards: [],
+      menuChoices: [], covenantDocs: [], scenarios: [], audit: null,
+      coefOverrides: {},
+    };
+  }
+  let DB = null;
+  function loadDB() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw);
+        DB = Object.assign(emptyDB(), stored);
+        // 对象字段一层合并，保证新版本字段有默认值
+        for (const k of ['ui', 'company', 'governance', 'priceTag', 'dividend', 'paceConfig', 'shiftConfig', 'weights', 'dt']) {
+          DB[k] = Object.assign(getPath(emptyDB(), k) || {}, stored[k] || {});
+        }
+        return;
+      }
+    } catch (e) { /* 损坏则重建 */ }
+    DB = emptyDB();
+    seedDemo();
+    persist();
+  }
+  function persist() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); return true; }
+    catch (e) { toastFn && toastFn('⚠ localStorage 写入失败，请立即导出备份'); return false; }
+  }
+  function storageKB() { try { const raw = localStorage.getItem(LS_KEY) || ''; return Math.round(raw.length * 2 / 1024); } catch (e) { return null; } }
+
+  /* ---------- 统一演示种子（确定性随机，相对“今天”生成，保证全部诊断点亮） ---------- */
+  /* ---------- 轻量演示种子（独立定价器：只需 company 字段） ---------- */
+  function seedDemo() {
+    const D0 = emptyDB(); Object.assign(DB, D0, { coefOverrides: DB.coefOverrides || {} });
+    DB.meta.seeded = true;
+    Object.assign(DB.company, {
+      name: '示例 · 王总的公司', cityTier: 'tier1', cycleTier: 'regular',
+      tierGrade: 'effective', mgrGrade: 'effective',
+      targetYearGrossWan: 1800, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
+      salesCount: 10, managerCount: 1,
+      attritionRate: 0.30, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
+      complementLevel: 'partial', attributableLevel: 'partial', targetYearMode: 'next',
+    });
+  }
+
+  /* ---------- 跨模块派生中枢 X（每次渲染重建缓存；模块注册 summary） ---------- */
+  const summary = {};                          // 模块注册：summary.dingjia = (db, today) => {...}
+  let _xCache = {}, _xBusy = {};
+  function xReset() { _xCache = {}; _xBusy = {}; }
+  function X(id) {
+    if (_xCache[id] !== undefined) return _xCache[id];
+    if (_xBusy[id]) return null;               // 环路保护
+    if (!summary[id]) return null;
+    _xBusy[id] = true;
+    let v = null;
+    try { v = summary[id](DB, today()); } catch (e) { console.error('X(' + id + ')', e); }
+    _xBusy[id] = false;
+    _xCache[id] = v;
+    return v;
+  }
+  /* 提成率 r 全局解析：定价器实时结果优先（rMode=auto），可手工锁定 */
+  function rRate() {
+    const c = DB.company;
+    if (c.rMode === 'manual') return c.rManual;
+    const dj = X('dingjia');
+    return (dj && dj.r != null) ? dj.r : (c.rManual != null ? c.rManual : 0.2706);
+  }
+  /* 共用聚合：在职销售 / 主管 */
+  const activeSales = () => DB.people.filter(p => p.isActive && p.positionType === 'sales');
+  const activeManagers = () => DB.people.filter(p => p.isActive && p.positionType === 'manager');
+  const personById = id => DB.people.find(p => p.spId === id) || null;
+  const catById = id => DB.categories.find(c => c.id === id) || null;
+  const maskPhone = p => !p ? '' : p.slice(0, 3) + '****' + p.slice(-2);
+
+  /* ---------- 模块注册 / 动作 / 测试 ---------- */
+  const modules = [];                                  // {id,title,icon,order,subnav,render,alerts?}
+  const actions = {};                                  // data-act → fn(dataset, el, ev)
+  const tests = [];                                    // {id, name, fn:()=>bool|{pass,got,want}}
+  function registerModule(m) { modules.push(m); modules.sort((a, b) => a.order - b.order); }
+
+  let toastFn = null;
+  return {
+    YUAN, WAN, DASH, safeDiv, clamp, roundTo, round100, mean, median, stddevP, stddevS, pearson, percentileR7,
+    uid, esc, mulberry32, dParse, dNum, numDate, ymd, addDays, diffDays, daysBetween, monthOf, firstDay, weekdayOf,
+    today, setTestToday, fmt, RAMP, SEGMENT_MAP, CYCLE_CN, CITY_CN, POS_CN, newHireYearRate, calcRamp80,
+    COEF_DEFAULT, getCoef, getPath,
+    get DB() { return DB; }, loadDB, persist, emptyDB: () => { DB = emptyDB(); }, seedDemo, storageKB, LS_KEY,
+    X, xReset, summary, rRate, activeSales, activeManagers, personById, catById, maskPhone,
+    modules, registerModule, actions, tests,
+    _setToast(fn) { toastFn = fn; },
+  };
+})();
+
+(() => {
+  'use strict';
+  const { esc, fmt, DASH } = SK;
+
+  /* ---------- 组件库 ---------- */
+  const h = {
+    card: (title, body, opts = {}) => `<div class="card ${opts.cls || ''}">${title ? `<h3>${title}${opts.right ? `<span class="right">${opts.right}</span>` : ''}</h3>` : ''}${body}</div>`,
+    kv: rows => rows.map(r => `<div class="kv ${r.total ? 'total' : ''}"><span class="k">${r.k}</span><b class="${r.cls || ''}">${r.v}</b></div>`).join(''),
+    tbl: (cols, rows, opts = {}) => `<div class="tbl-wrap"><table class="tbl">${opts.noHead ? '' : `<thead><tr>${cols.map(c => `<th class="${c.num ? 'num' : ''}">${c.t}</th>`).join('')}</tr></thead>`}<tbody>${rows.length ? rows.join('') : `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--ink3)">${opts.empty || '暂无数据'}</td></tr>`}</tbody></table></div>`,
+    badge: (t, tone = 'n', plain = false) => `<span class="badge ${tone} ${plain ? 'plain' : ''}">${t}</span>`,
+    meter: (ratio, tone = '', bands = []) => `<div class="meter"><i class="${tone}" style="width:${Math.round(SK.clamp(ratio == null ? 0 : ratio, 0, 1) * 100)}%"></i>${bands.map(b => `<span class="band" style="left:${b * 100}%"></span>`).join('')}</div>`,
+    banner: (t, tone = 'n') => `<div class="banner ${tone}">${t}</div>`,
+    action: (title, body, tone = '', btns = '') => `<div class="action-card ${tone}"><h4>${title}</h4><div>${body}</div>${btns ? `<div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">${btns}</div>` : ''}</div>`,
+    btn: (label, act, opts = {}) => `<button class="btn ${opts.cls || ''}" data-act="${act}" ${opts.data || ''} ${opts.disabled ? 'disabled' : ''} ${opts.title ? `title="${esc(opts.title)}"` : ''}>${label}</button>`,
+    hero: (v, label, tone = '', small = false) => `<div><div class="hero ${small ? 'sm' : ''} ${tone}">${v}</div><div class="hint">${label}</div></div>`,
+    src: t => `<div class="src">${t}</div>`,
+    hint: t => `<div class="hint">${t}</div>`,
+    acc: (sum, body, open = false) => `<details class="acc" ${open ? 'open' : ''}><summary>${sum}</summary><div class="acc-body">${body}</div></details>`,
+    dot: tone => `<span class="dot ${tone}"></span>`,
+    linked: (t = '联动') => `<span class="linked" title="该值由其他板块实时换算">${t}</span>`,
+    field: (label, control, hint = '') => `<div class="field"><label>${label}</label>${control}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`,
+    input: (path, type, opts = {}) => `<input type="${opts.itype || 'number'}" data-bind="${path}" data-type="${type}" value="${opts.value != null ? esc(opts.value) : ''}" ${opts.step ? `step="${opts.step}"` : ''} ${opts.min != null ? `min="${opts.min}"` : ''} ${opts.max != null ? `max="${opts.max}"` : ''} ${opts.ph ? `placeholder="${esc(opts.ph)}"` : ''} ${opts.attrs || ''}>`,
+    select: (path, options, cur, opts = {}) => `<select data-bind="${path}" data-type="${opts.type || 'str'}" ${opts.attrs || ''}>${options.map(o => `<option value="${esc(o.v)}" ${String(o.v) === String(cur) ? 'selected' : ''}>${esc(o.t)}</option>`).join('')}</select>`,
+    seg: (path, options, cur, type = 'str') => `<div class="seg">${options.map(o => `<button data-act="ui.seg" data-path="${path}" data-val="${esc(o.v)}" data-vtype="${type}" class="${String(o.v) === String(cur) ? 'on' : ''}">${esc(o.t)}</button>`).join('')}</div>`,
+    range: (path, val, min, max, step, outFmt = 'raw') => `<div style="display:flex;align-items:center;gap:8px"><input type="range" data-bind="${path}" data-type="num" min="${min}" max="${max}" step="${step}" value="${val}" style="flex:1"><b data-out="${path}" data-outfmt="${outFmt}" style="min-width:44px;text-align:right">${val}</b></div>`,
+    spark(arr, mark = null) {
+      if (!arr || !arr.length) return '';
+      const W = 220, H = 46, max = Math.max(...arr, 1);
+      const pts = arr.map((v, i) => `${(i / (arr.length - 1) * (W - 8) + 4).toFixed(1)},${(H - 6 - v / max * (H - 14)).toFixed(1)}`).join(' ');
+      const markX = mark != null ? (mark - 1) / (arr.length - 1) * (W - 8) + 4 : null;
+      return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${markX != null ? `<line x1="${markX}" y1="4" x2="${markX}" y2="${H - 4}" stroke="var(--amber)" stroke-dasharray="3 3"/>` : ''}<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.8"/></svg>`;
+    },
+    ring(pct, label, tone = 'accent') {
+      const p = SK.clamp(pct == null ? 0 : pct, 0, 100);
+      const col = tone === 'r' ? 'var(--red-hero)' : tone === 'g' ? 'var(--green)' : tone === 'a' ? 'var(--amber)' : 'var(--accent)';
+      return `<div style="display:flex;align-items:center;gap:10px"><div style="width:62px;height:62px;border-radius:50%;background:conic-gradient(${col} ${p * 3.6}deg,var(--panel2) 0);display:flex;align-items:center;justify-content:center"><div style="width:46px;height:46px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:750;font-size:14px">${pct == null ? DASH : Math.round(pct)}</div></div><div class="hint">${label}</div></div>`;
+    },
+  };
+
+  /* ---------- toast / modal ---------- */
+  let toastTimer = null;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+  SK._setToast(toast);
+  function modal(html) { const r = document.getElementById('modal-root'); r.innerHTML = `<div class="modal">${html}</div>`; r.classList.add('open'); }
+  function closeModal() { const r = document.getElementById('modal-root'); r.classList.remove('open'); r.innerHTML = ''; }
+
+  /* ---------- 路由 ---------- */
+  const route = { board: 'dash', sub: null };
+  function parseHash() {
+    const m = location.hash.replace(/^#\/?/, '').split('/');
+    route.board = m[0] || 'dash'; route.sub = m[1] || null;
+  }
+  let subnavOpen = false;
+  function nav(board, sub) { moreOpen = false; subnavOpen = false; location.hash = '#/' + board + (sub ? '/' + sub : ''); }
+
+  /* ---------- 数据绑定 ---------- */
+  function setPath(obj, path, val) {
+    const ks = path.split('.'); let o = obj;
+    for (let i = 0; i < ks.length - 1; i++) { if (o[ks[i]] == null) o[ks[i]] = {}; o = o[ks[i]]; }
+    o[ks[ks.length - 1]] = val;
+  }
+  function castVal(raw, type) {
+    switch (type) {
+      case 'int': return Math.round(parseFloat(raw)) || 0;
+      case 'num': { const v = parseFloat(raw); return isFinite(v) ? v : 0; }
+      case 'wan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * SK.WAN) : 0; }        // 万元 → 分
+      case 'fen-yuan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * 100) : 0; }      // 元 → 分
+      case 'pct100': { const v = parseFloat(raw); return isFinite(v) ? v / 100 : 0; }                    // % → 0–1
+      case 'bool': return raw === true || raw === 'true' || raw === 'on';
+      default: return raw;
+    }
+  }
+  function bindTarget(el) {
+    const path = el.dataset.bind;
+    if (path.startsWith('coef:')) return { obj: SK.DB.coefOverrides, key: path.slice(5), coef: true };
+    return { obj: SK.DB, key: path };
+  }
+  function handleBind(el) {
+    const t = bindTarget(el);
+    let raw = el.type === 'checkbox' ? el.checked : el.value;
+    const val = castVal(raw, el.dataset.type || 'str');
+    if (t.coef) {
+      if (raw === '' || raw == null) delete t.obj[t.key]; else t.obj[t.key] = val;
+    } else setPath(t.obj, t.key, val);
+    commit();
+  }
+
+  /* ---------- 渲染 ---------- */
+  function boardById(id) { return SK.modules.find(m => m.id === id); }
+  function renderTopnav() {
+    const el = document.getElementById('topnav');
+    el.innerHTML = `
+      <div class="brand"><div class="logo">价</div><span>销售定价器 <small>PRO · v2.5</small></span></div>
+      ${SK.modules.map(m => {
+        const alerts = m.alerts ? m.alerts() : 0;
+        const on = route.board === m.id;
+        const hasDrop = m.subnav && m.subnav.length;   // 所有含子页的板块都带下拉快速跳转（驾驶舱/云端无子页不带）
+        const tab = `<button class="nav-tab ${on ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}">${m.icon} ${m.title}${hasDrop ? ' <span class="nav-caret">▾</span>' : ''}${alerts > 0 ? '<span class="dotwarn"></span>' : ''}</button>`;
+        if (!hasDrop) return tab;
+        const menu = m.subnav.map(s => `<button class="nav-menu-item ${on && route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+        return `<div class="nav-drop">${tab}<div class="nav-menu" role="menu">${menu}</div></div>`;
+      }).join('')}
+      <div class="sp"></div>
+      <button class="icon-btn" data-act="ui.palette" title="命令面板 ⌘K">⌘K</button>
+      <button class="icon-btn" data-act="ui.print" title="打印当前页">🖨</button>
+      <button class="icon-btn" data-act="ui.theme" title="主题">🌓</button>`;
+  }
+  function renderLivebar() {
+    const el = document.getElementById('livebar');
+    const cells = [];
+    for (const m of SK.modules) if (m.liveCells) { try { cells.push(...m.liveCells()); } catch (e) { console.error('liveCells', m.id, e); } }
+    el.innerHTML = cells.map(c => `<div class="lv-cell" data-act="ui.nav" data-board="${c.board}" ${c.sub ? `data-sub="${c.sub}"` : ''} title="${esc(c.tip || '')}"><span class="k">${c.k}</span><span class="v ${c.tone || ''}">${c.v}</span></div>`).join('');
+  }
+  function renderSubnav() {
+    const el = document.getElementById('subnav');
+    const m = boardById(route.board);
+    if (!m || !m.subnav || !m.subnav.length) { el.innerHTML = ''; return; }
+    if (!route.sub || !m.subnav.some(s => s.id === route.sub)) route.sub = m.subnav[0].id;
+    const idx = Math.max(0, m.subnav.findIndex(s => s.id === route.sub)), cur = m.subnav[idx];
+    const chips = m.subnav.map(s => `<button class="sub-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">${s.label}</button>`).join('');
+    // 桌面：胶囊 tab 一排(.sub-tabs)；手机/平板：下拉选择器(.sub-picker)展开同一批 tab——不横滑藏页、与底部一级栏区分
+    el.innerHTML =
+      `<button class="sub-picker" data-act="ui.subnav-toggle" aria-expanded="${subnavOpen ? 'true' : 'false'}">
+        <span class="sp-cur">${cur.label}</span><span class="sp-meta">${idx + 1}/${m.subnav.length}</span><span class="sp-car">▾</span>
+      </button>
+      <div class="sub-tabs ${subnavOpen ? 'open' : ''}">${chips}</div>`;
+  }
+  /* ---------- 手机 / 平板：底部标签栏 + 「更多」抽屉 ---------- */
+  const BN_PRIMARY = 4;                                   // 底部常驻前 4 个板块，其余进「更多」
+  let moreOpen = false;
+  const PAGE_ICON = { input: '✍️', dash: '📊', wt: '🌀', data: '📁', settings: '⚙️' };
+  function renderBottomnav() {
+    const el = document.getElementById('bottomnav'); if (!el) return;
+    const m = boardById(route.board) || SK.modules[0];
+    const pages = m.subnav || [];
+    el.innerHTML = pages.map(s => `<button class="bn-tab ${route.sub === s.id ? 'on' : ''}" data-act="ui.nav" data-board="${m.id}" data-sub="${s.id}">
+      <span class="bn-ic">${PAGE_ICON[s.id] || '•'}</span><span class="bn-lb">${s.label}</span></button>`).join('');
+  }
+  function renderMoresheet() { const el = document.getElementById('moresheet'); if (el) { el.className = ''; el.innerHTML = ''; } }
+  let renderScheduled = false;
+  function render() {
+    SK.xReset();
+    parseHash();
+    subnavOpen = false;                                  // 任何整页渲染(含前进/后退)都收起二级下拉
+    const m = boardById(route.board) || SK.modules[0];
+    route.board = m.id;
+    renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
+    const view = document.getElementById('view');
+    try { view.innerHTML = m.render(route.sub); }
+    catch (e) { console.error(e); view.innerHTML = h.banner('渲染出错：' + esc(e.message), 'r'); }
+    document.getElementById('backup-note').innerHTML = backupNote();
+    window.scrollTo(0, 0);
+  }
+  function commit() {
+    SK.persist();
+    if (renderScheduled) return;
+    renderScheduled = true;
+    requestAnimationFrame(() => { renderScheduled = false; render(); });
+  }
+  function backupNote() {
+    const last = SK.DB.ui.lastExportAt, nd = SK.getCoef('shared.backupNudgeDays');
+    if (!last) return `💾 建议定期在「数据中心」导出备份 · 本地存储占用 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+    const d = SK.diffDays(last, SK.today());
+    return d > nd ? `💾 你已 ${d} 天没备份数据了——硬盘损坏/换电脑前请到「数据中心」导出备份` : `💾 上次备份 ${last} · 本地存储 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+  }
+
+  /* ---------- 主题 ---------- */
+  function applyTheme() {
+    const t = SK.DB.ui.theme || 'auto';
+    if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+  }
+
+  /* ---------- 命令面板 ---------- */
+  let palItems = [], palSel = 0;
+  function paletteItems() {
+    const items = [];
+    for (const m of SK.modules) {
+      items.push({ t: `${m.icon} ${m.title}`, s: '板块', run: () => nav(m.id) });
+      (m.subnav || []).forEach(s => items.push({ t: `${m.icon} ${m.title} · ${s.label}`, s: '页面', run: () => nav(m.id, s.id) }));
+    }
+    items.push({ t: '🌓 切换主题', s: '操作', run: () => SK.actions['ui.theme']() });
+    items.push({ t: '📦 导出全量备份', s: '操作', run: () => SK.actions['data.export']() });
+    items.push({ t: '🧪 载入演示数据', s: '操作', run: () => SK.actions['data.seed']() });
+    return items;
+  }
+  function openPalette() {
+    const p = document.getElementById('palette');
+    p.classList.add('open');
+    p.innerHTML = `<div class="pal"><input id="pal-q" placeholder="搜索页面 / 操作…"><div class="pal-list" id="pal-list"></div></div>`;
+    palSel = 0; filterPal('');
+    const q = document.getElementById('pal-q'); q.focus();
+    q.addEventListener('input', () => { palSel = 0; filterPal(q.value); });
+  }
+  function filterPal(qs) {
+    palItems = paletteItems().filter(it => !qs || it.t.toLowerCase().includes(qs.toLowerCase()));
+    document.getElementById('pal-list').innerHTML = palItems.map((it, i) =>
+      `<div class="pal-it ${i === palSel ? 'sel' : ''}" data-pal="${i}">${it.t}<small>${it.s}</small></div>`).join('');
+  }
+  function closePalette() { const p = document.getElementById('palette'); p.classList.remove('open'); p.innerHTML = ''; }
+
+  /* ---------- 核心动作 ---------- */
+  Object.assign(SK.actions, {
+    'ui.nav': d => nav(d.board, d.sub || null),
+    'ui.more': () => { moreOpen = !moreOpen; renderMoresheet(); renderBottomnav(); },
+    'ui.more-close': () => { moreOpen = false; renderMoresheet(); renderBottomnav(); },
+    'ui.subnav-toggle': () => { subnavOpen = !subnavOpen; renderSubnav(); },
+    'ui.theme': () => {
+      const seq = ['auto', 'light', 'dark'];
+      SK.DB.ui.theme = seq[(seq.indexOf(SK.DB.ui.theme || 'auto') + 1) % 3];
+      applyTheme(); commit(); toast('主题：' + SK.DB.ui.theme);
+    },
+    'ui.print': () => window.print(),
+    'ui.palette': () => openPalette(),
+    'ui.seg': d => {
+      const val = d.vtype === 'num' ? parseFloat(d.val) : d.vtype === 'bool' ? d.val === 'true' : d.val;
+      if (d.path.startsWith('coef:')) SK.DB.coefOverrides[d.path.slice(5)] = val;
+      else setPath(SK.DB, d.path, val);
+      commit();
+    },
+    'ui.modal-close': () => closeModal(),
+    'ui.toast-ac': () => toast('已生成 action_card（系统永不自动执行 · 由你点击后才动）'),
+  });
+
+  /* ---------- 全局事件 ---------- */
+  function wire() {
+    document.addEventListener('click', ev => {
+      const pal = ev.target.closest('[data-pal]');
+      if (pal) { const it = palItems[+pal.dataset.pal]; closePalette(); it && it.run(); return; }
+      if (ev.target.id === 'palette') { closePalette(); return; }
+      if (ev.target.id === 'modal-root') { closeModal(); return; }
+      if (subnavOpen && !ev.target.closest('#subnav')) { subnavOpen = false; renderSubnav(); }  // 点外部收起二级下拉
+      const el = ev.target.closest('[data-act]');
+      if (!el) return;
+      const fn = SK.actions[el.dataset.act];
+      if (fn) fn(el.dataset, el, ev); else console.warn('未注册动作', el.dataset.act);
+    });
+    document.addEventListener('change', ev => {
+      const el = ev.target.closest('[data-bind]');
+      if (el) handleBind(el);
+    });
+    document.addEventListener('input', ev => {
+      const el = ev.target.closest('[data-bind]');
+      if (!el) return;
+      // 滑杆实时回显（不落库不重渲染）
+      const out = document.querySelector(`[data-out="${el.dataset.bind}"]`);
+      if (out) {
+        const v = parseFloat(el.value);
+        out.textContent = out.dataset.outfmt === 'pct' ? Math.round(v) + '%' : el.value;
+      }
+      const live = SK.actions['ui.live-input'];   // 模块可注册细粒度实时响应
+      if (live) live({ path: el.dataset.bind, value: el.value }, el, ev);
+    });
+    document.addEventListener('keydown', ev => {
+      const p = document.getElementById('palette');
+      if (p.classList.contains('open')) {
+        if (ev.key === 'Escape') return closePalette();
+        if (ev.key === 'ArrowDown') { palSel = Math.min(palSel + 1, palItems.length - 1); filterPal(document.getElementById('pal-q').value); ev.preventDefault(); return; }
+        if (ev.key === 'ArrowUp') { palSel = Math.max(palSel - 1, 0); filterPal(document.getElementById('pal-q').value); ev.preventDefault(); return; }
+        if (ev.key === 'Enter') { const it = palItems[palSel]; closePalette(); it && it.run(); return; }
+        return;
+      }
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openPalette(); return; }
+      if (ev.key === 'Escape') closeModal();
+    });
+    window.addEventListener('hashchange', render);
+  }
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    SK.loadDB();
+    applyTheme();
+    parseHash();
+    wire();
+    render();
+    // 控制台自检（不阻塞 UI）
+    setTimeout(() => {
+      try {
+        const res = SK.tests.map(t => { try { const r = t.fn(); return { id: t.id, pass: r === true || (r && r.pass) }; } catch (e) { return { id: t.id, pass: false, err: e.message }; } });
+        const bad = res.filter(r => !r.pass);
+        console.log(`[销冠操盘系统] 自检 ${res.length - bad.length}/${res.length} 绿`, bad.length ? bad : '');
+        window.__SUITE_SELFTEST__ = res;
+      } catch (e) { console.error(e); }
+    }, 50);
+  }
+
+  window.UI = { h, toast, modal, closeModal, nav, route, render, commit, boot, applyTheme };
+})();
+
+/* ===== data-backup.js (备份/系数动作，独立版精简) ===== */
+(() => {
+  'use strict';
+  const { h } = UI, { esc } = SK;
+  Object.assign(SK.actions, {
+    'data.export': () => {
+      const payload = { schema: 'skab_suite_v1', exportedAt: SK.today(), db: SK.DB };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `pricing_backup_${SK.today()}.json`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      SK.DB.ui.lastExportAt = SK.today(); UI.commit(); UI.toast('已导出备份');
+    },
+    'data.import': () => {
+      const f = document.getElementById('import-file'); if (!f) return;
+      f.onchange = () => {
+        const file = f.files[0]; if (!file) return;
+        const rd = new FileReader();
+        rd.onload = () => {
+          try {
+            const j = JSON.parse(rd.result);
+            if (j.schema !== 'skab_suite_v1' || !j.db) return UI.toast('不是本工具的备份文件（schema 不符）');
+            localStorage.setItem(SK.LS_KEY, JSON.stringify(j.db));
+            SK.loadDB(); UI.applyTheme(); UI.commit(); UI.toast('备份已恢复');
+          } catch (e) { UI.toast('导入失败：' + e.message); }
+        };
+        rd.readAsText(file);
+      };
+      f.click();
+    },
+    'data.seed': () => { SK.seedDemo(); UI.commit(); UI.toast('示例数据已载入'); },
+    'data.clear': () => {
+      UI.modal(`<h3>清空全部数据？</h3><p class="hint">将删除本机上本工具的全部数据（公司档案 / 场景 / 信用书 / 系数覆盖…）。建议先导出备份。此操作不可撤销。</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">${h.btn('取消', 'ui.modal-close')}${h.btn('确认清空', 'data.clear-yes', { cls: 'danger' })}</div>`);
+    },
+    'data.clear-yes': () => { SK.emptyDB(); SK.persist(); UI.closeModal(); UI.commit(); UI.toast('已清空'); },
+    'data.coef-reset': () => { SK.DB.coefOverrides = {}; UI.commit(); UI.toast('已恢复全部出厂系数'); },
+  });
+})();
+
+/* ===== 10-dingjia.js ===== */
+/* ============================================================
+   定价器（dingjia）— 销冠定价器 v2.5 一体化移植
+   引擎逐字复刻原版：compute 顺序 B→D→A→C→E→合计。
+   输入全部绑定共享字段 DB.company；salesCount/managerCount 由员工档案派生只读。
+   系数：dingjia.* 与 shared.* 命名空间，只经 SK.getCoef。
+   ============================================================ */
+(() => {
+  'use strict';
+  const { h } = UI, { fmt, esc, DASH, safeDiv, clamp } = SK;
+  const WAN = SK.WAN;
+
+  /* ================= 0. 常量与文案 ================= */
+  const GRADE_IDX = { effective: 1, efficient: 2, leading: 3 };
+  const gradeIndex = g => GRADE_IDX[g] != null ? GRADE_IDX[g] : 1;
+  const GRADE_SHORT = { effective: '初级', efficient: '中级', leading: '高级' };
+  const GRADE_TECH = { effective: '有效', efficient: '高效', leading: '领先' };
+  const GRADE_DESC = {
+    effective: '能独立签单、稳定达标的常规销售——多数团队按这档定薪',
+    efficient: '持续超额、能自己带节奏的骨干',
+    leading: '团队头部标杆，产出明显高于均值',
+  };
+  const LEVEL_DESC = {
+    sales: '一线销售，直接签单回款',
+    manager: '带 5–8 人的一线主管，约三成时间用于管人',
+    executive: '定战略、背全盘目标，按 1 人计',
+  };
+  const levelName = l => ({ sales: '销售', manager: '主管', executive: '高管' })[l] || l;
+  const gradeFull = g => `${GRADE_SHORT[g]}（${GRADE_TECH[g]}）`;
+  const roundYuanFen = fen => Math.round(fen / 100) * 100;   // 四舍五入到元（分单位）
+
+  const ENUMS = {
+    cityTier: [['tier1', '一线'], ['tier2', '二线'], ['tier34', '三四线']],
+    cycleTier: [['short', '短期≤30天'], ['regular', '常规1–3月'], ['midLong', '中长4–6月'], ['long', '长期7–12月'], ['ultraLong', '超长>12月']],
+    tierGrade: [['effective', '初级（有效）'], ['efficient', '中级（高效）'], ['leading', '高级（领先）']],
+    complementLevel: [['solo', '各干各的'], ['partial', '部分协作'], ['chained', '环环相扣']],
+    attributableLevel: [['no', '说不清谁干的'], ['partial', '部分能分清'], ['yes', '能精确到人头']],
+    positionType: [['pure_sales', '纯销售'], ['advisory', '顾问建议岗'], ['aftersales', '售后服务岗']],
+    commissionBaseType: [['contract_amount', '按合同额/回款额'], ['margin_based', '按毛利'], ['neutral_kpi', '按中性指标']],
+    guardrailMetric: [['complaint_rate', '客诉率'], ['refund_rate', '退款率'], ['discount_rate', '折扣率']],
+  };
+  const CONTROLS = [['no_discount', '不许降价'], ['discount_excluded', '折扣不计提成'], ['old_client_excluded', '老客续费不计'],
+    ['heavy_monitoring', '过程强监控'], ['push_deadline', '月底冲刺压单'], ['forbid_backlog', '禁止押单挪单']];
+  const LEAK_MAP = {
+    no_discount: { exit: '该降不降 → 丢单', price: '失单率 ↑', watch: '失单原因=价格占比', w: 'lost_price' },
+    discount_excluded: { exit: '隐性让利（送货/延期/口头承诺）', price: '成本不可见、数据变假', watch: 'DiscountEntry 缺录率', w: 'discount_missing' },
+    old_client_excluded: { exit: '老客荒废', price: '复购率 ↓', watch: '复购率', w: 'repurchase' },
+    heavy_monitoring: { exit: '表演性合规（摆拍/刷时长）', price: '可见产出 ≠ 真实产出', watch: '日报计数 vs 成交相关性', w: 'report_corr' },
+    push_deadline: { exit: '透支下月 + 破坏价格锚点', price: '期末折扣率 ↑', watch: 'period_end_push', w: 'period_end_push' },
+    forbid_backlog: { exit: '只做老客不开新客', price: '新客占比 ↓', watch: '新客成交占比', w: 'new_client_share' },
+  };
+  const controlLabel = v => { const f = CONTROLS.find(x => x[0] === v); return f ? f[1] : v; };
+
+  /* ---- W 系话术库（逐字，件五 W-00~W-31）---- */
+  const W_TEXT = {
+    'W-01': g => `你的综合毛利率 ${fmt.pct(g.marginRate)}，属于低毛利生意——提成必须按毛利口径计（本系统默认如此）。若你现行方案按回款提成，大概率卖一单亏一单。`,
+    'W-02': g => `底薪已吃穿现金目标：底薪 ${fmt.yuan(g.row.B)} ≥ 月收入目标的 90%（${fmt.yuan(g.row.T)}×90%）。这不是方案，是固定工资。请调低底薪或上调收入档位。`,
+    'W-03': () => `饥饿-鱼饵警报：你把底薪压到了预警线以下。底薪低于生存线 + 提成高到刺眼 = 你不是在激励销售，是在制造一个必然作弊的人。`,
+    'W-04': () => `浮动占比已贴着鱼饵线（65%）。短周期生意可用，但请确认底薪足以生存。`,
+    'W-05': g => `全链提成占目标毛利 ${fmt.pct(g.burdenRate)}，超过 35% 红线——团队长大这套方案会把你撑穿。（35% 毛利 ≈ 毛利率约 25–30% 时的营收薪酬上限）`,
+    'W-06': g => `全链提成占目标毛利仅 ${fmt.pct(g.burdenRate)}，低于 25%——鱼饵不香，好手不来（提成给薄了）。`,
+    'W-09': () => `按此人数，人均目标已超满产真实水平的 120%——这是「人人满产」的幻觉。全球真实达标率（达标人数占比）只有 43–51%。`,
+    'W-29': g => `底薪疑似违法：${levelName(g.row.level)} 底薪 ${fmt.yuan(g.row.B)} 低于你所在城市的最低工资参考（${fmt.yuan(g.minW)}）。底薪低于当地最低工资涉嫌违法，员工可追讨差额并申请劳动仲裁。请上调底薪，或到「数据中心 · 系数矩阵」把 minWageTable 改成你当地真实标准。`,
+    'ok': () => `全链提成占目标毛利在 25–35% 健康带内——鱼饵香、撑不穿。`,
+    'W-19': () => `菜单暂不可用：你的底薪已低于生存线。饥饿状态下的「自选目标」只会全员挤最低档——先修底薪，再谈菜单。`,
+    'W-20': g => `富国银行方程成立：人均目标已达真实产能上限的 ${fmt.pct(g.ratioCur)}（红线 130%），且底薪贴着生存线。目标高到正常干法够不着时，人只剩两条路——走人，或造假。📎 结局参考：350 万个假账户、累计罚款和解超 30 亿美元、5,300 人被开、CEO 下台、2017 年起永久废除销售配额。`,
+    'W-20b': g => `人均目标已达真实产能上限的 ${fmt.pct(g.ratioCur)}。底薪尚有缓冲，暂不构成造假高压，但「人人满产」仍是幻觉——达标率会先塌。`,
+    'W-21': () => `提成基数与客户利益反向：顾问/售后按合同额提成 = 系统性诱导过度推销。📎 Sears 1992 同构方案 → 全公司「没病修出病」（卧底 37 例中 34 例被荐不必要维修）→ 41 州调查、1500 万美元和解、19 起集体诉讼、董事长立即废除提成。✅ 改法：基数换成留存·复购·满意度联动的中性指标。`,
+    'W-21b': () => `纯销售岗按合同额/回款额提成，在低毛利品类会卖一单亏一单——建议切换毛利口径（本系统默认口径）。`,
+    'W-22': () => `每个强目标必须配一个护栏指标（客诉率/退款率/折扣率任选其一）。你把 100% 的光打在回款上，阴影里长出来的就是砍价、乱承诺、老客荒废——选定护栏后方可导出方案书。`,
+    'W-23': g => `你设了 ${g.n} 条「最低要求」。📎 AER 2006：底线管理换来底线员工——多数人会把产出降到底线附近。系统已预约一个证据：接入算账器后，M36 将用你自己的数据算出团队「卡线率」。过程红线要少而致命，产出激励要上不封顶。`,
+    'W-24': g => `开拓型任务合同（模板）：保底期 ${g.floorMonths} 个月，底薪按矩阵、不挂业绩（且不得低于当地最低工资 ${fmt.yuan(g.minWage)}）；里程碑奖三档（首单成交 / 管道达月配额 3 倍 / 首季回款达标）；结算周期为季度，禁用月结提成。📎 MS 2013：纯绩效工资惩罚试错，而试错是探索的必经之路。`,
+    'W-25': g => `你堵了 ${g.n} 个洞，水改从上面 ${g.n} 个出口漏。没有一个方案能同时堵死所有洞——你能做的是选一个付得起的出口，并让它可见、可归因。`,
+    'W-26': () => `勾选你现行方案里的控制手段，看看水会从哪里漏出来。`,
+  };
+  const GATE_BRIEF = {
+    'W-01': '低毛利生意——提成必须按毛利口径计',
+    'W-02': '底薪吃穿现金目标（固定工资化）',
+    'W-03': '饥饿-鱼饵警报：底薪压到预警线以下',
+    'W-04': '浮动占比贴着鱼饵线 65%',
+    'W-05': '全链提成负担超过 35% 红线',
+    'W-06': '全链提成负担低于 25%（鱼饵不香）',
+    'W-29': '底薪疑似低于当地最低工资',
+  };
+
+  /* ================= 1. 引擎（纯函数，逐字复刻 v2.5）================= */
+
+  // 账单B（六步链；today/targetYear 显式注入）
+  function calcCardB(inp, today, targetYear) {
+    const cyc = inp.cycleTier, I5 = inp.nextYearTargetGrossAmt, I6 = inp.lastYearPerCapitaGrossAmt,
+      I7 = inp.salesCount, I9 = inp.attritionRate, I10 = inp.hiringCycleDays;
+    if (!I6) return { ok: false };
+    const midF = SK.getCoef('shared.midYearAttritionFactor');
+    const kEff = m => SK.newHireYearRate(cyc, m) * (1 - I9 * midF);
+    const k1 = SK.newHireYearRate(cyc, 1), kEff1 = kEff(1);
+    const fullCap = I5 / I6;                                    // ① 满产当量
+    const S1 = Math.max(0, Math.ceil(fullCap) - I7);            // ② 天真
+    const expAttr = I7 * I9;                                    // ③ 预期流失（全额计入缺口）
+    const gapCap = fullCap - I7 + expAttr;                      // ④ 缺口当量
+    const S6 = Math.max(0, Math.ceil(safeDiv(gapCap, kEff1)));  // ⑥ 真实
+    const overRate = safeDiv(S6 - S1, S6);
+    const exposeAmt = Math.max(0, (gapCap - S1 * kEff1) * I6);
+    const totalHeadTarget = I7 + S6;
+    let latestMonth = null;
+    for (let m = 12; m >= 1; m--) { if (kEff(m) * S6 >= gapCap) { latestMonth = m; break; } }
+    let latestHire = null, isLate = false, lateDays = 0;
+    if (latestMonth) {
+      latestHire = SK.addDays(SK.firstDay(targetYear, latestMonth), -I10);
+      lateDays = SK.diffDays(latestHire, today); isLate = lateDays > 0;
+    }
+    const seg = SK.SEGMENT_MAP[cyc], frr = SK.getCoef('dingjia.fullRampRatio')[seg];
+    const stretch = safeDiv(I5, totalHeadTarget) != null && safeDiv(I5, totalHeadTarget) > (I6 / frr) * 1.2;
+    return { ok: true, k1, kEff1, S1, fullCap, expAttr, gapCap, S6, overRate, exposeAmt,
+      totalHeadTarget, latestMonth, latestHire, isLate, lateDays, ramp80: SK.calcRamp80(cyc), targetYear, stretch };
+  }
+
+  // 账单D（管理跨度）
+  function calcCardD(inp, totalHeadTarget) {
+    const I8 = inp.managerCount;
+    const sd = SK.getCoef('shared.spanDefault');
+    const availH = sd.weeklyHrs * sd.manageTimeShare - SK.getCoef('shared.fixedMeetingHrs');
+    const spanCap = Math.floor(availH / SK.getCoef('shared.perHeadMgmtHrs'));
+    const heads = (totalHeadTarget != null) ? totalHeadTarget : inp.salesCount;
+    const managerNeeded = Math.ceil(safeDiv(heads, spanCap));
+    const gap = Math.max(0, managerNeeded - I8);
+    const curSpan = safeDiv(heads, Math.max(I8, 1));
+    const coachMin = Math.round(Math.max(0, availH - heads * SK.getCoef('shared.perHeadAdminHrs')) / heads * 60);
+    return { availH, spanCap, heads, managerNeeded, gap, curSpan, coachMin };
+  }
+
+  // 账单A（三层全链 + 六道闸）
+  function calcCardA(inp, managerNeeded, totalHeadTarget) {
+    const I1 = inp.cityTier, I2 = inp.cycleTier, grade = inp.tierGrade, I4 = inp.targetPersonalMonthlyGrossAmt,
+      I5 = inp.nextYearTargetGrossAmt, I11 = inp.blendedMarginRate;
+    // 🔴 v2.5：销售档 gi 与 主管/高管档 gmi 各自独立选择（idx 按层取）
+    const gi = gradeIndex(grade), gmi = gradeIndex(inp.mgrGrade), cityB = SK.getCoef('dingjia.cityBase')[I1], cf = SK.getCoef('dingjia.cycleFactor')[I2],
+      social = SK.getCoef('shared.socialCostRate'), ltr = SK.getCoef('shared.longTermRate'), minW = SK.getCoef('shared.minWageTable')[I1],
+      lm = SK.getCoef('dingjia.levelMultiplier'), tt = SK.getCoef('dingjia.thresholdTTable')[I1];
+    const Bof = (lv, idx) => roundYuanFen(cityB * lm[lv][idx] * cf);
+    const Tof = (lv, idx) => tt[lv][idx] * 100;                 // 元→分
+    const Gof = lv => lv === 'sales' ? I4 : lv === 'manager' ? safeDiv(I5, 12 * Math.max(managerNeeded, 1)) : I5 / 12;
+    const layers = ['sales', 'manager', 'executive'];
+    const count = { sales: totalHeadTarget, manager: managerNeeded, executive: 1 };
+    const rows = layers.map(lv => {
+      const idx = lv === 'sales' ? gi : gmi;                    // 销售用销售档，主管+高管共用 mgrGrade 档
+      const B = Bof(lv, idx), T = Tof(lv, idx), G = Gof(lv);
+      const longAmt = Math.round(T * ltr), gapAmt = Math.round(T * (1 - ltr)) - B;
+      const blocked = B >= T * (1 - ltr), r = blocked ? null : safeDiv(gapAmt, G);
+      const belowMinWage = B < minW, floatShare = safeDiv(gapAmt, T);
+      return { level: lv, B, T, G, longAmt, gapAmt, blocked, r, belowMinWage, floatShare, count: count[lv] };
+    });
+    const sales = rows[0], Bwarn = Bof('sales', 0), Twarn = Tof('sales', 0);
+    const goodHire = Math.min(sales.B / Bwarn, sales.T / Twarn);
+    const comp = ratio3(sales.B, sales.gapAmt, sales.longAmt);
+    const burdenNum = rows.reduce((s, r) => s + (r.count || 0) * r.gapAmt * 12, 0);
+    const burdenRate = safeDiv(burdenNum, I5);
+    const fullNum = rows.reduce((s, r) => s + (r.count || 0) * (Math.round(r.B * (1 + social)) + r.gapAmt + r.longAmt) * 12, 0);
+    const fullBurden = safeDiv(fullNum, I5), fullRev = fullBurden != null ? fullBurden * I11 : null;
+    // 六道闸
+    const gates = [];
+    const anyBlocked = rows.some(r => r.blocked);
+    if (anyBlocked) gates.push({ id: 1, light: 'red', code: 'W-02', row: rows.find(r => r.blocked) });
+    if (I11 < 0.20) gates.push({ id: 2, light: 'red', code: 'W-01' });
+    if (sales.B < Bwarn) gates.push({ id: 3, light: 'red', code: 'W-03' });
+    if (sales.floatShare != null && sales.floatShare >= 0.65) gates.push({ id: 4, light: 'amber', code: 'W-04' });
+    if (burdenRate != null) {
+      if (burdenRate > 0.35) gates.push({ id: 5, light: 'red', code: 'W-05' });
+      else if (burdenRate < 0.25) gates.push({ id: 5, light: 'amber', code: 'W-06' });
+      else gates.push({ id: 5, light: 'green', code: 'ok' });
+    }
+    rows.forEach(r => { if (r.belowMinWage) gates.push({ id: 6, light: 'red', code: 'W-29', row: r, minW }); });
+    return { rows, sales, Bwarn, Twarn, goodHire, comp, burdenRate, fullBurden, fullRev, marginRate: I11,
+      hungerBait: sales.B < Bwarn, gates, anyBlocked };
+  }
+  function ratio3(a, b, c) {
+    const t = a + b + c; if (t <= 0) return [0, 0, 0];
+    let x = [Math.round(a / t * 100), Math.round(b / t * 100), Math.round(c / t * 100)];
+    const diff = 100 - (x[0] + x[1] + x[2]); x[1] += diff; return x;
+  }
+
+  // 账单C（流失价签简版 3 项）
+  function calcCardC(inp) {
+    const I1 = inp.cityTier, I2 = inp.cycleTier, I6 = inp.lastYearPerCapitaGrossAmt,
+      I7 = inp.salesCount, I9 = inp.attritionRate, I10 = inp.hiringCycleDays;
+    const monthPer = I6 / 12, idle = monthPer * I10 / 30, arr = SK.RAMP[I2];
+    let sumGap = 0; for (let pos = 1; pos <= 12; pos++) sumGap += (1 - arr[pos - 1] / 100);
+    const rampGap = monthPer * sumGap, recruitFee = SK.getCoef('shared.recruitFeeDefaultAmt'), tag = idle + rampGap + recruitFee;
+    const Tsales = SK.getCoef('dingjia.thresholdTTable')[I1].sales[1] * 100; // effective
+    const ote = SK.getCoef('dingjia.turnoverCostOteRate');
+    const oteLow = Tsales * 12 * ote[0], oteHigh = Tsales * 12 * ote[1];
+    const annual = tag * I7 * I9;
+    return { idle, rampGap, recruitFee, tag, oteLow, oteHigh, annual, sumGap };
+  }
+
+  // 账单E（团队奖 TIS）
+  function calcCardE(inp) {
+    const I7 = inp.salesCount, I12 = inp.complementLevel, I13 = inp.attributableLevel, tis = SK.getCoef('dingjia.teamBonusTIS');
+    const sizeScore = 100 * clamp(1 - (I7 - tis.sizeFull) / (tis.sizeZero - tis.sizeFull), 0, 1);
+    const compScore = tis.complementEnum[I12], visScore = { no: 0, partial: 50, yes: 100 }[I13];
+    const TIS = tis.w[0] * sizeScore + tis.w[1] * compScore + tis.w[2] * visScore;
+    const light = TIS >= tis.green ? 'green' : (TIS >= tis.red ? 'amber' : 'red');
+    return { sizeScore, compScore, visScore, TIS, light };
+  }
+
+  // 合计
+  function calcTotalLine(B, C) { return { total: (C ? C.annual : 0) + (B ? B.exposeAmt : 0), annual: C ? C.annual : 0, expose: B ? B.exposeAmt : 0 }; }
+
+  /* ---- 风洞引擎 ---- */
+  function generateMenu(baseQuotaAmt, baseBonusAmt, gate3Active) {
+    if (gate3Active) return { blocked: true, code: 'W-19' };
+    if (!(baseQuotaAmt > 0) || !(baseBonusAmt > 0)) return null;
+    const steps = SK.getCoef('dingjia.menuQuotaSteps'), mid = SK.getCoef('dingjia.menuAttainMid'),
+      slope = SK.getCoef('dingjia.menuAttainSlope'), round = SK.getCoef('dingjia.menuRound'),
+      E = mid * baseBonusAmt, P = x => clamp(mid + slope * (1 - x), 0.05, 0.95);
+    let tiers = steps.map(x => { const quota = baseQuotaAmt * x; let bonus = SK.roundTo(E / P(x), round); return { x, quota, bonus, P: P(x) }; });
+    // 校验二（激励相容）：bonus/quota 严格递增；低档违反→下调（脚注 W-28）
+    let adjusted = false;
+    for (let i = 1; i < tiers.length; i++) {
+      if (tiers[i].bonus / tiers[i].quota <= tiers[i - 1].bonus / tiers[i - 1].quota) {
+        tiers[i - 1].bonus = SK.roundTo(0.98 * (tiers[i].bonus / tiers[i].quota) * tiers[i - 1].quota, round); adjusted = true;
+      }
+    }
+    tiers = tiers.map(t => ({ ...t, unitReturn: t.bonus / t.quota, dev: Math.abs(t.P * t.bonus - E) / E }));
+    return { tiers, E, adjusted };
+  }
+  // 造假风险闸：p90Real 显式传入（一体版取 X('suanzhang').realP90Factor；null 回退 shared.p90ColdFactor）
+  function gateFraudRisk(audit, inp, p90Real) {
+    const I1 = inp.cityTier, I2 = inp.cycleTier, I5 = inp.nextYearTargetGrossAmt, I6 = inp.lastYearPerCapitaGrossAmt, I7 = inp.salesCount;
+    const p90Eff = (p90Real != null) ? p90Real : SK.getCoef('shared.p90ColdFactor');
+    const ratioCur = safeDiv(safeDiv(I5, I7), I6 * p90Eff);
+    const Bwarn = roundYuanFen(SK.getCoef('dingjia.cityBase')[I1] * SK.getCoef('dingjia.levelMultiplier').sales[0] * SK.getCoef('dingjia.cycleFactor')[I2]);
+    const hunger = audit.currentBaseSalaryAmt < Bwarn * SK.getCoef('dingjia.hungerBufferRate');
+    const rl = SK.getCoef('dingjia.attainabilityRedline'); let light, code;
+    if (ratioCur != null && ratioCur > rl && hunger) { light = 'red'; code = 'W-20'; }
+    else if (ratioCur != null && ratioCur > rl && !hunger) { light = 'amber'; code = 'W-20b'; }
+    else { light = 'green'; code = 'ok'; }
+    return { p90Eff, ratioCur, Bwarn, hunger, light, code };
+  }
+  function gateAlignment(audit) {
+    const p = audit.positionType, b = audit.currentCommissionBase;
+    if ((p === 'advisory' || p === 'aftersales') && b === 'contract_amount') return { light: 'red', code: 'W-21' };
+    if (p === 'pure_sales' && b === 'contract_amount') return { light: 'amber', code: 'W-21b' };
+    return { light: 'green', code: 'ok' };
+  }
+  function checkGuardrail(hasMenuOrSprint, guardrailMetric) { return { locked: hasMenuOrSprint && !guardrailMetric, code: 'W-22' }; }
+  function countProcessRedlines(n) { return { warn: n >= SK.getCoef('dingjia.processRedlineWarnCount'), n, code: 'W-23' }; }
+  function explorationContract(inp) {
+    const r80 = SK.calcRamp80(inp.cycleTier);
+    return { floorMonths: r80 + 2, minWage: SK.getCoef('shared.minWageTable')[inp.cityTier] };
+  }
+  function leakSandbox(measures) { return measures.filter(m => LEAK_MAP[m]).map(m => ({ measure: m, ...LEAK_MAP[m] })); }
+
+  /* ================= 2. 输入装配（DB.company → 引擎 inp，纯函数）================= */
+  function buildInputs(db) {
+    const c = db.company || {};
+    const wanAmt = v => v == null ? null : Math.round(v * WAN);
+    return {
+      cityTier: c.cityTier, cycleTier: c.cycleTier, tierGrade: c.tierGrade || 'effective', mgrGrade: c.mgrGrade || 'effective',
+      targetPersonalMonthlyGrossAmt: wanAmt(c.targetPersonalMonthlyGrossWan),
+      nextYearTargetGrossAmt: wanAmt(c.targetYearGrossWan),
+      lastYearPerCapitaGrossAmt: wanAmt(c.lastYearPerCapitaWan),
+      salesCount: c.salesCount != null ? c.salesCount : 5,
+      managerCount: c.managerCount != null ? c.managerCount : 1,
+      attritionRate: c.attritionRate, hiringCycleDays: c.hiringCycleDays, blendedMarginRate: c.blendedMarginRate,
+      complementLevel: c.complementLevel, attributableLevel: c.attributableLevel,
+      targetYearMode: c.targetYearMode || 'next',
+    };
+  }
+  // 主计算入口（顺序 B→D→A→C→E→合计；today 显式传入，纯函数）
+  function computeAll(db, today) {
+    const inp = buildInputs(db);
+    const ty = (+today.slice(0, 4)) + (inp.targetYearMode === 'this' ? 0 : 1);
+    const R = { inp, targetYear: ty };
+    try {
+      if (inp.cityTier && inp.cycleTier && inp.lastYearPerCapitaGrossAmt > 0 && inp.nextYearTargetGrossAmt > 0
+        && inp.attritionRate != null && inp.hiringCycleDays > 0) {
+        const b = calcCardB(inp, today, ty); if (b.ok) R.B = b;
+      }
+    } catch (e) { /* 缺数→整卡— */ }
+    try { R.D = calcCardD(inp, R.B ? R.B.totalHeadTarget : null); } catch (e) {}
+    try {
+      if (inp.cityTier && inp.cycleTier && inp.targetPersonalMonthlyGrossAmt > 0 && inp.nextYearTargetGrossAmt > 0 && inp.blendedMarginRate != null) {
+        R.A = calcCardA(inp, R.D ? R.D.managerNeeded : 1, R.B ? R.B.totalHeadTarget : (inp.salesCount != null ? inp.salesCount : 1));
+      }
+    } catch (e) {}
+    try { if (inp.cityTier && inp.cycleTier && inp.lastYearPerCapitaGrossAmt > 0) R.C = calcCardC(inp); } catch (e) {}
+    try { if (inp.complementLevel && inp.attributableLevel) R.E = calcCardE(inp); } catch (e) {}
+    if (R.B || R.C) R.total = calcTotalLine(R.B || null, R.C || null);
+    return R;
+  }
+
+  /* ================= 3. X 跨模块派生：summary 注册 ================= */
+  SK.summary.dingjia = (db, today) => {
+    const R = computeAll(db, today);
+    const A = R.A, s = A ? A.sales : null;
+    return {
+      ok: !!s,
+      r: s ? s.r : null,                       // 销售层提成率
+      matrixT: s ? s.T : null,                 // 销售档达标收入 T（分）
+      matrixB: s ? s.B : null,                 // 销售档底薪 B（分）
+      floatShare: s ? s.floatShare : null,
+      goodHireIndex: A ? A.goodHire : null,
+      burdenRate: A ? A.burdenRate : null,
+      total: R.total ? R.total.total : null,   // 今年漏损 = C.annual + B.exposeAmt（分）
+      results: R,                              // 完整五账单（内部用）
+    };
+  };
+
+  /* ================= 4. 模块内草稿态（闭包，不落 DB）================= */
+  let menuDraft = { quota: null, bonus: null };  // 分
+  let menuRes = null;
+  let gradeBaseDraft = null;                     // 反查输入（元）
+  let matchNote = '';
+
+  function ensureAudit() {
+    if (!SK.DB.audit) SK.DB.audit = {
+      positionType: 'pure_sales', currentCommissionBase: 'margin_based', currentBaseSalaryAmt: null,
+      processRedlineCount: 0, guardrailMetric: null, explorationMode: false, controlMeasures: [], claimedOutlets: [],
+    };
+    const a = SK.DB.audit;
+    if (!Array.isArray(a.controlMeasures)) a.controlMeasures = [];
+    if (!Array.isArray(a.claimedOutlets)) a.claimedOutlets = [];
+    return a;
+  }
+  function results() { const dj = SK.X('dingjia'); return dj ? dj.results : null; }
+
+  /* ================= 5. 渲染组件 ================= */
+  const gate = (light, txt) => h.banner(`${light === 'red' ? '🔴' : light === 'amber' ? '🟡' : light === 'gold' ? '🏅' : '🟢'} ${txt}`,
+    light === 'red' ? 'r' : light === 'amber' ? 'a' : 'g');
+  const killer = t => `<div class="killer">💬 ${t}</div>`;
+  const compbar = segs => `<div style="display:flex;height:22px;border-radius:7px;overflow:hidden;margin:9px 0 4px;font-size:11px;color:#fff;font-weight:600">${
+    segs.map(([flex, label, color]) => `<div style="flex:${flex};background:${color};display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap">${label}</div>`).join('')}</div>`;
+  const meterCap = (l, m, r) => `<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3);margin-top:2px"><span>${l}</span><span>${m}</span><span>${r}</span></div>`;
+
+  // A–E 可折叠卡（DB.ui.openCards 记状态）
+  function dcard(key, name, sub, resV, resK, bodyHtml) {
+    const open = !!(SK.DB.ui.openCards || {})[key];
+    return `<div class="card">
+      <div data-act="dj.card" data-key="${key}" style="display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none">
+        <span style="width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-weight:800;display:flex;align-items:center;justify-content:center">${key}</span>
+        <div style="flex:1;min-width:0"><b>${name}</b><div class="hint">${sub}</div></div>
+        <div style="text-align:right"><div style="font-size:19px;font-weight:760;letter-spacing:-.01em">${resV}</div><div class="hint">${resK}</div></div>
+        <span class="hint">${open ? '▾' : '▸'}</span>
+      </div>
+      ${open ? `<div class="divider"></div>${bodyHtml}` : ''}
+    </div>`;
+  }
+
+  /* ---- 输入面板 ---- */
+  function vInput() {
+    const c = SK.DB.company;
+    const salesN = SK.activeSales().length, mgrN = SK.activeManagers().length;
+    return `
+    <div class="sect"><h2>销售人力总算盘</h2><span class="sub">输入共享字段（改一处，五个板块同帧换算），5 分钟看清：定薪定多少、该招几个人、走一个人亏多少、缺几个主管、团队奖该不该发。</span></div>
+    <div class="sect" style="margin-top:2px"><h2 style="font-size:14px">第一步 · 定薪基准</h2><span class="sub">给“什么样的人”定薪？</span></div>
+    ${h.card('', `
+      <p class="hint" style="margin-bottom:8px">先选城市与成交周期——下面会实时算出销售初级/中级/高级、以及配套主管、高管的<b>真实底薪与达标月收入</b>。你不用理解「有效/高效/领先」，看数、点一行就行。</p>
+      <div class="grid g2">
+        ${h.field('城市线级', h.seg('company.cityTier', ENUMS.cityTier.map(([v, t]) => ({ v, t })), c.cityTier))}
+        ${h.field('成交周期档', h.seg('company.cycleTier', ENUMS.cycleTier.map(([v, t]) => ({ v, t })), c.cycleTier), '从客户首次接触到回款的典型时长')}
+      </div>
+      ${tierTableHtml()}`)}
+    <div class="sect" style="margin-top:10px"><h2 style="font-size:14px">第二步 · 目标 · 团队 · 生意</h2></div>
+    <div class="grid g3" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));display:grid;gap:10px">
+      ${h.card('钱与目标', `<div class="frm">
+        ${h.field('达标销售的月毛利目标（万元）', h.input('company.targetPersonalMonthlyGrossWan', 'num', { value: c.targetPersonalMonthlyGrossWan, step: 0.5 }), '参考：去年人均月毛利 ×1.1–1.3')}
+        ${h.field('目标年公司毛利（万元/年）', h.input('company.targetYearGrossWan', 'num', { value: c.targetYearGrossWan }))}
+        ${h.field('去年人均毛利（万元/年·真值）', h.input('company.lastYearPerCapitaWan', 'num', { value: c.lastYearPerCapitaWan }), '总毛利÷销售人数，别用配额')}
+        ${h.field('规划年份', h.seg('company.targetYearMode', [{ v: 'next', t: '明年' }, { v: 'this', t: '今年' }], c.targetYearMode))}
+      </div>`)}
+      ${h.card('人', `<div class="frm">
+        ${h.field('现有销售人数', h.input('company.salesCount', 'int', { value: c.salesCount, min: 0 }), '在职一线销售人数')}
+        ${h.field('现有销售主管人数', h.input('company.managerCount', 'int', { value: c.managerCount, min: 0 }), '在职一线主管人数')}
+        ${h.field('年流失率 %', h.input('company.attritionRate', 'pct100', { value: Math.round(c.attritionRate * 1000) / 10, step: 1 }), '全球销售岗基准约 35%')}
+        ${h.field('招聘周期（天）', h.input('company.hiringCycleDays', 'int', { value: c.hiringCycleDays }), '从发帖到到岗，行业参考 45 天')}
+      </div>`)}
+      ${h.card('生意', `<div class="frm">
+        ${h.field('综合毛利率 %', h.input('company.blendedMarginRate', 'pct100', { value: Math.round(c.blendedMarginRate * 1000) / 10, step: 0.1 }), '全品类加权')}
+        ${h.field('团队任务互补性', h.seg('company.complementLevel', ENUMS.complementLevel.map(([v, t]) => ({ v, t })), c.complementLevel))}
+        ${h.field('个人贡献可见度', h.seg('company.attributableLevel', ENUMS.attributableLevel.map(([v, t]) => ({ v, t })), c.attributableLevel))}
+      </div>`)}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+      ${h.btn('查看五张账单 →', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="dash"' })}
+      <span class="hint">所有输入 change 即全站重算——底部实时条与其他板块同帧更新。</span>
+    </div>
+    <div class="footer-note hint" style="margin-top:14px;text-align:center">本工具纯本地运行，数据不出你的电脑——我们碰不到，也不想碰。</div>`;
+  }
+  function tierTableHtml() {
+    const c = SK.DB.company, I1 = c.cityTier, I2 = c.cycleTier;
+    if (!I1 || !I2) return `<div class="hint" style="padding:14px;text-align:center">⬆︎ 选好上面的「城市线级」与「成交周期档」，这里会自动展开销售初级/中级/高级、以及主管、高管的真实底薪与达标月收入。</div>`;
+    const cityB = SK.getCoef('dingjia.cityBase')[I1], cf = SK.getCoef('dingjia.cycleFactor')[I2],
+      lm = SK.getCoef('dingjia.levelMultiplier'), tt = SK.getCoef('dingjia.thresholdTTable')[I1];
+    const Bof = (lv, idx) => roundYuanFen(cityB * lm[lv][idx] * cf), Tof = (lv, idx) => tt[lv][idx] * 100;
+    const cityLab = ENUMS.cityTier.find(x => x[0] === I1)[1], cycLab = ENUMS.cycleTier.find(x => x[0] === I2)[1];
+    const gi = gradeIndex(c.tierGrade);
+    const gradeRows = ['effective', 'efficient', 'leading'].map(g => {
+      const idx = gradeIndex(g), sel = c.tierGrade === g;
+      return `<tr data-act="dj.grade" data-g="${g}" style="cursor:pointer;${sel ? 'background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)' : ''}">
+        <td><b>销售·${GRADE_SHORT[g]}</b> <span class="hint">（${GRADE_TECH[g]}）${sel ? ' ✓ 已选' : ''}</span></td>
+        <td class="num mono">${fmt.yuan(Bof('sales', idx))}</td><td class="num mono">${fmt.yuan(Tof('sales', idx))}</td>
+        <td class="hint">${GRADE_DESC[g]}</td></tr>`;
+    });
+    // 🔴 v2.5：主管/高管档位（mgrGrade）独立选择，与销售档解耦
+    const gmi = gradeIndex(c.mgrGrade), mgrCur = c.mgrGrade || 'effective';
+    const subRows = ['manager', 'executive'].map(lv =>
+      `<tr><td>${levelName(lv)}</td><td class="num mono">${fmt.yuan(Bof(lv, gmi))}</td><td class="num mono">${fmt.yuan(Tof(lv, gmi))}</td><td class="hint">${LEVEL_DESC[lv]}</td></tr>`);
+    const mgrSeg = h.seg('company.mgrGrade', [{ v: 'effective', t: '有效' }, { v: 'efficient', t: '高效' }, { v: 'leading', t: '领先' }], mgrCur);
+    // 🔴 v2.6：销售档 / 主管高管档均为可收起可展开（开合状态存 DB.ui.tierOpen，
+    //   跨全站重算持久——修复原生 <details> 在 UI.commit 全量重渲后被重置的收起 bug）。
+    const to = SK.DB.ui.tierOpen || {}, sOpen = to.sales !== false, mOpen = to.mgr === true;
+    const head = (k, open, title, note) =>
+      `<div data-act="dj.tier" data-k="${k}" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-top:10px">
+        <b style="font-size:12.8px">${title}</b> <span class="hint">${note}</span>
+        <span class="hint" style="margin-left:auto;white-space:nowrap">${open ? '▾ 收起' : '▸ 展开'}</span>
+      </div>`;
+    const salesBody = `
+      ${h.tbl([{ t: '销售档位' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '这是什么人' }], gradeRows)}
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
+        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？直接输入你现在给销售的月底薪，系统帮你反查</label>
+        <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
+        ${h.btn('反查匹配', 'dj.grade-match', { cls: 'sm' })}
+        ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
+      </div>`;
+    const mgrBody = `
+      <div style="padding:8px 12px 11px;margin-top:6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card)">
+        <div style="margin:2px 0 10px">${mgrSeg}</div>
+        ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
+        ${h.hint('主管/高管档位与销售档相互独立；底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚），达标月收入只随城市与档位变、不随周期变。')}
+      </div>`;
+    return `
+      ${head('sales', sOpen, '① 选销售档', `（${cityLab} · ${cycLab} · 当前「${GRADE_TECH[c.tierGrade] || '未定'}」· 点一行选定）`)}
+      ${sOpen ? salesBody : ''}
+      ${head('mgr', mOpen, '② 主管 / 高管档位', `（管理层单独定档 · 当前「${GRADE_TECH[mgrCur]}」）`)}
+      ${mOpen ? mgrBody : ''}`;
+  }
+
+  /* ---- 五张账单 ---- */
+  function vDash() {
+    const R = results();
+    if (!R || (!R.A && !R.B && !R.C)) {
+      return `<div class="sect"><h2>五张账单</h2></div>
+        ${h.banner('还没有账单——在「输入面板」把共享字段填全，这里会实时展开明细。', 'n')}
+        ${h.btn('去输入面板', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
+    }
+    let out = `<div class="sect"><h2>五张账单</h2><span class="sub">规划年份 ${R.targetYear} · 销售按${gradeFull(R.inp.tierGrade)}档 · 管理层按${GRADE_TECH[R.inp.mgrGrade]}档 · 全部数字实时换算</span>
+      <span style="margin-left:auto;display:flex;gap:6px">${h.btn('保存场景', 'dj.scn-save', { cls: 'sm' })}${h.btn('签发信用书', 'dj.cov-issue', { cls: 'sm' })}</span></div>`;
+    // 总漏损条
+    if (R.total) {
+      const annual = R.total.annual, expose = R.total.expose;
+      out += `<div class="card" style="background:linear-gradient(135deg,#191640,#2f2a6b 55%,#4a2f78);color:#fff;border:none">
+        <div style="font-size:11.5px;color:#c4b5fd;font-weight:600;letter-spacing:.05em;text-transform:uppercase">今年已注定漏损 ≈</div>
+        <div class="mono" style="font-size:38px;font-weight:800;letter-spacing:-.02em;margin:4px 0 8px">${fmt.wan(R.total.total)}</div>
+        <div style="font-size:12.8px;color:#c9c5ea;line-height:1.6;max-width:680px">流失总账 ${fmt.wan(annual)} ＋ 产能高估暴露 ${fmt.wan(expose)}。这两笔钱不在任何报表上——它们是「按老算法办事」的价格。</div>
+        <div style="display:flex;height:7px;border-radius:6px;overflow:hidden;margin-top:13px;max-width:520px">
+          <span style="flex:${Math.max(annual, 1)};background:#f472b6"></span><span style="flex:${Math.max(expose, 1)};background:#a78bfa"></span></div>
+        <div style="display:flex;gap:16px;font-size:10.5px;color:#a8a3d4;margin-top:5px;max-width:520px"><span>■ 流失总账</span><span style="color:#c4b5fd">■ 产能高估暴露</span></div>
+      </div>`;
+    }
+    out += `<div class="grid g2" style="margin-top:10px;align-items:start">`;
+    if (R.A) out += `<div class="span2">${cardAHtml(R)}</div>`;
+    out += R.B ? cardBHtml(R) : dcard('B', '账单B · 产能与招人算钱器', '人均毛利缺失', DASH, '该招几人', `<div class="hint">去年人均毛利为 0，整卡无法计算，显“—”。</div>`);
+    if (R.C) out += cardCHtml(R);
+    if (R.D) out += cardDHtml(R);
+    if (R.E) out += cardEHtml(R);
+    out += `</div>`;
+    return out;
+  }
+  function cardAHtml(R) {
+    const A = R.A, s = A.sales;
+    const rowsHtml = A.rows.map(r => `<tr><td>${levelName(r.level)}</td>
+      <td class="num ${r.belowMinWage ? '' : ''}" style="${r.belowMinWage ? 'color:var(--red);font-weight:600' : ''}">${fmt.yuan(r.B)}${r.belowMinWage ? ' ⚠︎' : ''}</td>
+      <td class="num">${fmt.yuan(r.T)}</td><td class="num">${r.blocked ? DASH : fmt.pct(r.r)}</td><td class="num">${r.count != null ? r.count : DASH}</td></tr>`);
+    const [cb, cg, cl] = A.comp;
+    const gi = A.goodHire, giTone = gi < 1 ? 'r' : gi < 1.2 ? 'a' : gi < 1.4 ? 'g' : 'gold';
+    const giLab = gi < 1 ? '🔴 偏低' : gi < 1.2 ? '🟡 及格' : gi < 1.4 ? '🟢 好招' : '🏅 极好招';
+    const bTone = A.burdenRate > 0.35 ? 'r' : A.burdenRate < 0.25 ? 'a' : '';
+    let body = '';
+    if (A.anyBlocked) body += gate('red', W_TEXT['W-02']({ row: A.rows.find(r => r.blocked) }));
+    body += h.tbl([{ t: '层级' }, { t: '底薪 B', num: 1 }, { t: '达标收入 T', num: 1 }, { t: '提成率 r', num: 1 }, { t: '目标人数', num: 1 }], rowsHtml);
+    body += `<div class="hint" style="margin-top:6px">销售层薪酬构成（底薪 : 提成缺口 : 长期分红池）</div>`;
+    body += compbar([[cb, cb, '#6366f1'], [cg, cg, '#f59e0b'], [cl, cl, '#10b981']]);
+    body += `<div style="margin:10px 0">${h.badge(`好招指数 ${gi.toFixed(2)} · ${giLab}`, giTone, true)}</div>`;
+    if (A.burdenRate != null) {
+      body += `<div class="hint">全链提成负担占目标毛利（健康带 25–35%）</div>${h.meter(A.burdenRate / 0.5, bTone, [0.5, 0.7])}${meterCap('0%', '健康带 25–35%', '50%+')}`;
+    }
+    A.gates.filter(g => g.id !== 1).forEach(g => {
+      body += gate(g.light, (W_TEXT[g.code] || (() => ''))(Object.assign({ burdenRate: A.burdenRate, marginRate: A.marginRate }, g)));
+    });
+    if (A.fullBurden != null) body += h.banner(`ℹ️ 全口径人力负担（含底薪/社保/长期分红池）≈ <b>${fmt.pct(A.fullBurden)}</b>；按毛利率折营收 ≈ <b>${fmt.pct(A.fullRev)}</b>，对标 CCOS 健康带 8–15% 营收。`, 'n');
+    body += killer('这不是工资单，是一张「普通人干出头部水平」压强表——r 越高、底薪越低，越像鱼饵。');
+    body += h.src('📎 三层定薪回算：B=城市基数×层级倍数×周期因子；T 查阈值矩阵；r=(T×90%−B)÷月毛利目标 G');
+    return dcard('A', '账单A · 定薪回算', `好招指数 ${A.goodHire.toFixed(2)} · 销售${GRADE_TECH[R.inp.tierGrade]}·管理层${GRADE_TECH[R.inp.mgrGrade]}档`, s.r != null ? fmt.pct(s.r) : DASH, '销售提成率 r', body);
+  }
+  function cardBHtml(R) {
+    const B = R.B;
+    const rows = [
+      ['① 需要满产当量', B.fullCap.toFixed(2) + ' 人'],
+      ['② 你脑子里（天真）需招 S1', B.S1 + ' 人'],
+      ['③ 预期流失', B.expAttr.toFixed(2) + ' 人'],
+      ['④ 缺口当量', B.gapCap.toFixed(2) + ' 人'],
+      ['⑤ 单人当年有效产能 kEff(1)', (B.kEff1 * 100).toFixed(1) + '%（原始 k(1)=' + (B.k1 * 100).toFixed(1) + '%）'],
+      ['⑥ 六步链真实需招 S6', `<b>${B.S6} 人</b>`],
+      ['产能高估率', B.overRate != null ? fmt.pct(B.overRate) : DASH],
+      ['高估暴露（今年注定差的钱）', fmt.wan(B.exposeAmt)],
+      ['最晚开招日', `${B.latestHire || DASH}${B.isLate ? `（已晚 ${B.lateDays} 天）` : '（未晚）'}`],
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
+    const late = B.isLate
+      ? (R.inp.targetYearMode === 'this'
+        ? `否则今年目标在今天就已经完不成了——你已经晚了 ${B.lateDays} 天。`
+        : `否则明年目标在今天就已经完不成了。`)
+      : `最晚 ${B.latestHire} 必须开招。`;
+    let body = h.tbl([{ t: '口径' }, { t: '数值', num: 1 }], rows);
+    body += `${h.spark(SK.RAMP[R.inp.cycleTier], B.ramp80)}<div class="hint">12 个月产能爬坡曲线（满产=100%）· 虚线＝满 80% 的第 ${B.ramp80} 月</div>`;
+    if (B.stretch) body += gate('amber', W_TEXT['W-09']());
+    body += killer(`你以为招 ${B.S1} 个，六步链算出要招 ${B.S6} 个——差的 ${B.S6 - B.S1} 个，就是「人头×配额」高估产能的代价。${late}`);
+    body += `<div class="hint" style="margin-top:8px">规划年份：${B.targetYear}　${h.btn(R.inp.targetYearMode === 'this' ? '改回算明年' : '改算今年', 'dj.ty', { cls: 'sm ghost' })}</div>`;
+    body += `<div style="margin-top:8px"><span class="hint">「该招几人」六步链：满产当量 − 现有 + 预期流失，再按新人当年有效产能折算。</span></div>`;
+    return dcard('B', '账单B · 产能与招人算钱器', `天真 ${B.S1} 人 → 六步链 ${B.S6} 人`, `${B.S6}`, '真实需招人数', body);
+  }
+  function cardCHtml(R) {
+    const C = R.C;
+    const rows = [
+      ['空窗损失（招聘周期内产能为0）', fmt.wan(C.idle)],
+      ['爬坡缺口（新人未满产的累计差）', fmt.wan(C.rampGap)],
+      ['招聘直接费', `${fmt.wan(C.recruitFee)} ${h.btn('改', 'dj.fee', { cls: 'sm ghost' })}`],
+      ['单人价签（简版 3 项）', `<b>${fmt.wan(C.tag)}</b>`],
+      ['OTE 比例口径（全球）', `${fmt.wan(C.oteLow)} – ${fmt.wan(C.oteHigh)}`],
+      ['今年流失总账', `<b>${fmt.wan(C.annual)}</b>`],
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
+    let body = h.tbl([{ t: '构成' }, { t: '金额', num: 1 }], rows);
+    body += `<div class="hint" style="margin-top:6px">单人价签构成（空窗 : 爬坡缺口 : 招聘费）</div>`;
+    body += compbar([[Math.max(C.idle, 1), '空窗', '#6366f1'], [Math.max(C.rampGap, 1), '爬坡', '#f59e0b'], [Math.max(C.recruitFee, C.tag * 0.03), '招聘', '#10b981']]);
+    body += h.hint('注：本卡为「简版（3 项）」，不与留人器 6 项口径（约 75 万）并列比较。');
+    body += killer('最大的一块是爬坡缺口——所以「缩短爬坡」比「降低流失」更值钱。');
+    return dcard('C', '账单C · 流失价签', '简版（3 项）', fmt.wan(C.tag), '走一个销售亏（明细口径）', body);
+  }
+  function cardDHtml(R) {
+    const D = R.D, B = R.B;
+    const rows = [
+      ['周管理可用工时', D.availH + ' h'], ['一个主管跨度上限', D.spanCap + ' 人'],
+      ['规划总人数', D.heads + ' 人'], ['需要主管数', D.managerNeeded + ' 人'],
+      ['主管缺口', D.gap + ' 人'], ['每人每周分到辅导', (isFinite(D.coachMin) ? D.coachMin : DASH) + ' 分钟'],
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
+    const S6 = B && B.ok ? B.S6 : DASH;
+    let body = h.tbl([{ t: '口径' }, { t: '数值', num: 1 }], rows);
+    body += killer(`你要招的不是 ${S6} 个销售，是 ${S6} 个销售加 ${D.gap} 个主管——辅导剂量不足会推高流失与爬坡时长。`);
+    body += h.src('📎 跨度公式：周管理可用 = 40h×30% − 3h 固定会议 = 9h；跨度上限 = ⌊9 ÷ 1.1h/人⌋ = 8 人');
+    return dcard('D', '账单D · 管理跨度', `需 ${D.managerNeeded} 主管 · 缺 ${D.gap}`, `${D.gap}`, '主管缺口', body);
+  }
+  function cardEHtml(R) {
+    const E = R.E, light = E.light, dot = light === 'green' ? '🟢' : light === 'amber' ? '🟡' : '🔴';
+    const rows = [
+      ['规模分（人越多越懈怠）', E.sizeScore.toFixed(0)], ['互补分', E.compScore.toFixed(0)],
+      ['可见分（能否精确到人头）', E.visScore.toFixed(0)],
+      ['团队激励适配 TIS', `<b>${E.TIS.toFixed(0)}</b>（≥70 绿 / 40–70 黄 / <40 红）`],
+    ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
+    const tone = light === 'green' ? '' : light === 'amber' ? 'a' : 'r';
+    const msg = light === 'green' ? '小团队 + 互补 + 可见——团队奖能活。'
+      : light === 'amber' ? '介于之间：发团队奖前先确认贡献可见度。'
+      : '人多、各干各的、说不清谁干的——团队奖只会喂出搭便车。';
+    let body = h.tbl([{ t: '维度' }, { t: '得分', num: 1 }], rows);
+    body += h.meter(E.TIS / 100, tone, [0.4, 0.7]) + meterCap('0', '红 <40 · 黄 40–70 · 绿 ≥70', '100');
+    body += killer(msg);
+    body += h.src('📎 TIS = 0.4×规模分 + 0.3×互补分 + 0.3×可见分；规模分 8 人满分线性递减至 20 人归零');
+    return dcard('E', '账单E · 团队奖红绿灯', `TIS ${E.TIS.toFixed(0)}`, `${dot} ${E.TIS.toFixed(0)}`, '团队激励适配分', body);
+  }
+
+  /* ---- 方案风洞 ---- */
+  function vWT() {
+    ensureAudit();
+    const R = results();
+    if (!R || !R.A) {
+      return `<div class="sect"><h2>方案风洞</h2></div>
+        ${h.banner('🌀 方案风洞需要先有方案——先到「输入面板」把定薪基准与目标填全，再回来给方案做风洞测试。', 'n')}
+        ${h.btn('去输入面板', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
+    }
+    return `<div class="sect"><h2>方案风洞</h2><span class="sub">发之前，先看它会被怎么玩。</span></div>
+      ${wtMenuHtml(R)}${wtGatesHtml(R)}${wtGuardrailHtml(R)}${wtSandboxHtml()}`;
+  }
+  function wtMenuHtml(R) {
+    const A = R.A;
+    let body = '';
+    if (A.hungerBait) {
+      body = gate('red', W_TEXT['W-19']());
+    } else {
+      body = `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px">
+        <div class="field" style="flex:1;min-width:140px"><label>基准配额 <span class="hint">（万元/季）</span></label><input id="dj-mquota" type="number" placeholder="如 100" value="${menuDraft.quota != null ? menuDraft.quota / WAN : ''}"></div>
+        <div class="field" style="flex:1;min-width:140px"><label>基准奖金 <span class="hint">（元）</span></label><input id="dj-mbonus" type="number" placeholder="如 30000" value="${menuDraft.bonus != null ? menuDraft.bonus / 100 : ''}"></div>
+        ${h.btn('生成三档', 'dj.menu-gen', { cls: 'sm pri' })}</div>`;
+      if (menuRes && menuRes.tiers) {
+        const names = ['稳妥档', '基准档', '冲刺档'];
+        body += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px">` +
+          menuRes.tiers.map((t, i) => `<div style="border:1px solid ${i === 2 ? 'var(--gold)' : 'var(--line)'};border-radius:11px;padding:14px;text-align:center;background:${i === 2 ? 'var(--gold-soft)' : 'var(--panel)'}">
+            <div class="hint" style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">${names[i]}</div>
+            <div class="mono" style="font-size:21px;font-weight:780;margin:7px 0 2px">${fmt.wan(t.quota)}</div>
+            <div class="mono" style="color:var(--accent);font-weight:680">奖金 ${fmt.yuan(t.bonus)}</div>
+            <div class="hint" style="margin-top:7px">达标概率 ${fmt.pct(t.P)} · 单位回报 ${(t.bonus / (t.quota / 1e6)).toFixed(1)} 元/万 · 偏差 ${(t.dev * 100).toFixed(2)}%</div>
+          </div>`).join('') + `</div>`;
+        body += h.hint('三档对你的期望成本完全相等（偏差 ≤3%）。选择一经登记不可撤销：他选的目标他认，你印的奖金你不能改。📎 Bommaraju & Hohenberg (2018) JM 82(5)。');
+        if (menuRes.adjusted) body += h.hint('稳妥档奖金按激励相容规则下调，期望成本略低于基准——偏差方向对你有利。');
+        body += `<div style="margin-top:10px">${h.btn('登记选择（不可撤销 🔒）', 'dj.menu-reg', { cls: 'sm' })}</div>`;
+      }
+    }
+    return h.card('① 自选激励菜单（三档等价）', `<p class="hint" style="margin-bottom:8px">同样的钱，把「派下去的目标」换成「三选一菜单」——你一分钱不多花，买到每个人对自己选择的承诺。</p>${body}`);
+  }
+  function wtGatesHtml(R) {
+    const a = SK.DB.audit;
+    const sz = SK.X('suanzhang');
+    const p90Real = (sz && sz.realP90Factor != null) ? sz.realP90Factor : null;
+    let out = `<div class="grid g2" style="margin-bottom:0">
+      ${h.field('岗位类型', h.seg('audit.positionType', ENUMS.positionType.map(([v, t]) => ({ v, t })), a.positionType))}
+      ${h.field('现行提成基数', h.seg('audit.currentCommissionBase', ENUMS.commissionBaseType.map(([v, t]) => ({ v, t })), a.currentCommissionBase))}
+    </div>
+    ${h.field('现行底薪（元/月）', h.input('audit.currentBaseSalaryAmt', 'fen-yuan', { value: a.currentBaseSalaryAmt != null ? Math.round(a.currentBaseSalaryAmt / 100) : '', ph: '如 6000' }))}`;
+    if (a.currentBaseSalaryAmt != null && a.currentBaseSalaryAmt > 0) {
+      const fr = gateFraudRisk(a, R.inp, p90Real);
+      const p90Src = p90Real != null ? `（算账器真实值）${h.linked('算账器联动')}` : '（全球默认 1.8）';
+      out += gate(fr.light, fr.code === 'ok'
+        ? `造假风险闸：人均目标为真实产能上限的 ${fmt.pct(fr.ratioCur)}（未过 130% 红线）。p90 口径 ${fr.p90Eff}${p90Src}。`
+        : `${W_TEXT[fr.code](fr)}<div class="hint" style="margin-top:4px">p90 口径 ${fr.p90Eff}${p90Src}</div>`);
+    } else {
+      out += h.hint('填入现行底薪后，这里会出「造假风险闸」判定（富国银行方程）。');
+    }
+    const al = gateAlignment(a);
+    out += gate(al.light, al.code === 'ok' ? '同向性闸：提成基数与客户利益同向，通过。' : W_TEXT[al.code]());
+    return h.card('② 造假风险闸 + 同向性闸', `<p class="hint" style="margin-bottom:8px">你的方案会不会逼人造假？提成基数是否与客户利益反向？</p>${out}`);
+  }
+  function wtGuardrailHtml(R) {
+    const a = SK.DB.audit;
+    const segBtns = ENUMS.guardrailMetric.map(([v, t]) =>
+      h.btn(t + (a.guardrailMetric === v ? ' ✓' : ''), 'dj.guard', { cls: 'sm' + (a.guardrailMetric === v ? ' pri' : ' ghost'), data: `data-v="${v}"` })).join(' ');
+    let out = h.field('护栏指标（点选，再点取消）', `<div style="display:flex;gap:6px;flex-wrap:wrap">${segBtns}</div>`);
+    out += h.field('过程「最低要求」条数', `<div style="display:flex;align-items:center;gap:8px">
+      ${h.btn('−', 'dj.pr', { cls: 'sm ghost', data: 'data-d="-1"' })}<b style="min-width:24px;text-align:center">${a.processRedlineCount}</b>${h.btn('＋', 'dj.pr', { cls: 'sm ghost', data: 'data-d="1"' })}</div>`);
+    const gr = checkGuardrail(true, a.guardrailMetric);
+    if (gr.locked) out += gate('amber', W_TEXT['W-22']());
+    const pr = countProcessRedlines(a.processRedlineCount);
+    if (pr.warn) out += gate('amber', W_TEXT['W-23'](pr));
+    out += `<label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;margin:8px 0;font-size:13px;cursor:pointer">
+      <input type="checkbox" data-bind="audit.explorationMode" data-type="bool" ${a.explorationMode ? 'checked' : ''}>
+      <span>开拓型任务：启用探索合同（禁用月度冲刺与菜单）</span></label>`;
+    if (a.explorationMode) {
+      const ec = explorationContract(R.inp);
+      out += gate('green', `📋 ${W_TEXT['W-24'](ec)}`);
+      out += h.hint('开拓期已禁用短期冲刺与菜单：探索要的是试错空间，不是月度压强。');
+    }
+    return h.card('③ 护栏配对 · 过程红线 · 探索合同', `<p class="hint" style="margin-bottom:8px">每个强目标必须配一个护栏；过程红线要少而致命；新战场用新契约。</p>${out}`);
+  }
+  function wtSandboxHtml() {
+    const a = SK.DB.audit;
+    let out = CONTROLS.map(([v, l]) => `<label style="display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;font-size:13px;cursor:pointer">
+      <input type="checkbox" data-act="dj.leak" data-m="${v}" ${a.controlMeasures.includes(v) ? 'checked' : ''}><span>${l}</span></label>`).join('');
+    const rows = leakSandbox(a.controlMeasures);
+    if (!rows.length) {
+      out += gate('green', `💧 ${W_TEXT['W-26']()}`);
+    } else {
+      out += h.tbl([{ t: '控制手段' }, { t: '泄漏出口' }, { t: '出口价格' }, { t: '认领监测' }],
+        rows.map(r => `<tr><td>${controlLabel(r.measure)}</td><td>${r.exit}</td><td>${r.price}</td>
+          <td><label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" data-act="dj.claim" data-m="${r.measure}" ${a.claimedOutlets.includes(r.measure) ? 'checked' : ''}><span>${r.watch}</span></label></td></tr>`));
+      out += gate('amber', `🚰 ${W_TEXT['W-25']({ n: rows.length })}`);
+    }
+    return h.card('④ 漏水导流沙盘', `<p class="hint" style="margin-bottom:8px">你堵一个洞，水就从别处漏。选一个付得起的出口，让它可见、可归因。</p>${out}`);
+  }
+
+  /* ---- 场景与信用书 ---- */
+  const SNAP_FIELDS = ['cityTier', 'cycleTier', 'tierGrade', 'mgrGrade', 'complementLevel', 'attributableLevel', 'targetYearMode',
+    'targetYearGrossWan', 'lastYearPerCapitaWan', 'targetPersonalMonthlyGrossWan', 'attritionRate', 'hiringCycleDays', 'blendedMarginRate', 'fullLoadWan'];
+  function snapCompany() {
+    const c = SK.DB.company, s = {};
+    SNAP_FIELDS.forEach(f => { s[f] = c[f]; });
+    return JSON.parse(JSON.stringify(s));
+  }
+  function genCovCode() {
+    const t = SK.today(), yy = t.slice(2, 4), mm = t.slice(5, 7), dd = t.slice(8, 10);
+    const CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const r = Array.from({ length: 4 }, () => CH[Math.floor(Math.random() * 32)]).join('');
+    return `SK-${yy}${mm}${dd}-${r}`;
+  }
+  function vData() {
+    const scns = SK.DB.scenarios || [], covs = SK.DB.covenantDocs || [], mcs = SK.DB.menuChoices || [];
+    return `
+    <div class="sect"><h2>场景与信用书</h2><span class="sub">场景=共享字段 13 项快照；信用书与菜单登记一经签发不可撤销。全量备份在「数据中心」统一做。</span></div>
+    <div class="grid g2" style="align-items:start">
+      ${h.card('已保存场景', (scns.length ? scns.map(s => `<div class="kv"><span class="k"><b>${esc(s.name)}</b> <span class="hint">${s.createdDate}</span></span>
+          <b style="display:flex;gap:6px">${h.btn('载入', 'dj.scn-load', { cls: 'sm ghost', data: `data-id="${s.scenarioId}"` })}${h.btn('删除', 'dj.scn-del', { cls: 'sm danger', data: `data-id="${s.scenarioId}"` })}</b></div>`).join('')
+        : h.hint('还没有保存的场景。到「五张账单」点“保存场景”。')) + `<div style="margin-top:8px">${h.btn('保存当前为场景', 'dj.scn-save', { cls: 'sm' })}</div>`)}
+      ${h.card('招聘信用书', (covs.length ? covs.map(cv => `<div class="kv"><span class="k"><b>${esc(cv.candidateName)}</b> · <span class="mono">${cv.code}</span>
+          <div class="hint">底薪 ${fmt.yuan(cv.snapshot.baseSalaryAmt)} · 达标 ${fmt.yuan(cv.snapshot.thresholdTAmt)} · ${cv.issuedDate}</div></span>
+          <b>${h.btn('查看/重打', 'dj.cov-show', { cls: 'sm ghost', data: `data-id="${cv.covenantId}"` })}</b></div>`).join('')
+        : h.hint('还没有签发的信用书。到「五张账单」点“签发信用书”。')) + `<div style="margin-top:8px">${h.btn('签发招聘信用书', 'dj.cov-issue', { cls: 'sm pri' })}</div>`
+        + h.hint('信用书是当前定薪结果的 irrevocable 快照——一经签发，条款不因业绩上调而单方下调。'))}
+    </div>
+    ${h.card(`菜单登记（不可撤销 🔒 · ${mcs.length} 条）`, mcs.length ? h.tbl(
+      [{ t: '销售' }, { t: '所选档' }, { t: '配额', num: 1 }, { t: '奖金', num: 1 }, { t: '登记日', num: 1 }],
+      mcs.map(m => {
+        const tierIdx = { low: 0, mid: 1, high: 2 }[m.chosenTier], t = m.menuSnapshot && m.menuSnapshot[tierIdx];
+        return `<tr><td><b>${esc(m.salespersonName)}</b></td><td>${{ low: '稳妥档', mid: '基准档', high: '冲刺档' }[m.chosenTier] || m.chosenTier} 🔒</td>
+          <td class="num">${t ? fmt.wan(t.quotaAmt) : DASH}</td><td class="num">${t ? fmt.yuan(t.bonusAmt) : DASH}</td><td class="num">${m.chosenDate}</td></tr>`;
+      })) : h.hint('还没有登记的菜单选择。到「方案风洞 · ①菜单」生成三档后登记。'))}`;
+  }
+  function covModalHtml(cv) {
+    const s = cv.snapshot;
+    return `<div style="max-height:72vh;overflow:auto">
+      <div style="border:4px double #b91c1c;padding:30px 32px;position:relative;background:#fff;color:#111;border-radius:2px">
+        <div style="position:absolute;top:16px;right:18px;color:#b91c1c;border:2px solid #b91c1c;padding:4px 11px;border-radius:6px;transform:rotate(-3deg);font-weight:700;font-size:12.5px;letter-spacing:.05em">${cv.code}</div>
+        <h1 style="text-align:center;font-size:20px;letter-spacing:.1em;margin:0 0 8px;color:#111">销售岗位薪酬信用书</h1>
+        <div style="font-size:14px;line-height:2.1;margin:22px 0">兹承诺：<b style="border-bottom:1px solid #333;padding:0 4px">${esc(cv.candidateName)}</b> 入职后担任<b>销售</b>（<b>${gradeFull(s.tierGrade)}</b>档），
+          月度底薪 <b>${fmt.yuan(s.baseSalaryAmt)}</b>；月度达标收入 <b>${fmt.yuan(s.thresholdTAmt)}</b>（含提成，提成按毛利口径、比例 <b>${s.commissionRate != null ? fmt.pct(s.commissionRate) : '—'}</b>）；
+          本信用书编号 <b>${cv.code}</b>，一经签发，条款不因业绩上调而单方下调。</div>
+        <div style="font-size:11.5px;color:#555;background:#faf5f0;border-left:3px solid #b91c1c;padding:11px 13px;line-height:1.7">依中国劳动法与司法实践，用人单位单方下调已约定提成/降薪，须负举证责任并经民主程序，否则劳动者可主张按原标准补发。本信用书即把这份「不可单方反悔」白纸黑字化——它保护员工，也帮你少打一场大概率会输的仲裁。</div>
+        <div style="margin-top:30px;display:flex;justify-content:space-between;font-size:13px;color:#333"><div>签发日期：${cv.issuedDate}</div><div>——公司盖章处——</div></div>
+        <div style="margin-top:20px;font-size:10.5px;color:#999;text-align:center">本报告为经营测算参考，不构成法律、税务或投资建议。</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">${h.btn('关闭', 'ui.modal-close')}${h.btn('🖨 打印', 'ui.print', { cls: 'pri' })}</div>
+    </div>`;
+  }
+
+  /* ================= 6. 动作 ================= */
+  Object.assign(SK.actions, {
+    'dj.card': d => { const oc = SK.DB.ui.openCards || (SK.DB.ui.openCards = {}); oc[d.key] = !oc[d.key]; UI.commit(); },
+    'dj.tier': d => {                                       // ① 销售档 / ② 主管高管档 收合（持久化，修复重渲复位 bug）
+      const to = SK.DB.ui.tierOpen || (SK.DB.ui.tierOpen = { sales: true, mgr: false });
+      const cur = d.k === 'sales' ? (to.sales !== false) : (to.mgr === true);
+      to[d.k] = !cur; UI.commit();
+    },
+    'dj.ty': () => { SK.DB.company.targetYearMode = SK.DB.company.targetYearMode === 'this' ? 'next' : 'this'; UI.commit(); },
+    'dj.grade': d => { SK.DB.company.tierGrade = d.g; gradeBaseDraft = null; matchNote = ''; UI.commit(); },
+    'dj.grade-match': () => {
+      const inp = document.getElementById('dj-gbase'); if (!inp) return;
+      const v = parseFloat(inp.value);
+      if (isNaN(v)) { UI.toast('先输入现行月底薪（元）'); return; }
+      const c = SK.DB.company;
+      if (!c.cityTier || !c.cycleTier) { UI.toast('先选城市线级与成交周期档'); return; }
+      const cityB = SK.getCoef('dingjia.cityBase')[c.cityTier], cf = SK.getCoef('dingjia.cycleFactor')[c.cycleTier],
+        lm = SK.getCoef('dingjia.levelMultiplier');
+      const cand = ['effective', 'efficient', 'leading'].map(g => ({ g, B: roundYuanFen(cityB * lm.sales[gradeIndex(g)] * cf) }));
+      const fen = Math.round(v * 100);
+      let best = cand[0]; cand.forEach(x => { if (Math.abs(x.B - fen) < Math.abs(best.B - fen)) best = x; });
+      const lo = cand[0].B, hi = cand[2].B;
+      matchNote = fen < lo * 0.98 ? `低于「初级」矩阵底薪（${fmt.yuan(lo)}）——可能偏低；已按初级档算。`
+        : fen > hi * 1.02 ? `高于「高级」矩阵底薪（${fmt.yuan(hi)}）——已按高级档算。`
+        : `≈ 最接近「${GRADE_SHORT[best.g]}（${GRADE_TECH[best.g]}）」档（矩阵 ${fmt.yuan(best.B)}）。已为你选定该档。`;
+      gradeBaseDraft = v;
+      SK.DB.company.tierGrade = best.g;
+      UI.commit();
+    },
+    'dj.fee': () => {
+      const cur = SK.getCoef('shared.recruitFeeDefaultAmt') / WAN;
+      const v = prompt('招聘直接费（万元）', cur);
+      if (v != null && !isNaN(+v)) {
+        SK.DB.coefOverrides['shared.recruitFeeDefaultAmt'] = Math.round(+v * WAN);
+        UI.commit(); UI.toast('已更新招聘费并落库');
+      }
+    },
+    'dj.menu-gen': () => {
+      const q = parseFloat((document.getElementById('dj-mquota') || {}).value),
+        bo = parseFloat((document.getElementById('dj-mbonus') || {}).value);
+      menuDraft = { quota: isNaN(q) ? null : Math.round(q * WAN), bonus: isNaN(bo) ? null : Math.round(bo * 100) };
+      const R = results();
+      menuRes = generateMenu(menuDraft.quota, menuDraft.bonus, !!(R && R.A && R.A.hungerBait));
+      if (!menuRes) UI.toast('请填入基准配额与基准奖金');
+      UI.render();
+    },
+    'dj.menu-reg': () => {
+      if (!menuRes || !menuRes.tiers) return;
+      const nm = prompt('销售姓名'); if (!nm) return;
+      const tier = prompt('选哪档？ low/mid/high', 'mid'); if (!tier) return;
+      const map = { low: 0, mid: 1, high: 2 }; const idx = map[tier] != null ? map[tier] : 1;
+      const snap = menuRes.tiers.map(t => ({ quotaAmt: t.quota, bonusAmt: t.bonus }));
+      SK.DB.menuChoices.unshift({ choiceId: SK.uid('mc'), salespersonName: nm, menuSnapshot: snap,
+        chosenTier: ['low', 'mid', 'high'][idx], chosenDate: SK.today(), irrevocable: true });
+      UI.commit(); UI.toast('已登记（不可撤销 🔒）');
+    },
+    'dj.guard': d => { const a = ensureAudit(); a.guardrailMetric = a.guardrailMetric === d.v ? null : d.v; UI.commit(); },
+    'dj.pr': d => { const a = ensureAudit(); a.processRedlineCount = clamp((a.processRedlineCount || 0) + (+d.d), 0, 10); UI.commit(); },
+    'dj.leak': (d, el) => {
+      const a = ensureAudit(); const m = d.m;
+      if (el.checked) { if (!a.controlMeasures.includes(m)) a.controlMeasures.push(m); }
+      else { a.controlMeasures = a.controlMeasures.filter(x => x !== m); a.claimedOutlets = a.claimedOutlets.filter(x => x !== m); }
+      UI.commit();
+    },
+    'dj.claim': (d, el) => {
+      const a = ensureAudit(); const m = d.m;
+      if (el.checked) { if (!a.claimedOutlets.includes(m)) a.claimedOutlets.push(m); }
+      else a.claimedOutlets = a.claimedOutlets.filter(x => x !== m);
+      UI.commit(); UI.toast('监测清单已更新');
+    },
+    'dj.scn-save': () => {
+      const n = prompt('方案名', '方案' + SK.today()); if (n == null) return;
+      SK.DB.scenarios.unshift({ scenarioId: SK.uid('plan'), name: n || ('方案' + SK.today()), createdDate: SK.today(), snapshot: snapCompany() });
+      UI.commit(); UI.toast('已保存场景');
+    },
+    'dj.scn-load': d => {
+      const s = (SK.DB.scenarios || []).find(x => x.scenarioId === d.id); if (!s) return;
+      Object.assign(SK.DB.company, JSON.parse(JSON.stringify(s.snapshot)));
+      UI.commit(); UI.nav('dingjia', 'dash'); UI.toast('已载入并重算');
+    },
+    'dj.scn-del': d => {
+      if (!confirm('删除该场景？')) return;
+      SK.DB.scenarios = (SK.DB.scenarios || []).filter(x => x.scenarioId !== d.id);
+      UI.commit(); UI.toast('已删除');
+    },
+    'dj.cov-issue': () => {
+      const R = results();
+      if (!R || !R.A) { UI.toast('请先在输入面板把定薪基准填全'); return; }
+      const name = prompt('候选人姓名（≤10字）'); if (!name) return;
+      const s = R.A.sales;
+      const scn = { scenarioId: SK.uid('plan'), name: '信用书快照' + SK.today(), createdDate: SK.today(), snapshot: snapCompany() };
+      SK.DB.scenarios.unshift(scn);
+      const cv = { covenantId: SK.uid('cov'), code: genCovCode(), candidateName: name.slice(0, 10), scenarioId: scn.scenarioId, issuedDate: SK.today(),
+        snapshot: { levelType: 'sales', tierGrade: SK.DB.company.tierGrade, baseSalaryAmt: s.B, thresholdTAmt: s.T, commissionRate: s.r } };
+      SK.DB.covenantDocs.unshift(cv);
+      UI.commit(); UI.modal(covModalHtml(cv));
+    },
+    'dj.cov-show': d => {
+      const cv = (SK.DB.covenantDocs || []).find(x => x.covenantId === d.id);
+      if (cv) UI.modal(covModalHtml(cv));
+    },
+  });
+
+  /* ---- 设置与备份（独立版新增；出厂系数逐字不改，仅提供可选覆盖） ---- */
+  const COEF_EDIT = [
+    ['shared.socialCostRate', '社保成本率', '0.30 = 30%'],
+    ['shared.longTermRate', '长期分红池占比', '0.10 = 10%'],
+    ['dingjia.attainabilityRedline', '造假闸·可达性红线（倍）', '1.3'],
+    ['shared.p90ColdFactor', 'P90 冷启动倍数', '1.8'],
+    ['dingjia.hungerBufferRate', '饥饿缓冲系数', '1.1'],
+    ['shared.recruitFeeDefaultAmt', '招聘直接费默认（分）', '500000 = 5000元'],
+  ];
+  function vSettings() {
+    const c = SK.DB.company;
+    const res = SK.tests.map(t => { try { const r = t.fn(); return { id: t.id, name: t.name, pass: r === true || (r && r.pass) }; } catch (e) { return { id: t.id, name: t.name, pass: false }; } });
+    const pass = res.filter(r => r.pass).length;
+    return `
+      <div class="sect"><h2>设置与备份</h2><span class="sub">单文件 · 无后端 · 无网络 · 数据只在你的电脑</span></div>
+      <div class="grid g2" style="align-items:start">
+        ${h.card('署名与数据', `<div class="frm">
+          ${h.field('公司名称（存档 / 信用书抬头用）', h.input('company.name', 'str', { itype: 'text', value: c.name }))}
+        </div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          ${h.btn('载入示例数据', 'data.seed')}${h.btn('清空全部数据', 'data.clear', { cls: 'danger' })}</div>`)}
+        ${h.card('📦 备份与迁移', `
+          <p class="hint" style="margin-bottom:8px">导出为 JSON，换电脑导入即可完整恢复。数据只存在本机浏览器，请定期备份。</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${h.btn('导出备份 JSON', 'data.export', { cls: 'pri' })}${h.btn('导入备份', 'data.import')}</div>
+          <input type="file" id="import-file" accept="application/json" style="display:none">
+          <div class="divider"></div>
+          <div class="kv"><span class="k">上次导出</span><b>${SK.DB.ui.lastExportAt || '从未'}</b></div>
+          <div class="kv"><span class="k">本地存储占用</span><b>${SK.storageKB() != null ? SK.storageKB() + ' KB' : DASH}</b></div>`)}
+      </div>
+      ${h.card('🌍 行业校准系数（可选 · 留空 = 全球出厂值）', h.tbl([{ t: '系数' }, { t: '出厂值', num: 1 }, { t: '覆盖值（留空=出厂）', num: 1 }],
+        COEF_EDIT.map(([path, label, note]) => {
+          const def = SK.getPath(SK.COEF_DEFAULT, path), ov = SK.DB.coefOverrides[path];
+          return `<tr><td>${label}<div class="hint mono">${path} · ${note}</div></td><td class="num mono">${def}</td>
+            <td class="num"><input type="number" step="any" style="width:120px" data-bind="coef:${path}" data-type="num" value="${ov != null ? ov : ''}"></td></tr>`;
+        })) + (Object.keys(SK.DB.coefOverrides).length ? `<div style="margin-top:10px">${h.btn('恢复全部出厂系数', 'data.coef-reset', { cls: 'danger' })}</div>` : ''))}
+      ${h.banner('出厂系数为原版《销冠定价器 v2.5》全球实证基准，未作任何改动。此处仅提供可选覆盖，留空即用出厂值。', 'b')}
+      ${h.card(`${pass === res.length ? '✅' : '🔴'} 引擎对拍自检 ${pass}/${res.length} 绿`, `
+        <p class="hint" style="margin-bottom:8px">与原版黄金值逐字对拍——全绿即证明本工具引擎与原系统完全一致。</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px">
+        ${res.map(r => `<div class="kv" style="border:1px solid var(--line);border-radius:7px;padding:5px 9px"><span class="k">${r.id} ${esc(r.name)}</span><b>${r.pass ? '✓' : '✗'}</b></div>`).join('')}
+        </div>`)}
+      <div class="footer-note hint" style="margin-top:14px;text-align:center">销售定价器 · 引擎逐字复刻《销冠定价器 v2.5》· 所有测算仅供参考，不构成薪酬 / 法律 / 用工建议。</div>`;
+  }
+
+  /* ================= 7. 模块注册 ================= */
+  SK.registerModule({
+    id: 'dingjia', title: '定价', icon: '💰', order: 2,
+    subnav: [{ id: 'input', label: '输入面板' }, { id: 'dash', label: '五张账单' }, { id: 'wt', label: '方案风洞' }, { id: 'data', label: '场景与信用书' }, { id: 'settings', label: '设置' }],
+    liveCells() {
+      const dj = SK.X('dingjia'); if (!dj) return [];
+      const b = dj.burdenRate;
+      return [
+        { k: '销售提成率 r', v: dj.r != null ? fmt.pct(dj.r) : DASH, tone: 'accent', board: 'dingjia', sub: 'dash', tip: '(达标月收入×90% − 底薪) ÷ 月毛利目标' },
+        { k: '好招指数', v: dj.goodHireIndex != null ? fmt.num(dj.goodHireIndex, 2) : DASH, tone: dj.goodHireIndex == null ? 'dim' : (dj.goodHireIndex < 1 ? 'red' : dj.goodHireIndex < 1.2 ? 'amber' : 'green'), board: 'dingjia', sub: 'dash', tip: '底薪与达标收入相对初级线的富余度，越高越好招' },
+        { k: '全链提成负担', v: b != null ? fmt.pct(b) : DASH, tone: b == null ? 'dim' : (b > 0.35 ? 'red' : b < 0.25 ? 'amber' : 'green'), board: 'dingjia', sub: 'dash', tip: '全链提成占目标毛利 · 健康带 25–35%' },
+        { k: '今年漏损', v: dj.total != null ? fmt.wan(dj.total) : DASH, tone: dj.total != null ? 'red' : 'dim', board: 'dingjia', sub: 'dash', tip: '流失总账 + 产能高估暴露' },
+      ];
+    },
+    alerts() { return this.alertList().filter(a => a.tone === 'r').length; },
+    alertList() {
+      const dj = SK.X('dingjia'); if (!dj || !dj.results) return [];
+      const R = dj.results, out = [], go = { board: 'dingjia', sub: 'dash' };
+      if (R.A) {
+        if (R.A.anyBlocked) out.push(Object.assign({ tone: 'r', text: '定价 W-02：' + GATE_BRIEF['W-02'] }, go));
+        R.A.gates.forEach(g => {
+          if (g.id === 1 || g.code === 'ok') return;
+          const brief = GATE_BRIEF[g.code]; if (!brief) return;
+          if (g.light === 'red' || g.light === 'amber') out.push(Object.assign({ tone: g.light === 'red' ? 'r' : 'a', text: `定价 ${g.code}：${brief}` }, go));
+        });
+      }
+      if (R.B && R.B.isLate) out.push(Object.assign({ tone: 'r', text: `定价 · 最晚开招日 ${R.B.latestHire} 已过（晚 ${R.B.lateDays} 天）——目标从今天就开始漏` }, go));
+      if (R.B && R.B.stretch) out.push(Object.assign({ tone: 'a', text: '定价 W-09：人均目标超满产真实水平 120%（人人满产幻觉）' }, go));
+      if (R.E && R.E.light !== 'green') out.push(Object.assign({
+        tone: R.E.light === 'red' ? 'r' : 'a',
+        text: `定价 · 团队奖 TIS ${R.E.TIS.toFixed(0)}${R.E.light === 'red' ? '：团队奖只会喂出搭便车' : '：发团队奖前先确认贡献可见度'}`,
+      }, go));
+      return out;
+    },
+    render(sub) {
+      ensureAudit();
+      if (sub === 'dash') return vDash();
+      if (sub === 'wt') return vWT();
+      if (sub === 'data') return vData();
+      if (sub === 'settings') return vSettings();
+      return vInput();
+    },
+  });
+
+  /* ================= 8. 对拍自检（黄金值；fixture 直接喂纯函数，不碰业务 DB）================= */
+  const TEST_TODAY = '2026-07-13';
+  const TW = w => w * 1e6;   // 万元→分
+  function baseBFix() {
+    return { cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective',
+      targetPersonalMonthlyGrossAmt: TW(9), nextYearTargetGrossAmt: TW(1000), lastYearPerCapitaGrossAmt: TW(100),
+      salesCount: 5, managerCount: 1, attritionRate: 0.35, hiringCycleDays: 45, blendedMarginRate: 0.30,
+      complementLevel: 'partial', attributableLevel: 'partial' };
+  }
+  // 出厂系数下跑（暂存并清空 coefOverrides，跑完精确还原）
+  function withCleanCoef(fn) {
+    const db = SK.DB, sv = db ? db.coefOverrides : null;
+    if (db) db.coefOverrides = {};
+    SK.setTestToday(TEST_TODAY);
+    try { return fn(); }
+    finally { if (db) db.coefOverrides = sv; SK.setTestToday(null); }
+  }
+  SK.tests.push({
+    id: 'T-A1', name: '定价·定薪回算 r=19.5% 负担27.1%',
+    fn: () => withCleanCoef(() => {
+      // 原版 T-A1 fixture：tier1/short/effective，I4=10万/月，I5=1200万，managerNeeded=2，totalHeadTarget=10
+      const A = calcCardA({ cityTier: 'tier1', cycleTier: 'short', tierGrade: 'effective',
+        targetPersonalMonthlyGrossAmt: 100000 * 100, nextYearTargetGrossAmt: TW(1200), blendedMarginRate: 0.30, salesCount: 10 }, 2, 10);
+      const got = { r: A.rows[0].r, burden: A.burdenRate };
+      const pass = got.r != null && Math.abs(got.r - 0.195) <= 0.005 && got.burden != null && Math.abs(got.burden - 0.271) <= 0.005;
+      return { pass, got: { r: (got.r * 100).toFixed(1) + '%', burden: (got.burden * 100).toFixed(1) + '%' }, want: { r: '19.5%', burden: '27.1%' } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-A-mgr', name: '定价·主管高管档独立联动（v2.5）',
+    fn: () => withCleanCoef(() => {
+      const base = { cityTier: 'tier1', cycleTier: 'short', targetPersonalMonthlyGrossAmt: 100000 * 100, nextYearTargetGrossAmt: TW(1200), blendedMarginRate: 0.30, salesCount: 10 };
+      // 双档 effective：销售19.5% / 主管4.7% / 高管2.9%（旧口径不变）
+      const A0 = calcCardA({ ...base, tierGrade: 'effective', mgrGrade: 'effective' }, 2, 10);
+      // 销售 effective 不动，仅把管理层升到 leading：销售 r 恒 19.5%，主管↑6.2%，高管↑4.0%
+      const A1 = calcCardA({ ...base, tierGrade: 'effective', mgrGrade: 'leading' }, 2, 10);
+      const p = (x) => (x * 100).toFixed(1);
+      const salesUnchanged = A1.rows[0].r === A0.rows[0].r && A1.rows[0].B === A0.rows[0].B;          // 解耦：改管理层档，销售层零变化
+      const mgrShifted = A1.rows[1].B === 1750000 && A1.rows[2].B === 2500000                          // 管理层 B 按 leading 倍数（3.5/5.0）
+        && A0.rows[1].B === 1250000 && A0.rows[2].B === 2000000;                                       // effective 倍数（2.5/4.0）
+      const rOk = p(A0.rows[1].r) === '4.7' && p(A0.rows[2].r) === '2.9'
+        && p(A1.rows[0].r) === '19.5' && p(A1.rows[1].r) === '6.2' && p(A1.rows[2].r) === '4.0';
+      return {
+        pass: salesUnchanged && mgrShifted && rOk,
+        got: { effEff: `销${p(A0.rows[0].r)}/主${p(A0.rows[1].r)}/高${p(A0.rows[2].r)}`, effLead: `销${p(A1.rows[0].r)}/主${p(A1.rows[1].r)}/高${p(A1.rows[2].r)}`, 解耦: salesUnchanged },
+        want: { effEff: '销19.5/主4.7/高2.9', effLead: '销19.5/主6.2/高4.0', 解耦: true },
+      };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-B1', name: '定价·六步链 S1=5 S6=16 开招2026-11-17',
+    fn: () => withCleanCoef(() => {
+      const B = calcCardB(baseBFix(), TEST_TODAY, 2027);
+      const pass = B.S1 === 5 && B.S6 === 16 && (B.overRate * 100).toFixed(1) === '68.8'
+        && B.latestMonth === 1 && B.latestHire === '2026-11-17' && B.isLate === false;
+      return { pass, got: { S1: B.S1, S6: B.S6, over: fmt.pct(B.overRate), hire: B.latestHire }, want: { S1: 5, S6: 16, over: '68.8%', hire: '2026-11-17' } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-C1', name: '定价·流失价签 61.2万 / 年账 107.0万',
+    fn: () => withCleanCoef(() => {
+      const C = calcCardC(baseBFix());
+      const pass = (C.tag / 1e6).toFixed(1) === '61.2' && (C.annual / 1e6).toFixed(1) === '107.0'
+        && (C.oteLow / 1e6).toFixed(1) === '54.0' && (C.oteHigh / 1e6).toFixed(1) === '72.0';
+      return { pass, got: { tag: fmt.wan(C.tag), annual: fmt.wan(C.annual) }, want: { tag: '61.2万', annual: '107.0万' } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-D1', name: '定价·管理跨度 heads=21 → 需3缺2',
+    fn: () => withCleanCoef(() => {
+      const D = calcCardD(baseBFix(), 21);
+      const pass = D.availH === 9 && D.spanCap === 8 && D.managerNeeded === 3 && D.gap === 2 && D.coachMin === 0;
+      return { pass, got: { spanCap: D.spanCap, need: D.managerNeeded, gap: D.gap, coach: D.coachMin }, want: { spanCap: 8, need: 3, gap: 2, coach: 0 } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-E1', name: '定价·TIS (5,partial,partial)=70 绿',
+    fn: () => withCleanCoef(() => {
+      const E = calcCardE({ salesCount: 5, complementLevel: 'partial', attributableLevel: 'partial' });
+      return { pass: Math.round(E.TIS) === 70 && E.light === 'green', got: { TIS: Math.round(E.TIS), light: E.light }, want: { TIS: 70, light: 'green' } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-F16', name: '定价·菜单(100万,3万)→22700/30000/44100',
+    fn: () => withCleanCoef(() => {
+      const M = generateMenu(TW(100), 3 * 10000 * 100, false);
+      const t = M.tiers;
+      const pass = (t[0].quota / 1e6).toFixed(1) === '80.0' && t[0].bonus / 100 === 22700 && t[1].bonus / 100 === 30000 && t[2].bonus / 100 === 44100
+        && t[0].unitReturn < t[1].unitReturn && t[1].unitReturn < t[2].unitReturn && !M.adjusted;
+      return { pass, got: t.map(x => x.bonus / 100), want: [22700, 30000, 44100] };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-F18', name: '定价·造假闸 3000万/5人/底薪5500→W-20 红 333.3%',
+    fn: () => withCleanCoef(() => {
+      const inp = { cityTier: 'tier1', cycleTier: 'regular', nextYearTargetGrossAmt: TW(3000), lastYearPerCapitaGrossAmt: TW(100), salesCount: 5 };
+      const F1 = gateFraudRisk({ currentBaseSalaryAmt: 5500 * 100 }, inp, null);
+      const F2 = gateFraudRisk({ currentBaseSalaryAmt: 8000 * 100 }, inp, null);
+      const pass = F1.code === 'W-20' && F1.light === 'red' && (F1.ratioCur * 100).toFixed(1) === '333.3'
+        && F2.code === 'W-20b' && F2.light === 'amber' && F1.p90Eff === 1.8;
+      return { pass, got: { c1: F1.code, ratio: fmt.pct(F1.ratioCur), c2: F2.code, p90: F1.p90Eff }, want: { c1: 'W-20', ratio: '333.3%', c2: 'W-20b', p90: 1.8 } };
+    }),
+  });
+  SK.tests.push({
+    id: 'T-F19', name: '定价·探索保底月 9/11/13/14/14',
+    fn: () => withCleanCoef(() => {
+      const fl = cyc => explorationContract({ cityTier: 'tier1', cycleTier: cyc }).floorMonths;
+      const got = [fl('short'), fl('regular'), fl('midLong'), fl('long'), fl('ultraLong')];
+      const want = [9, 11, 13, 14, 14];
+      return { pass: got.join() === want.join(), got, want };
+    }),
+  });
+})();
+
+/* ===== boot ===== */
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => UI.boot());
+else UI.boot();
+</script>
+</body>
+</html>
