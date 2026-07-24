@@ -14,6 +14,9 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));   // cloud/
 
 const SCHEMA_FILES = ['schema.sql', 'schema-c2.sql', 'schema-c3.sql', 'schema-c4.sql', 'schema-c6.sql'];
+/* 🔴 auth 表必须在 GRANTS 之后装载：它 revoke app_user 对 accounts/sessions 的权限，
+   若先装载会被 GRANTS 的 "grant all tables" 重新授权（顺序即安全） */
+const AUTH_SCHEMA_FILE = 'schema-auth.sql';
 
 /* auth 兼容层 + 角色：与 tests/c*.test.mjs 引导完全同源（一字不差的语义） */
 const AUTH_SHIM = `
@@ -42,12 +45,17 @@ export async function openDb({ dataDir } = {}) {
     ? new PGlite(dataDir, { extensions: { pgcrypto } })
     : new PGlite({ extensions: { pgcrypto } });
 
-  /* 幂等引导：tenants 表已存在 = 已引导（dataDir 持久化后二次启动跳过） */
+  /* 幂等引导：tenants 表已存在 = 已引导（dataDir 持久化后二次启动跳过）。
+     Step 2 增量：老库若缺 auth 表，单独补装（同样幂等）。 */
   const { rows } = await db.query(`select to_regclass('public.tenants') as t`);
   if (!rows[0].t) {
     await db.exec(AUTH_SHIM);
     for (const f of SCHEMA_FILES) await db.exec(readFileSync(join(root, 'db', f), 'utf8'));
     await db.exec(GRANTS);
+    await db.exec(readFileSync(join(root, 'db', AUTH_SCHEMA_FILE), 'utf8'));   // revoke 在 GRANTS 后生效
+  } else {
+    const { rows: a } = await db.query(`select to_regclass('public.accounts') as t`);
+    if (!a[0].t) await db.exec(readFileSync(join(root, 'db', AUTH_SCHEMA_FILE), 'utf8'));
   }
   return db;
 }
@@ -66,9 +74,12 @@ function makeMutex() {
   };
 }
 
+/* 🔴 双通道、同一把锁：PGlite 单连接上，身份(set role)是连接级状态——
+   任何 DB 访问（含 auth 的系统查询、healthz）都必须与业务通道互斥，
+   否则系统查询可能交错进 app_user 身份窗口内被 RLS/权限误伤（或反向越权）。 */
 export function makeActorGate(db) {
   const lock = makeMutex();
-  return function withActor(uid, fn) {
+  const withActor = (uid, fn) => {
     if (!isUuid(uid)) return Promise.reject(Object.assign(new Error('invalid actor uuid'), { code: 'BAD_ACTOR' }));
     return lock(async () => {
       await db.exec(`set role app_user`);
@@ -80,6 +91,8 @@ export function makeActorGate(db) {
       }
     });
   };
+  const withSystem = fn => lock(() => fn(db));           // 系统身份（连接默认角色），零 RLS
+  return { withActor, withSystem };
 }
 
 /* API 边界的默认业务日（Asia/Shanghai）。仅当请求未显式注入 X-Today（dev）时使用。 */

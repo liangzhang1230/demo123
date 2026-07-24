@@ -48,7 +48,8 @@ console.log('— ① 健康检查与身份闸 —');
   const r = await call('GET', '/healthz');
   ok(r.status === 200 && r.body.ok === true, 'GET /healthz → 200 ok:true');
   const r2 = await call('GET', '/v1/me');
-  ok(r2.status === 401 && r2.body.error.code === 'NO_ACTOR', '无身份 → 401 NO_ACTOR');
+  /* Step 2 起无身份统一报 NO_SESSION（会话优先的认证模型），状态码仍 401 */
+  ok(r2.status === 401 && r2.body.error.code === 'NO_SESSION', '无身份 → 401 NO_SESSION');
   const r3 = await call('GET', '/v1/me', { actor: 'not-a-uuid' });
   ok(r3.status === 400 && r3.body.error.code === 'BAD_ACTOR', '坏 UUID → 400 BAD_ACTOR');
   const r4 = await call('GET', '/v1/state', { actor: U.bossA });

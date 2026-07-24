@@ -1,16 +1,18 @@
 /* ============================================================
-   API · HTTP 服务（Step 1）——「HTTP → RLS 身份 → 已验证函数」，零业务逻辑复制
-   - 身份（Step 1 dev 模式）：X-Actor-Id 头，仅 API_DEV_AUTH=1 时接受；
-     Step 2 用注册/登录会话替换此处（唯一要动的点：resolveActor）。
-   - 每请求整体跑在 withActor 互斥闸内：set role app_user + app.uid → RLS 生效。
-   - 租户上下文一律来自 whoami()（security definer），不信任任何请求头里的 tenant。
-   - 业务日期：ctx.today = X-Today（仅 dev，YYYY-MM-DD）｜默认 Asia/Shanghai 当日（公约 C-14：
-     墙钟只允许在 API 边界进入，服务层内部零真实时钟）。
-   - C12 业务写锁：写端点先过 assertTenantWritable（suspended/closed → 423；读/导出永不锁 A-C05）。
+   API · HTTP 服务（Step 1 端点 + Step 2 认证会话）——零业务逻辑复制
+   - 身份三通道（优先级从高到低）：
+     ① Authorization: Bearer <token>（API 客户端）
+     ② Cookie: sid=<token>（HttpOnly，浏览器）
+     ③ X-Actor-Id（仅 API_DEV_AUTH=1 的开发/测试模式）
+   - 双 DB 通道同一把锁（见 db.mjs）：withActor=RLS 业务身份；withSystem=系统身份
+     （auth 表对 app_user 零权限，只能走系统通道——物理隔离）
+   - /v1/auth/* 按 IP 限速（默认 30 次/分）；账号连错 5 次锁 15 分钟（auth.mjs）
+   - 租户上下文一律 whoami() 推导；业务写统一过 C12 写锁；业务日期仅 API 边界注入（C-14）
    ============================================================ */
 import { createServer } from 'node:http';
 import { ApiError, send, readJson, errorToHttp, matchRoute } from './http.mjs';
 import { makeActorGate, isUuid, todayShanghai } from './db.mjs';
+import { register, login, logout, sessionUser } from './auth.mjs';
 import { assertTenantWritable } from '../server/writes.mjs';
 import { todayCards, transition, STATE_ORDER } from '../server/cardbus.mjs';
 import { submitDailyReport } from '../server/m1.mjs';
@@ -22,19 +24,77 @@ const MGMT = new Set(['boss', 'exec', 'manager']);
 
 const q = async (db, sql, params = []) => (await db.query(sql, params)).rows;
 
-export function buildServer(db, { devAuth = process.env.API_DEV_AUTH === '1', log = true } = {}) {
-  const withActor = makeActorGate(db);
+/* ---- Cookie 工具（无依赖，够用且严谨） ---- */
+function parseCookie(header) {
+  const out = {};
+  for (const part of String(header ?? '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+  }
+  return out;
+}
+function sessionCookie(token, maxAgeMs) {
+  const secure = process.env.COOKIE_SECURE === '1' ? '; Secure' : '';
+  return `sid=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${secure}`;
+}
+const CLEAR_COOKIE = 'sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0';
 
-  /* ---------- 路由表 ----------
-     opts.public: 无需身份；opts.member: 需已是某租户成员（ctx 注入）；
-     opts.write: 业务写（先过 C12 写锁）；opts.mgmt: 仅管理层。 */
+export function buildServer(db, {
+  devAuth = process.env.API_DEV_AUTH === '1',
+  log = true,
+  authRate = { limit: 30, windowMs: 60_000 },
+} = {}) {
+  const { withActor, withSystem } = makeActorGate(db);
+
+  /* ---- /v1/auth/* 按 IP 限速（内存滑窗；生产多实例时换 Redis——Step 7 议题） ---- */
+  const rateMap = new Map();
+  function checkAuthRate(ip) {
+    const now = Date.now();
+    if (rateMap.size > 10000) for (const [k, v] of rateMap) { if (v.resetAt < now) rateMap.delete(k); }
+    const e = rateMap.get(ip);
+    if (!e || e.resetAt < now) { rateMap.set(ip, { count: 1, resetAt: now + authRate.windowMs }); return; }
+    if (++e.count > authRate.limit) throw new ApiError(429, 'RATE_LIMITED', '请求太频繁，请稍后再试');
+  }
+
   const routes = [
-    { method: 'GET', re: /^\/healthz$/, opts: { public: true },
-      handler: async () => {
+    { method: 'GET', re: /^\/healthz$/, opts: { public: true, system: true },
+      handler: async ({ db }) => {
         const [{ ok }] = await q(db, `select 1 as ok`);
-        return { status: 200, body: { ok: ok === 1, service: 'suite-cloud-api', step: 1 } };
+        return { status: 200, body: { ok: ok === 1, service: 'suite-cloud-api', step: 2 } };
       } },
 
+    /* ══════════ 认证（系统通道；对 app_user 物理不可见） ══════════ */
+    { method: 'POST', re: /^\/v1\/auth\/register$/, opts: { public: true, system: true, auth: true },
+      handler: async ({ db, body, ip, ua }) => {
+        if (process.env.AUTH_ALLOW_REGISTER === '0')
+          throw new ApiError(403, 'REGISTER_CLOSED', '注册暂未开放（内测邀请制）');
+        const r = await register(db, { email: body.email, password: body.password, ip, ua });
+        return { status: 201, body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs },
+          headers: { 'set-cookie': sessionCookie(r.token, r.expiresInMs) } };
+      } },
+
+    { method: 'POST', re: /^\/v1\/auth\/login$/, opts: { public: true, system: true, auth: true },
+      handler: async ({ db, body, ip, ua }) => {
+        const r = await login(db, { email: body.email, password: body.password, ip, ua });
+        return { status: 200, body: { userId: r.userId, email: r.email, token: r.token, expiresInMs: r.expiresInMs },
+          headers: { 'set-cookie': sessionCookie(r.token, r.expiresInMs) } };
+      } },
+
+    { method: 'POST', re: /^\/v1\/auth\/logout$/, opts: { public: true, system: true, auth: true },
+      handler: async ({ db, token }) => {
+        await logout(db, token);
+        return { status: 200, body: { ok: true }, headers: { 'set-cookie': CLEAR_COOKIE } };
+      } },
+
+    { method: 'GET', re: /^\/v1\/auth\/session$/, opts: { public: true, system: true },
+      handler: async ({ db, token }) => {
+        const s = token ? await sessionUser(db, token) : null;
+        if (!s) throw new ApiError(401, 'NO_SESSION', '未登录或会话已失效');
+        const [acc] = await q(db, `select email from accounts where user_id = $1`, [s.userId]);
+        return { status: 200, body: { userId: s.userId, email: acc?.email ?? null, expiresAt: s.expiresAt } };
+      } },
+
+    /* ══════════ 业务（RLS 身份通道） ══════════ */
     { method: 'GET', re: /^\/v1\/me$/, opts: {},
       handler: async ({ db }) => {
         const rows = await q(db, `select * from whoami()`);
@@ -129,13 +189,28 @@ export function buildServer(db, { devAuth = process.env.API_DEV_AUTH === '1', lo
       } },
   ];
 
-  /* ---------- 身份解析（Step 2 唯一替换点） ---------- */
-  function resolveActor(req) {
-    if (!devAuth) throw new ApiError(501, 'AUTH_NOT_READY', '会话认证于 Step 2 接入；当前仅 API_DEV_AUTH=1 的开发模式可用');
-    const uid = req.headers['x-actor-id'];
-    if (!uid) throw new ApiError(401, 'NO_ACTOR', '缺少身份（dev 模式需 X-Actor-Id 头）');
-    if (!isUuid(uid)) throw new ApiError(400, 'BAD_ACTOR', 'X-Actor-Id 必须是 UUID');
-    return uid;
+  /* ---- 请求携带的会话令牌（Bearer 优先，其次 Cookie sid） ---- */
+  function extractToken(req) {
+    const m = /^Bearer\s+(.{16,200})$/.exec(req.headers.authorization ?? '');
+    if (m) return m[1];
+    const sid = parseCookie(req.headers.cookie).sid;
+    return sid || null;
+  }
+  /* ---- 身份解析：会话 → dev 头（仅 devAuth） ---- */
+  async function resolveActor(req, token) {
+    if (token) {
+      const s = await withSystem(db => sessionUser(db, token));
+      if (!s) throw new ApiError(401, 'BAD_SESSION', '会话无效或已过期，请重新登录');
+      return s.userId;
+    }
+    if (devAuth) {
+      const uid = req.headers['x-actor-id'];
+      if (uid) {
+        if (!isUuid(uid)) throw new ApiError(400, 'BAD_ACTOR', 'X-Actor-Id 必须是 UUID');
+        return uid;
+      }
+    }
+    throw new ApiError(401, 'NO_SESSION', '未登录（Bearer 令牌或 sid Cookie）');
   }
   function resolveToday(req) {
     const h = req.headers['x-today'];
@@ -144,6 +219,13 @@ export function buildServer(db, { devAuth = process.env.API_DEV_AUTH === '1', lo
       return h;
     }
     return todayShanghai();
+  }
+  function clientIp(req) {
+    if (process.env.TRUST_PROXY === '1') {
+      const xf = String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+      if (xf) return xf;
+    }
+    return req.socket.remoteAddress ?? '?';
   }
 
   const server = createServer(async (req, res) => {
@@ -157,12 +239,17 @@ export function buildServer(db, { devAuth = process.env.API_DEV_AUTH === '1', lo
 
       const body = ['POST', 'PUT', 'PATCH'].includes(req.method)
         ? await readJson(req, { limit: route.opts.bodyLimit ?? 64 * 1024 }) : {};
+      const token = extractToken(req);
+      const ip = clientIp(req);
 
       let out;
       if (route.opts.public) {
-        out = await route.handler({ db, body, params, query: url.searchParams });
+        if (route.opts.auth) checkAuthRate(ip);
+        out = route.opts.system
+          ? await withSystem(db => route.handler({ db, body, params, query: url.searchParams, token, ip, ua: req.headers['user-agent'] }))
+          : await route.handler({ db, body, params, query: url.searchParams, token, ip });
       } else {
-        const uid = resolveActor(req);
+        const uid = await resolveActor(req, token);
         const today = resolveToday(req);
         out = await withActor(uid, async db => {
           let ctx = null, me = null;
@@ -179,7 +266,7 @@ export function buildServer(db, { devAuth = process.env.API_DEV_AUTH === '1', lo
         });
       }
       status = out.status;
-      send(res, out.status, out.body);
+      send(res, out.status, out.body, out.headers ?? {});
     } catch (e) {
       const mapped = errorToHttp(e);
       status = mapped.status;

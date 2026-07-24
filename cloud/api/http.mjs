@@ -64,6 +64,8 @@ const MSG_MAP = [
 ];
 export function errorToHttp(e) {
   if (e instanceof ApiError) return { status: e.status, code: e.code, message: e.message };
+  if (e && Number.isInteger(e.httpStatus))               // auth.mjs 错误（httpStatus/httpCode）
+    return { status: e.httpStatus, code: e.httpCode ?? 'AUTH_ERROR', message: e.message };
   if (e && e.code === 'TENANT_SUSPENDED') return { status: 423, code: 'TENANT_SUSPENDED', message: e.message };
   if (e && e.code === 'BAD_TRANSITION')   return { status: 409, code: 'BAD_TRANSITION', message: e.message };
   if (e && e.code === 'FORBIDDEN')        return { status: 403, code: 'FORBIDDEN', message: e.message };
