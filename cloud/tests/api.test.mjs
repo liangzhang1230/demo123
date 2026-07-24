@@ -162,6 +162,20 @@ let cardId;
   ok(badState.status === 400, '非法目标态 → 400');
 }
 
+/* ── ⑥′ 早报（Step 5） ── */
+console.log('— ⑥′ 早报 morningBrief —');
+{
+  const b = await call('GET', '/v1/brief', { actor: U.bossA });
+  ok(b.status === 200 && b.body.brief && b.body.brief.date === TODAY
+    && b.body.brief.sections.cards && b.body.brief.sections.cards.todoCount >= 1,
+    `boss 早报：日期 ${TODAY} · 今日卡 ≥1`);
+  const sun = await call('GET', '/v1/brief', { actor: U.bossA, today: '2026-07-12' });
+  ok(sun.status === 200 && sun.body.brief === null, '周日早报 → null（休息日零推送 Y-D8）');
+  const sb = await call('GET', '/v1/brief', { actor: U.sales1 });
+  ok(sb.status === 200 && (sb.body.brief === null || (sb.body.brief.role === 'sales' && !sb.body.brief.sections.fourLights)),
+    'sales 早报：角色裁剪（无四灯/守护线管理段）');
+}
+
 /* ── ⑦ 跨租户隔离 ── */
 console.log('— ⑦ 跨租户隔离 —');
 {
@@ -256,6 +270,59 @@ console.log('— ⑩ 并发身份不串 —');
   const bleed = results.filter(r =>
     (r.actor === U.bossA && r.got !== tenantA) || (r.actor === U.bossB && r.got === tenantA));
   ok(bleed.length === 0, `${N} 并发 whoami 零身份串扰`);
+}
+
+/* ── ⑫ 平台面（Step 6 计费闭环：A-C02 双向隔离 + 白名单操作 + 审计） ── */
+console.log('— ⑫ 平台面 —');
+{
+  const P = 'd0000000-0000-4000-8000-00000000000d';
+  const deny = await call('GET', '/v1/platform/overview', { actor: U.bossA });
+  ok(deny.status === 403 && deny.body.error.code === 'NOT_PLATFORM', '普通老板上平台面 → 403');
+  await sql(`insert into platform_admins(user_id, note) values ($1, 'test')`, [P]);
+  const ov = await call('GET', '/v1/platform/overview', { actor: P });
+  const rowA = ov.body.tenants.find(t => t.tenant_id === tenantA);
+  ok(ov.status === 200 && rowA && Number(rowA.seats_used) === 2 && ov.body.tenants.length >= 2,
+    '平台总览：全租户计费/席位视图（租户A seats=2）');
+
+  const patch = await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: P,
+    body: { seat_quota: 7, plan: 'annual', end_date: '2027-07-13', boards_enabled: ['dingjia', 'zhaoren'] } });
+  ok(patch.status === 200 && patch.body.subscription.seat_quota === 7
+    && patch.body.subscription.plan === 'annual'
+    && patch.body.subscription.boards_enabled.length === 2, '开通操作：席位/套餐/到期/板块授权一次生效');
+  const bossView = await call('GET', '/v1/subscription', { actor: U.bossA });
+  ok(bossView.body.subscription.seat_quota === 7 && bossView.body.subscription.end_date === '2027-07-13'
+    && bossView.body.subscription.boards_enabled.join() === 'dingjia,zhaoren',
+    '租户侧订阅视图同步（quota/到期/板块）');
+  const meNow = await call('GET', '/v1/me', { actor: U.bossA });
+  ok((meNow.body.memberships[0].boards_enabled || []).length === 2, 'whoami 板块授权同步为 2');
+
+  /* 停机 → 业务写锁；复通 → 恢复（数据一字未动） */
+  const vNow = (await call('GET', '/v1/state', { actor: U.bossA })).body.version;
+  await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: P, body: { status: 'suspended' } });
+  const wLock = await call('PUT', '/v1/state', { actor: U.bossA, body: { doc: { x: 9 }, version: vNow } });
+  ok(wLock.status === 423, '平台停机 → 租户业务写 423');
+  await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: P, body: { status: 'active' } });
+  const wOk = await call('PUT', '/v1/state', { actor: U.bossA, body: { doc: { company: { name: 'A' } }, version: vNow } });
+  ok(wOk.status === 200 && wOk.body.version === vNow + 1, '平台复通 → 写恢复（版本连续，数据未动）');
+
+  const badQ = await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: P, body: { seat_quota: 0 } });
+  ok(badQ.status === 400 && badQ.body.error.code === 'BAD_QUOTA', 'seat_quota=0 → 400');
+  const badB = await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: P, body: { boards_enabled: ['hack'] } });
+  ok(badB.status === 400 && badB.body.error.code === 'BAD_BOARDS', '未知板块 → 400');
+  const ghost = await call('PATCH', `/v1/platform/subscriptions/99999999-9999-4999-8999-999999999999`, { actor: P, body: { plan: 'x' } });
+  ok(ghost.status === 404, '不存在的租户 → 404');
+  const bossPatch = await call('PATCH', `/v1/platform/subscriptions/${tenantA}`, { actor: U.bossA, body: { plan: 'x' } });
+  ok(bossPatch.status === 403, '非平台身份改订阅 → 403');
+
+  /* A-C02 反向：平台管理员摸不到租户业务数据 */
+  const pState = await call('GET', '/v1/state', { actor: P });
+  ok(pState.status === 403 && pState.body.error.code === 'NOT_MEMBER', '平台管理员读业务数据 → 403（双向隔离）');
+
+  const audit = await sql(
+    `select type, count(*)::int n from event_stream where tenant_id = $1
+      and type in ('subscription_updated','boards_updated','tenant_expired','tenant_resumed')
+      group by type`, [tenantA]);
+  ok(audit.length === 4, `平台操作全量留痕（${audit.map(a => a.type + '×' + a.n).join(' / ')}）`);
 }
 
 server.close();

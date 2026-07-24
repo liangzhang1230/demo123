@@ -58,6 +58,9 @@
     SK.loadDB();
     C.version = Number(st.version); C.lastSyncAt = new Date().toISOString(); lastError = null; saveCfg();
     UI.applyTheme(); UI.commit();
+    /* 🔴 拉取即最新：commit 触发的去抖自动推送要取消——刚从云端拉下来的 doc
+       原样推回只会白烧版本号（并放大多端环回）。 */
+    clearTimeout(pushTimer); pushTimer = null;
   }
   async function pushNow() {
     if (!inTenant()) return;
@@ -122,13 +125,14 @@
       clearTimeout(pushTimer);
       try { if (connected()) await api('/v1/auth/logout', { method: 'POST', body: {} }); } catch (e) {}
       Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null });
-      teamCache = null;
+      teamCache = null; cardsCache = null;
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       saveCfg(); UI.commit(); UI.toast('已退出（本地数据保留）');
     },
     'cloud.create-tenant': async () => {
       try {
         await api('/v1/tenants', { method: 'POST', body: { name: g('cl-tname').value.trim() || '我的公司', email: C.email } });
-        teamCache = null;
+        teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
         UI.toast('租户已创建，你是老板（boss）——本地数据已作为首版推送云端');
       } catch (e) { UI.toast('创建失败：' + e.message); }
@@ -136,7 +140,7 @@
     'cloud.join-tenant': async () => {
       try {
         await api('/v1/join', { method: 'POST', body: { code: g('cl-code').value.trim(), email: C.email } });
-        teamCache = null;
+        teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
         UI.toast('已加入 ' + (C.tenantName || '租户') + '——云端数据已拉取到本机');
       } catch (e) { UI.toast('加入失败：' + e.message); }
@@ -149,6 +153,22 @@
           <p class="hint">发给同事：TA 在自己电脑打开本系统 → 云端协同 → 注册登录 → 凭码加入。角色：${d.role === 'boss' ? '老板' : '销售'}。</p>
           <div style="display:flex;justify-content:flex-end;margin-top:12px">${h.btn('关闭', 'ui.modal-close')}</div>`);
       } catch (e) { UI.toast('生成失败：' + e.message); }
+    },
+    'cloud.cards-refresh': async () => {
+      try {
+        cardsLoading = true; UI.render();
+        const [cd, bf] = await Promise.all([api('/v1/cards/today'), api('/v1/brief')]);
+        cardsCache = { todos: cd.todos, alerts: cd.alerts, brief: bf.brief, at: new Date().toISOString(), error: null };
+      } catch (e) {
+        cardsCache = { todos: [], alerts: { shown: [], folded: [] }, brief: null, error: e.message };
+      } finally { cardsLoading = false; UI.render(); }
+    },
+    'cloud.card-next': async d => {
+      try {
+        await api('/v1/cards/' + d.id + '/transition', { method: 'POST', body: { toState: d.to } });
+        UI.toast('卡片已流转 → ' + (STATE_CN[d.to] || d.to));
+        SK.actions['cloud.cards-refresh']();
+      } catch (e) { UI.toast('流转失败：' + e.message); }
     },
     'cloud.team-refresh': async () => {
       try {
@@ -177,7 +197,51 @@
   const ROLE_CN = { boss: '老板', exec: '高管', manager: '主管', recruiter: '招聘', sales: '销售' };
   const BOARD_CN = { dingjia: '定价', zhaoren: '招人', suanzhang: '算账', liuren: '留人', yuren: '育人' };
   let teamCache = null, teamLoading = false;             // 成员/席位/订阅缓存（进租户视图首渲自动拉一次）
+  let cardsCache = null, cardsLoading = false, pollTimer = null;   // 今日卡/早报 + 30s 轮询
   const isMgmt = () => ['boss', 'exec', 'manager'].includes(C.role);
+  const KIND_CN = { stopbleed: '止血', retain: '留任', talk: '该谈', salary_review: '薪酬复核', eliminate: '汰换评估', coaching: '带教', honor: '履约', spotcheck: '抽检', expand: '扩编', newhire_judge: '新人判定' };
+  const STATE_CN = { pending: '待处理', assigned: '已认领', doing: '进行中', done: '已完成', filled: '已归档' };
+  const NEXT_STATE = { pending: ['assigned', '认领'], assigned: ['doing', '开工'], doing: ['done', '完成'], done: ['filled', '归档'] };
+  function ensurePolling() {                             // 仅云端板块 + 已入租户时静默轮询
+    if (pollTimer) return;
+    pollTimer = setInterval(() => {
+      if (!inTenant() || !location.hash.startsWith('#/cloud')) return;
+      if (!cardsLoading) SK.actions['cloud.cards-refresh']();
+    }, 30000);
+  }
+  function cardRowHtml(c) {
+    const nx = NEXT_STATE[c.state];
+    const title = (c.payload && (c.payload.title || c.payload.reason)) || c.targetId || '';
+    return `<tr>
+      <td><span class="badge ${c.payload && c.payload.level === 'alert' ? 'r' : 'acc'} plain">${KIND_CN[c.kind] || c.kind}</span></td>
+      <td>${esc(String(title).slice(0, 40))}</td>
+      <td class="hint">${STATE_CN[c.state] || c.state}</td>
+      <td>${isMgmt() && nx ? `<button class="btn sm" data-act="cloud.card-next" data-id="${c.cardId}" data-to="${nx[0]}">${nx[1]}</button>` : ''}</td></tr>`;
+  }
+  function cardsCardHtml() {
+    if (!cardsCache && !cardsLoading) SK.actions['cloud.cards-refresh']();   // 首渲自动加载
+    ensurePolling();
+    const cc = cardsCache || { todos: [], alerts: { shown: [], folded: [] }, brief: null };
+    const rows = [...(cc.alerts && cc.alerts.shown || []), ...(cc.todos || [])].map(cardRowHtml).join('');
+    const folded = cc.alerts && cc.alerts.folded && cc.alerts.folded.length || 0;
+    const b = cc.brief, bs = b && b.sections || {};
+    const briefBits = b ? [
+      bs.missing ? `未填日报 ${bs.missing.length} 人` : '',
+      bs.cards ? `今日卡 ${bs.cards.todoCount} 张` : '',
+      bs.fourLights ? `⚠ ${bs.fourLights.hint}` : '',
+      bs.guard ? `守护线候选 ${bs.guard.count} 人` : '',
+    ].filter(Boolean) : [];
+    return h.card('📌 今日一件事 <span class="sub">云端插卡 · 30 秒自动刷新</span>', `
+      ${cardsLoading && !cardsCache ? '<p class="hint">加载中…</p>' : ''}
+      ${cc.error ? h.banner(esc(cc.error), 'n') : ''}
+      ${rows ? `<div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>类型</th><th>事项</th><th>状态</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table></div>${folded ? `<p class="hint">另有 ${folded} 张预警折叠（每日限 3 张展示）</p>` : ''}`
+        : (cardsCache && !cc.error ? '<p class="hint">今天没有待办插卡 ✓</p>' : '')}
+      ${b === null && cardsCache && !cc.error ? '<p class="hint">☀️ 今日休息日——零推送（早报静默）</p>' : ''}
+      ${briefBits.length ? `<div style="margin-top:8px;padding:9px 12px;background:var(--panel);border-radius:9px;font-size:12.5px">📰 <b>今日早报</b> · ${b.date}：${briefBits.map(esc).join(' · ')}</div>` : ''}
+      <div style="margin-top:9px">${h.btn(cardsLoading ? '刷新中…' : '刷新', 'cloud.cards-refresh', { cls: 'sm' })}</div>`);
+  }
   function teamCardHtml() {
     if (isMgmt() && !teamCache && !teamLoading) SK.actions['cloud.team-refresh']();   // 首渲自动加载
     const seats = teamCache && teamCache.seats, sub = teamCache && teamCache.sub;
@@ -250,6 +314,7 @@
         ]) + `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           ${h.btn('立即推送', 'cloud.push', { cls: 'pri' })}${h.btn('拉取云端', 'cloud.pull')}${h.btn('退出登录', 'cloud.logout')}</div>`)}
         ${teamCardHtml()}
+        ${cardsCardHtml()}
       </div>
       ${h.banner('v1 说明：同租户成员共享整库读写（销售端页面自我约束展示）；细粒度行级角色权限（销售只能写自己的日报/回执）在 v2 拆表时由 RLS 落库。', 'a')}
       ${h.banner('冲突策略：推送带乐观锁版本号，云端更新时会弹窗让你选保留哪份——不会静默覆盖。多设备同时编辑建议错峰，或以老板机为主录入端。', 'n')}`;

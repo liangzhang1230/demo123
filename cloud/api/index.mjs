@@ -11,6 +11,19 @@ const dataDir = process.env.PGLITE_DIR || join(here, '..', 'data', 'pglite');
 const port = Number(process.env.PORT || 8787);
 
 const db = await openDb({ dataDir });
+
+/* 平台管理员注入（幂等）：PLATFORM_ADMIN_EMAIL=你的邮箱 —— 该账号注册后每次启动自动授平台面。
+   平台面只见计费/席位/健康度（A-C02），不是任何租户成员，业务数据天然 403。 */
+if (process.env.PLATFORM_ADMIN_EMAIL) {
+  const em = process.env.PLATFORM_ADMIN_EMAIL.trim().toLowerCase();
+  const { rows } = await db.query(`select user_id from accounts where email = $1`, [em]);
+  if (rows.length) {
+    await db.query(`insert into platform_admins(user_id, note) values ($1, 'env:PLATFORM_ADMIN_EMAIL')
+      on conflict (user_id) do nothing`, [rows[0].user_id]);
+    console.log(`[api] 平台管理员已就位：${em}`);
+  } else console.log(`[api] 提示：PLATFORM_ADMIN_EMAIL=${em} 尚未注册账号——注册后重启即授权`);
+}
+
 const server = buildServer(db);
 server.listen(port, () => {
   console.log(`[api] listening :${port} · data=${dataDir} · devAuth=${process.env.API_DEV_AUTH === '1' ? 'ON（仅开发）' : 'off'}`);

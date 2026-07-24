@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('/opt/node22/lib/node_modules/playwright/index.js');
-const { openDb } = await import('../../cloud/api/db.mjs');
+const { openDb, todayShanghai } = await import('../../cloud/api/db.mjs');
 const { buildServer } = await import('../../cloud/api/server.mjs');
+const { insertCard } = await import('../../cloud/server/cardbus.mjs');
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));      // suite/
 let failures = 0;
@@ -148,6 +149,48 @@ console.log('— 成员与席位 + 网页版托管 —');
     'GET / → 同一服务托管网页版（零安装入口）');
 }
 
+/* ═══ 今日一件事：插卡 → UI 显示 → 认领流转（Step 5） ═══ */
+console.log('— 今日一件事插卡 —');
+let tenantId, bossUid;
+{
+  const [row] = (await db.query(
+    `select m.tenant_id, m.user_id from members m join accounts a on a.user_id = m.user_id
+      where a.email = 'boss@x.com'`)).rows;
+  tenantId = row.tenant_id; bossUid = row.user_id;
+  const { cardId } = await insertCard(db,
+    { tenantId, actorId: bossUid, today: todayShanghai() },
+    { kind: 'stopbleed', level: 'todo', payload: { title: 'e2e 止血演示' } });
+  await boss.click('[data-act="cloud.cards-refresh"]');
+  await boss.waitForTimeout(900);
+  const txt1 = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(txt1.includes('止血') && txt1.includes('e2e 止血演示') && txt1.includes('认领'),
+    '插卡出现在「今日一件事」（类型徽章+标题+认领按钮）');
+  await boss.click(`[data-act="cloud.card-next"][data-id="${cardId}"]`);
+  await boss.waitForTimeout(900);
+  const [card] = (await db.query(`select state from action_cards where card_id = $1`, [cardId])).rows;
+  ok(card.state === 'assigned', '点击认领 → 服务端状态机 pending→assigned');
+  const txt2 = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(txt2.includes('已认领') && txt2.includes('开工'), 'UI 同步显示已认领 + 下一步「开工」');
+}
+
+/* ═══ 平台停机 → 前端 423 话术 → 复通恢复（Step 6 租户侧体验） ═══ */
+console.log('— 停机/复通 —');
+{
+  await db.query(`update subscriptions set status = 'suspended' where tenant_id = $1`, [tenantId]);
+  await boss.evaluate(() => { SK.DB.company.name = '停机期改动'; SK.persist(); });
+  await boss.click('[data-act="cloud.push"]');
+  await boss.waitForTimeout(900);
+  const txt = await boss.evaluate(() => document.getElementById('view').textContent);
+  ok(txt.includes('订阅已停机'), '停机推送 → 423 专属话术（数据可导出提示）');
+  await boss.waitForTimeout(3300);           // 让 persist 的 3s 去抖自动推送也在停机期被拒——复通后恰好一次推送，版本确定
+  await db.query(`update subscriptions set status = 'active' where tenant_id = $1`, [tenantId]);
+  await boss.click('[data-act="cloud.push"]');
+  await boss.waitForTimeout(900);
+  const st = await serverState('boss@x.com', PASS);
+  /* v5 精确性依赖「拉取不回推」：conflict-pull 后不再有冗余自动推送烧版本号 */
+  ok(st.version === 5 && st.doc.company.name === '停机期改动', `复通 → 推送成功（服务端 v${st.version}，期望恰 5）`);
+}
+
 /* ═══ 会话失效自动回登录页 ═══ */
 console.log('— 会话失效处理 —');
 {
@@ -158,9 +201,9 @@ console.log('— 会话失效处理 —');
   ok(backToLogin, '会话过期 → 自动清令牌回登录界面（数据保留本地）');
 }
 
-/* 409(冲突推送)与 401(会话过期)是本场景故意触发的预期响应——Chromium 会把它们记为
-   console 网络错误行，予以豁免；其余任何页面错误一律不放过 */
-const EXPECTED = /Failed to load resource.*(409|401)/;
+/* 409(冲突推送)、401(会话过期)、423(停机写锁)是本场景故意触发的预期响应——
+   Chromium 会把它们记为 console 网络错误行，予以豁免；其余任何页面错误一律不放过 */
+const EXPECTED = /Failed to load resource.*(409|401|423)/;
 const bossReal = boss._errs.filter(e => !EXPECTED.test(e));
 const salesReal = sales._errs.filter(e => !EXPECTED.test(e));
 ok(bossReal.length === 0 && salesReal.length === 0, '两台设备全程零非预期页面错误',

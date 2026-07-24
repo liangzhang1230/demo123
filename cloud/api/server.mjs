@@ -19,7 +19,9 @@ import { register, login, logout, sessionUser } from './auth.mjs';
 import { assertTenantWritable } from '../server/writes.mjs';
 import { todayCards, transition, STATE_ORDER } from '../server/cardbus.mjs';
 import { submitDailyReport } from '../server/m1.mjs';
-import { subscription, seatUsage, ALL_BOARDS } from '../server/billing.mjs';
+import { subscription, seatUsage, setBoards, expireTenant, resumeTenant, ALL_BOARDS } from '../server/billing.mjs';
+import { morningBrief } from '../server/briefing.mjs';
+import { logEvent } from '../server/writes.mjs';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ROLES = ['boss', 'exec', 'manager', 'recruiter', 'sales'];
@@ -195,6 +197,13 @@ export function buildServer(db, {
         return { status: 200, body: r };
       } },
 
+    /* Step 5：今日早报（休息日返回 null——Y-D8 零推送；金额永不进早报 C10 口径） */
+    { method: 'GET', re: /^\/v1\/brief$/, opts: { member: true },
+      handler: async ({ db, ctx }) => {
+        const brief = await morningBrief(db, ctx, { userId: ctx.actorId });
+        return { status: 200, body: { brief } };
+      } },
+
     { method: 'GET', re: /^\/v1\/members$/, opts: { member: true, mgmt: true },
       handler: async ({ db, ctx }) => {
         const rows = await q(db,
@@ -211,6 +220,57 @@ export function buildServer(db, {
           `select event_id, type, actor_id, target_id, payload, occurred_at from event_stream
             where tenant_id = $1 order by event_id desc limit $2`, [ctx.tenantId, limit]);
         return { status: 200, body: { events: rows } };
+      } },
+
+    /* ══════════ Step 6 · 平台面（A-C02：跨租户仅计费/席位/健康度，永不碰业务数据） ══════════ */
+    { method: 'GET', re: /^\/v1\/platform\/overview$/, opts: { platform: true },
+      handler: async ({ db }) => {
+        const rows = await q(db, `select * from platform_overview()`);
+        return { status: 200, body: { tenants: rows } };
+      } },
+
+    { method: 'PATCH', re: /^\/v1\/platform\/subscriptions\/(?<tid>[0-9a-f-]{36})$/, opts: { platform: true },
+      handler: async ({ db, ctx, body, params }) => {
+        const tid = params.tid;
+        const t = await q(db, `select 1 from tenants where id = $1`, [tid]);
+        if (!t.length) throw new ApiError(404, 'NOT_FOUND', `租户不存在：${tid}`);
+        const tctx = { tenantId: tid, actorId: ctx.actorId, today: ctx.today };
+        const changed = {};
+
+        if (body.seat_quota !== undefined) {
+          if (!Number.isInteger(body.seat_quota) || body.seat_quota < 1 || body.seat_quota > 10000)
+            throw new ApiError(400, 'BAD_QUOTA', 'seat_quota 须为 1–10000 的整数');
+          changed.seat_quota = body.seat_quota;
+        }
+        if (body.plan !== undefined) {
+          if (typeof body.plan !== 'string' || !body.plan || body.plan.length > 40)
+            throw new ApiError(400, 'BAD_PLAN', 'plan 须为 ≤40 字符串');
+          changed.plan = body.plan;
+        }
+        if (body.end_date !== undefined) {
+          if (body.end_date !== null && !DATE_RE.test(body.end_date))
+            throw new ApiError(400, 'BAD_END_DATE', 'end_date 须为 YYYY-MM-DD 或 null');
+          changed.end_date = body.end_date;
+        }
+        if (Object.keys(changed).length) {
+          const sets = Object.keys(changed).map((k, i) => `${k} = $${i + 2}`).join(', ');
+          await db.query(
+            `insert into subscriptions(tenant_id) values ($1) on conflict (tenant_id) do nothing`, [tid]);
+          await db.query(
+            `update subscriptions set ${sets}, updated_at = now() where tenant_id = $1`,
+            [tid, ...Object.values(changed)]);
+          await logEvent(db, tctx, 'subscription_updated', null, changed);
+        }
+        if (body.boards_enabled !== undefined)
+          await setBoards(db, tctx, { boards: body.boards_enabled });   // 校验 ⊆ 五板块 + 事件
+        if (body.status !== undefined) {
+          if (body.status === 'active') await resumeTenant(db, tctx);
+          else if (body.status === 'overdue' || body.status === 'suspended')
+            await expireTenant(db, tctx, { status: body.status });
+          else throw new ApiError(400, 'BAD_STATUS', 'status ∈ active|overdue|suspended');
+        }
+        const sub = await subscription(db, tctx);
+        return { status: 200, body: { subscription: sub } };
       } },
   ];
 
@@ -294,6 +354,24 @@ export function buildServer(db, {
         out = route.opts.system
           ? await withSystem(db => route.handler({ db, body, params, query: url.searchParams, token, ip, ua: req.headers['user-agent'] }))
           : await route.handler({ db, body, params, query: url.searchParams, token, ip });
+      } else if (route.opts.platform) {
+        /* 平台面：系统通道执行（跨租户），入口先验 platform_admins——
+           平台管理员不是任何租户成员，业务端点对其天然 403（A-C02 双向隔离） */
+        const uid = await resolveActor(req, token);
+        const today = resolveToday(req);
+        out = await withSystem(async db => {
+          const r = await q(db, `select 1 from platform_admins where user_id = $1`, [uid]);
+          if (!r.length) throw new ApiError(403, 'NOT_PLATFORM', '仅平台管理员');
+          /* 注入 app.uid（不切角色）：platform_overview() 等 security definer 函数
+             自带 where is_platform() 守卫，需 auth.uid() 可见调用者——schema 守卫是
+             唯一权威口径，API 前置检查只是双保险 */
+          await db.query(`select set_config('app.uid', $1, false)`, [uid]);
+          try {
+            return await route.handler({ db, ctx: { actorId: uid, today }, body, params, query: url.searchParams });
+          } finally {
+            await db.query(`select set_config('app.uid', '', false)`);
+          }
+        });
       } else {
         const uid = await resolveActor(req, token);
         const today = resolveToday(req);

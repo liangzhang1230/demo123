@@ -58,6 +58,7 @@ const MSG_MAP = [
   [/seat quota exceeded/i,          [409, 'SEAT_QUOTA_EXCEEDED']],
   [/invalid or expired invite/i,    [400, 'BAD_INVITE']],
   [/version conflict/i,             [409, 'VERSION_CONFLICT']],
+  [/未知板块|boards 必须是数组/,      [400, 'BAD_BOARDS']],
   [/不存在/,                         [404, 'NOT_FOUND']],
   [/violates row-level security/i,  [403, 'RLS_DENIED']],
   [/permission denied/i,            [403, 'DB_DENIED']],
