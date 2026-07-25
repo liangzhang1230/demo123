@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  html{font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;}
+  body{background:#888;}
+  .card{ width:1080px; height:1440px; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; padding:80px 78px 66px; }
+  .blk{font-weight:900;} .med{font-weight:500;}
+  .hd{ display:flex; align-items:center; gap:16px; z-index:6; }
+  .hd .bar{ width:56px; height:10px; border-radius:5px; }
+  .hd .kick{ font-weight:900; font-size:31px; letter-spacing:3px; }
+  .hd .idx{ margin-left:auto; font-weight:900; font-size:29px; opacity:.5; letter-spacing:2px; }
+  .ft{ margin-top:auto; display:flex; align-items:center; padding-top:22px; font-weight:600;
+    font-size:25px; letter-spacing:1px; z-index:6; border-top:2px solid rgba(255,255,255,.22); }
+  .ft .pg{ margin-left:auto; font-weight:900; letter-spacing:2px; }
+  .body{ flex:1; display:flex; flex-direction:column; justify-content:center; z-index:6; }
+  .wm{ position:absolute; font-weight:900; z-index:1; pointer-events:none; line-height:.8; }
+  .mega{ font-weight:900; line-height:.78; letter-spacing:-8px; }
+  .tt{ font-weight:900; line-height:1.02; letter-spacing:-1px; }
+  .lead{ font-weight:500; font-size:43px; line-height:1.5; }
+  .chip{ display:inline-block; font-weight:900; font-size:34px; padding:15px 30px; border-radius:999px; letter-spacing:1px; }
+  .unit{ font-weight:900; }
+  .strike{ position:relative; display:inline-block; }
+  .strike::after{ content:""; position:absolute; left:-8px; right:-8px; top:52%; height:14px;
+    background:#E1322A; transform:rotate(-4deg); border-radius:8px; }
+
+  /* themes */
+  .ink{ background:radial-gradient(120% 90% at 80% -10%,#211A12 0%,#100C08 60%,#0A0806 100%); color:#F5EFE1; }
+  .ink .hd .bar{background:#E1322A;} .ink .hd .kick{color:#F0B9B4;} .ink .ft{color:#9C9284;border-color:rgba(255,255,255,.14);}
+  .red{ background:radial-gradient(120% 90% at 82% -8%,#F0483F 0%,#E1322A 48%,#A81C16 100%); color:#FFF3EE; }
+  .red .hd .bar{background:#FFF3EE;} .red .hd .kick{color:#FFE0DA;} .red .ft{color:#FFD2C8;border-color:rgba(255,255,255,.3);}
+  .ivory{ background:#F5EFE1; color:#17130D; }
+  .ivory .hd .bar{background:#E1322A;} .ivory .hd .kick{color:#A81C16;} .ivory .ft{color:#7C7264;border-color:rgba(23,19,13,.14);}
+  .yel{color:#FFD21E;} .rd{color:#E1322A;}
+</style></head><body>
+<div id="root"></div>
+<script>
+const C=[];
+function add(cls,inner){C.push({cls,inner});}
+
+/* A · 损失 179万 —— 钱味最重 */
+add("ink",`
+  <div class="wm blk" style="right:-60px;bottom:-120px;font-size:720px;color:rgba(225,50,42,.09)">¥</div>
+  <div class="hd"><span class="bar"></span><span class="kick">销售定价 · 精选10条</span><span class="idx">损失版</span></div>
+  <div class="body">
+    <div class="med" style="font-size:40px;color:#C9BBAC;letter-spacing:1px;margin-bottom:6px">年回款 1000 万的团队 · 每年</div>
+    <div class="mega rd" style="font-size:300px">179<span class="unit" style="font-size:150px">万</span></div>
+    <div class="tt" style="font-size:132px;color:#fff;margin-top:8px">凭空蒸发</div>
+    <div class="lead" style="margin-top:34px;max-width:920px;color:#E7DCCB">这笔钱不在任何报表上——<br>所以你从来<b class="blk yel">没心疼过它</b>。</div>
+    <div style="margin-top:40px"><span class="chip" style="background:#E1322A;color:#fff">哈佛 · 348销售×3年实证 · DOI可查</span></div>
+  </div>
+  <div class="ft"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+/* B · 从众羞辱 9成 —— 红底黄字 */
+add("red",`
+  <div class="wm blk" style="left:-50px;top:40px;font-size:900px;color:rgba(255,255,255,.07)">9</div>
+  <div class="hd"><span class="bar"></span><span class="kick">销售定价 · 精选10条</span><span class="idx">从众版</span></div>
+  <div class="body">
+    <div class="mega" style="font-size:214px;color:#fff;letter-spacing:-4px">9成老板</div>
+    <div class="tt" style="font-size:92px;color:#fff;margin-top:22px">都在用这套发薪法</div>
+    <div class="lead" style="margin-top:34px;max-width:920px;color:#FFE7E0">
+      <span class="strike"><b class="blk">「多劳多得，最公平」</b></span><br>
+      <span style="display:inline-block;margin-top:20px">真相：它正在悄悄<b class="blk yel">赶走你最能干的人</b>。</span></div>
+    <div style="margin-top:42px"><span class="chip" style="background:#FFD21E;color:#A81C16">27883人数据 · 顶刊实证</span></div>
+  </div>
+  <div class="ft"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+/* C · 大厂惨案 30亿 —— 黑底红金，权威震慑 */
+add("ink",`
+  <div class="wm blk" style="right:-40px;top:120px;font-size:560px;color:rgba(255,210,30,.06)">KPI</div>
+  <div class="hd"><span class="bar"></span><span class="kick">销售定价 · 精选10条</span><span class="idx">惨案版</span></div>
+  <div class="body">
+    <div class="med" style="font-size:44px;color:#C9BBAC;margin-bottom:4px">一句 KPI 的代价：</div>
+    <div class="mega rd" style="font-size:320px">30<span class="unit" style="font-size:150px">亿</span></div>
+    <div class="tt" style="font-size:70px;color:#fff;margin-top:24px;line-height:1.18">罚单 · 开除 5300 人<br>CEO 辞职 · 百年招牌蒙尘</div>
+    <div class="lead" style="margin-top:32px;max-width:940px;color:#E7DCCB">你月月加码、完不成扣钱的目标——<br>和富国那台机器，<b class="blk yel">是同一台</b>。</div>
+  </div>
+  <div class="ft"><span>富国银行 · 监管铁案（已核）</span><span class="pg">向下翻 →</span></div>`);
+
+/* D · 打脸划掉 —— ivory，反差 */
+add("ivory",`
+  <div class="wm blk" style="right:-30px;bottom:-90px;font-size:600px;color:rgba(225,50,42,.06)">%</div>
+  <div class="hd"><span class="bar"></span><span class="kick">销售定价 · 精选10条</span><span class="idx">打脸版</span></div>
+  <div class="body">
+    <div class="tt" style="font-size:96px;color:#8C8574"><span class="strike" style="color:#17130D">低底薪＋纯提成</span></div>
+    <div class="tt" style="font-size:64px;color:#8C8574;margin-top:20px">你以为最省心、最公平？</div>
+    <div class="tt rd" style="font-size:128px;margin:34px 0 0">每年白扔</div>
+    <div class="mega rd" style="font-size:248px;margin:8px 0 12px">17.9%</div>
+    <div class="lead" style="margin-top:22px;max-width:920px">同一笔工资预算，换个结构，<br>一年多的钱够你<b class="blk rd">再养半支队伍</b>。</div>
+    <div style="margin-top:38px"><span class="chip" style="background:#E1322A;color:#fff">哈佛×耶鲁 · 348销售×3年</span></div>
+  </div>
+  <div class="ft"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+/* E · 挑衅提问 销冠 —— 黑底，好奇缺口 */
+add("ink",`
+  <div class="wm blk" style="left:-40px;bottom:-140px;font-size:520px;color:rgba(255,255,255,.045)">?</div>
+  <div class="hd"><span class="bar"></span><span class="kick">销售定价 · 精选10条</span><span class="idx">挑衅版</span></div>
+  <div class="body">
+    <div class="tt" style="font-size:118px;color:#fff">为什么<br><span class="rd">销冠一当主管，</span><br>团队就废了？</div>
+    <div class="lead" style="margin-top:40px;max-width:940px;color:#E7DCCB">你提拔他那天，发的是全公司<b class="blk yel">最贵的奖品</b>——<br>用的却是数据上<b class="blk yel">最错的那把尺子</b>。</div>
+    <div style="margin-top:44px"><span class="chip" style="background:#E1322A;color:#fff">「卖得好」和「带得好」·近乎负相关</span></div>
+  </div>
+  <div class="ft"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+/* F · 138 判决 —— 黑金，别靠感觉 */
+add("ink",`
+  <div class="wm blk" style="right:-30px;bottom:-110px;font-size:640px;color:rgba(203,162,74,.08)">判</div>
+  <div class="hd"><span class="bar" style="background:#CBA24A"></span><span class="kick" style="color:#E4C578">全球实证弹药库</span><span class="idx">完整版</span></div>
+  <div class="body">
+    <div class="tt" style="font-size:88px;color:#fff">别再靠「我觉得」<br>管你的销售团队</div>
+    <div class="mega" style="font-size:300px;color:#E4C578;margin:28px 0 0">138<span style="font-size:130px">条</span></div>
+    <div class="tt" style="font-size:60px;color:#fff;margin-top:10px">全球四十年实证判决</div>
+    <div class="lead" style="margin-top:30px;max-width:940px;color:#D8CDB9">＋ 四大开关操作系统 ＋ 一家真公司全案演示。<br>每一个动作，都知道数据站在<b class="blk" style="color:#E4C578">哪一边</b>。</div>
+  </div>
+  <div class="ft" style="color:#9C9284;border-color:rgba(255,255,255,.14)"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+/* G · 138 打架 —— 好奇 */
+add("ink",`
+  <div class="wm blk" style="left:-30px;top:60px;font-size:760px;color:rgba(203,162,74,.06)">吵</div>
+  <div class="hd"><span class="bar" style="background:#CBA24A"></span><span class="kick" style="color:#E4C578">全球实证弹药库</span><span class="idx">完整版</span></div>
+  <div class="body">
+    <div class="tt" style="font-size:104px;color:#fff">网上的销售建议<br>为什么<span style="color:#E4C578">全在打架？</span></div>
+    <div class="lead" style="margin-top:38px;max-width:940px;color:#D8CDB9">有人说透明、有人说保密；有人说团队奖救人、有人说害人……<br>它们没打架——是<b class="blk" style="color:#E4C578">同一条人性，被拨到了四个开关的不同档位</b>。</div>
+    <div style="margin-top:44px"><span class="chip" style="background:#CBA24A;color:#16120D">138条 + 四大开关 = 你的瞄准镜</span></div>
+  </div>
+  <div class="ft" style="color:#9C9284;border-color:rgba(255,255,255,.14)"><span>老良 · 销售定价学</span><span class="pg">向下翻 →</span></div>`);
+
+const root=document.getElementById("root");
+const names=["A损失179万","B从众9成","C惨案30亿","D打脸17.9","E挑衅销冠","F判决138","G打架138"];
+C.forEach((c,i)=>{const el=document.createElement("div");el.className="card "+c.cls;
+  el.setAttribute("data-name",names[i]);el.innerHTML=c.inner;root.appendChild(el);});
+</script>
+</body></html>
