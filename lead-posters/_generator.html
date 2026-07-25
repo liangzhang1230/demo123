@@ -1,0 +1,210 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<style>
+:root{
+  --bg:#F7F8F5;--card:#FFFFFF;--ink:#141A17;--ink2:#525A54;--ink3:#8B938C;
+  --line:#E6E9E2;--accent:#12876A;--accent2:#1FA980;--accent-soft:#E3F1EC;--accent-ink:#0B5E49;
+  --gold:#9A7B2E;--gold-soft:#F2ECD5;--red:#C0453B;--red-soft:#F8E7E4;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --serif:"Songti SC",Georgia,"Times New Roman","Noto Serif CJK SC",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{background:#333;font-family:var(--sans)}
+.sheet{display:flex;flex-wrap:wrap;gap:24px;padding:24px}
+.poster{width:1080px;height:1440px;position:relative;overflow:hidden;background:var(--bg);color:var(--ink);
+  display:flex;flex-direction:column;justify-content:center;padding:236px 88px 224px;font-variant-numeric:tabular-nums}
+.poster.dark{background:radial-gradient(120% 120% at 15% 0%,#123A2A 0%,#0C1A14 55%,#081109 100%);color:#EAF3EE}
+/* shared bits */
+.brandrow{display:flex;align-items:center;gap:16px;position:absolute;top:90px;left:88px;right:88px}
+.logo{width:64px;height:64px;border-radius:18px;background:linear-gradient(150deg,var(--accent2),var(--accent));
+  color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:800;font-size:34px;
+  box-shadow:0 10px 26px -8px rgba(18,135,106,.6)}
+.dark .logo{box-shadow:0 10px 30px -6px rgba(63,194,147,.5)}
+.bname{display:flex;flex-direction:column;line-height:1.2}
+.bname b{font-size:27px;font-weight:760;letter-spacing:-.02em}
+.bname small{font-size:16px;color:var(--ink3);font-weight:600;letter-spacing:.06em}
+.dark .bname small{color:#7FB3A0}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;font-size:20px;font-weight:700;
+  letter-spacing:.18em;color:var(--accent-ink);background:var(--accent-soft);padding:11px 20px;border-radius:99px;margin-bottom:34px}
+.dark .eyebrow{color:#8FE4C4;background:rgba(63,194,147,.14)}
+.eyebrow.gold{color:var(--gold);background:var(--gold-soft)}
+.eyebrow.red{color:var(--red);background:var(--red-soft)}
+.hook{font-size:74px;line-height:1.2;font-weight:800;letter-spacing:-.03em}
+.hook.sm{font-size:60px}
+.hook em{font-style:normal;color:var(--accent);font-family:var(--serif)}
+.dark .hook em{color:#54D3A5}
+.hook .u{background:linear-gradient(transparent 62%,var(--gold-soft) 62%);padding:0 4px}
+.big{font-family:var(--serif);font-weight:800;letter-spacing:-.02em;line-height:.95}
+.sub{font-size:29px;line-height:1.6;color:var(--ink2);font-weight:500}
+.dark .sub{color:#AECEC1}
+.sub b{color:var(--ink);font-weight:800}.dark .sub b{color:#fff}
+.spacer{display:none}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  position:absolute;left:88px;right:88px;bottom:80px;padding-top:30px;border-top:1.5px solid var(--line)}
+.dark .foot{border-color:rgba(255,255,255,.14)}
+.cta{font-size:26px;font-weight:800;color:var(--accent-ink)}.dark .cta{color:#8FE4C4}
+.cta small{display:block;font-size:18px;color:var(--ink3);font-weight:600;margin-top:4px}
+.dark .cta small{color:#7FB3A0}
+.qr{width:120px;height:120px;border-radius:16px;border:2px dashed var(--line);display:flex;align-items:center;
+  justify-content:center;font-size:15px;color:var(--ink3);text-align:center;line-height:1.4;font-weight:600}
+.dark .qr{border-color:rgba(255,255,255,.2);color:#7FB3A0}
+.no{position:absolute;top:70px;right:80px;font-family:var(--serif);font-size:30px;color:var(--ink3);font-weight:700;opacity:.5}
+.dark .no{color:#5E8375}
+/* number block */
+.numwrap{margin:20px 0 8px}
+.numwrap .unit{font-size:40px;font-weight:800;font-family:var(--serif)}
+/* bar/meter */
+.bar{height:26px;border-radius:99px;background:#E7EAE4;overflow:hidden;display:flex;margin:14px 0 8px}
+.dark .bar{background:rgba(255,255,255,.1)}
+.bar>i{height:100%}
+.legend{display:flex;gap:26px;font-size:19px;color:var(--ink3);font-weight:600}
+.dark .legend{color:#9DBFB2}
+.legend span::before{content:"■ ";}
+.chips{display:flex;flex-direction:column;gap:16px;margin-top:8px}
+.chip{display:flex;align-items:center;gap:18px;font-size:27px;font-weight:600;color:var(--ink2)}
+.dark .chip{color:#C6DCD1}
+.chip .ic{width:52px;height:52px;flex:none;border-radius:14px;background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
+.dark .chip .ic{background:rgba(63,194,147,.16);color:#54D3A5}
+.chip .ic.red{background:var(--red-soft);color:var(--red)}
+.chip b{color:var(--ink)}.dark .chip b{color:#fff}
+.vs{display:flex;align-items:flex-end;gap:34px;margin:22px 0 6px}
+.vs .col{display:flex;flex-direction:column;gap:6px}
+.vs .col .lab{font-size:22px;color:var(--ink3);font-weight:700}
+.vs .col .n{font-family:var(--serif);font-weight:800;line-height:.9}
+.vs .arrow{font-size:46px;color:var(--ink3);padding-bottom:16px}
+.pill{align-self:flex-start;font-size:22px;font-weight:800;padding:9px 20px;border-radius:99px;background:var(--red-soft);color:var(--red)}
+</style></head><body><div class="sheet">
+
+<!-- 1 · 痛点恐吓 · 今年漏损 -->
+<div class="poster dark" id="p1">
+  <span class="no">01</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow" style="color:#F2B84B;background:rgba(230,178,77,.14)">别急着招人 · 先算这笔账</span>
+  <div class="hook">销售薪酬定错，<br>一年白亏<br><span class="big" style="font-size:200px;color:#F2B84B">931<span class="unit" style="color:#F2B84B">万</span></span></div>
+  <div class="sub" style="margin-top:24px">这笔钱不在任何报表上——<b>流失总账 183 万 ＋ 产能高估暴露 748 万</b>。它就是「按老经验拍脑袋定薪」的价格。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">3 分钟算出你公司的这笔账<small>私信「定薪」领取工具</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 2 · 流失价签 61.2万 -->
+<div class="poster" id="p2">
+  <span class="no">02</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow red">走一个销售，到底亏多少</span>
+  <div class="hook sm">你以为亏的是<br>招聘费——<br><span style="color:var(--red)">其实是</span></div>
+  <div class="numwrap"><span class="big" style="font-size:210px;color:var(--red)">61.2<span class="unit" style="color:var(--red)">万</span></span></div>
+  <div class="sub"><b>空窗损失 12.5 万 ＋ 爬坡缺口 48.2 万 ＋ 招聘费</b>。最大的一块是爬坡缺口——所以「缩短爬坡」比「降低流失」更值钱。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">输入你的数据，当场看见价签<small>销售定价器 · 纯离线单文件</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 3 · 全链负担红线 -->
+<div class="poster" id="p3">
+  <span class="no">03</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow">一条你多半踩了的红线</span>
+  <div class="hook">全链提成负担<br>超过 <em>35%</em>，<br>团队一长大<br>就把你<span class="u">撑穿</span></div>
+  <div class="bar" style="margin-top:40px"><i style="width:25%;background:var(--accent)"></i><i style="width:10%;background:#C9962F"></i><i style="width:65%;background:var(--red)"></i></div>
+  <div class="legend"><span style="color:var(--accent)">健康带 25–35%</span><span style="color:var(--red)">你在这里 51.8%</span></div>
+  <div class="sub" style="margin-top:28px">35% 毛利 ≈ 毛利率 25–30% 时的营收薪酬上限。<b>鱼饵要香，但撑不穿</b>——健康带里定薪，才留得住好手又不亏本。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">你的负担率是多少？点开就知道<small>私信「定薪」领取工具</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 4 · 底薪陷阱 -->
+<div class="poster" id="p4">
+  <span class="no">04</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow gold">90% 老板都定反了</span>
+  <div class="hook sm">底薪 ≥ 达标收入的 90%，<br>你发的<br>就不是提成——<br><span class="big" style="font-size:96px;color:var(--gold);display:inline-block;margin-top:14px">是固定工资</span></div>
+  <div class="sub" style="margin-top:36px">底薪太高，销售躺着也拿钱，冲劲没了；底薪太低又留不住人。<b>底薪、达标收入、提成率三者环环相扣</b>——差一个数，整套方案就塌。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">选城市、点档位，底薪提成自动算<small>销售定价器 · 引擎复刻实证基准</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 5 · 富国银行方程 造假闸 -->
+<div class="poster dark" id="p5">
+  <span class="no">05</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow" style="color:#F2B84B;background:rgba(230,178,77,.14)">富国银行方程 · 造假风险闸</span>
+  <div class="hook sm">目标高到<br>正常干法够不着，<br>人只剩两条路——<br><em style="color:#F2B84B">走人，或造假</em></div>
+  <div class="sub" style="margin-top:34px">📎 结局参考：<b>350 万个假账户</b>、和解罚款超 30 亿美元、5300 人被开、CEO 下台，2017 年起永久废除销售配额。</div>
+  <div class="pill" style="margin-top:28px;background:rgba(230,178,77,.16);color:#F2B84B">工具会在你定得太狠时亮红灯</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">你的目标踩线了吗？一键自检<small>销售定价器 · 造假风险闸</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 6 · 六步链招人 -->
+<div class="poster" id="p6">
+  <span class="no">06</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow">人头 × 配额 = 产能幻觉</span>
+  <div class="hook sm">你以为招 8 个<br>就够了</div>
+  <div class="vs">
+    <div class="col"><span class="lab">你脑子里</span><span class="n" style="font-size:130px;color:var(--ink3)">8<span style="font-size:44px"> 人</span></span></div>
+    <span class="arrow">→</span>
+    <div class="col"><span class="lab">六步链真实</span><span class="n" style="font-size:130px;color:var(--accent)">25<span style="font-size:44px"> 人</span></span></div>
+  </div>
+  <div class="sub" style="margin-top:20px">差的 <b>17 个人</b>，就是「人头×配额」高估产能的代价——算漏了，目标从开年第一天就在漏。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">该招几个人？六步链帮你算准<small>销售定价器 · 产能与招人算钱器</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 7 · 好招指数 / 鱼饵 -->
+<div class="poster" id="p7">
+  <span class="no">07</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow red">你不是在激励，是在制造</span>
+  <div class="hook">底薪压到生存线以下<br>＋<br>提成高到刺眼<br><span style="color:var(--red)">=</span> 一个<span class="u">必然作弊</span>的人</div>
+  <div class="sub" style="margin-top:36px">这不是工资单，是一张<b>「普通人干出头部水平」的压强表</b>——r 越高、底薪越低，越像鱼饵。工具用「好招指数」一眼帮你判。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">你的方案是激励还是鱼饵？<small>销售定价器 · 好招指数</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 8 · 团队奖 TIS 红绿灯 -->
+<div class="poster" id="p8">
+  <span class="no">08</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow">团队奖发之前，先过三关</span>
+  <div class="hook sm">人多 ＋ 各干各的<br>＋ 说不清谁干的<br><span style="color:var(--red)">=</span> 团队奖只会<br>喂出<span class="u">搭便车</span></div>
+  <div class="chips" style="margin-top:36px">
+    <div class="chip"><span class="ic">规</span>规模分 · <b>人越多越懈怠</b></div>
+    <div class="chip"><span class="ic">互</span>互补分 · <b>任务是否环环相扣</b></div>
+    <div class="chip"><span class="ic">见</span>可见分 · <b>能否精确到人头</b></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">团队奖该不该发？红绿灯告诉你<small>销售定价器 · 团队激励适配 TIS</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 9 · 三档菜单 -->
+<div class="poster" id="p9">
+  <span class="no">09</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow gold">一分钱不多花的心理学</span>
+  <div class="hook sm">同样的钱，把<br>「派下去的目标」<br>换成<em>三选一菜单</em></div>
+  <div class="vs" style="margin-top:30px;gap:20px">
+    <div class="col"><span class="lab">稳妥档</span><span class="n" style="font-size:66px;color:var(--ink2)">2.27<span style="font-size:26px">万</span></span></div>
+    <div class="col"><span class="lab">基准档</span><span class="n" style="font-size:66px;color:var(--accent)">3.00<span style="font-size:26px">万</span></span></div>
+    <div class="col"><span class="lab">冲刺档</span><span class="n" style="font-size:66px;color:var(--gold)">4.41<span style="font-size:26px">万</span></span></div>
+  </div>
+  <div class="sub" style="margin-top:24px">三档对你的<b>期望成本完全相等</b>（偏差≤3%）——你一分不多花，买到的是每个人对自己选择的承诺。</div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">自动生成等价三档菜单<small>销售定价器 · 方案风洞</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+<!-- 10 · 身份认同 / 总 CTA -->
+<div class="poster dark" id="p10">
+  <span class="no">10</span>
+  <div class="brandrow"><div class="logo">价</div><div class="bname"><b>销售定价器</b><small>PRO · 定薪回算引擎</small></div></div>
+  <span class="eyebrow">给老板 & HR 的定薪神器</span>
+  <div class="hook">3 分钟，<br>把你公司的<br>销售薪酬<br><em style="color:#54D3A5">定对</em></div>
+  <div class="chips" style="margin-top:40px">
+    <div class="chip"><span class="ic">✓</span>底薪 / 提成率 / 达标收入 一键算</div>
+    <div class="chip"><span class="ic">✓</span>该招几人 · 走一个亏多少 · 全看清</div>
+    <div class="chip"><span class="ic">✓</span>纯离线单文件 · 数据只在你电脑</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="foot"><div class="cta">私信「定薪」免费体验<small>手机 / 平板 / 电脑 都能用</small></div><div class="qr">扫码<br>体验</div></div>
+</div>
+
+</div></body></html>
