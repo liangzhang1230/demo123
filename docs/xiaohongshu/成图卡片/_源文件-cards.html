@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  :root{
+    --red:#E23636; --deepred:#B4232A; --ink:#1E1B18; --sub:#5B534D;
+    --cream:#FBF6F0; --paper:#FFFFFF; --line:#EADFD3; --gold:#C79A4B;
+  }
+  body{ font-family:"WenQuanYi Zen Hei","Noto Sans CJK SC",sans-serif; background:#ccc; }
+  .card{
+    width:1080px; height:1440px; position:relative; overflow:hidden;
+    background:var(--cream); color:var(--ink); padding:96px 86px 78px;
+    display:flex; flex-direction:column;
+  }
+  .card.dark{ background:#201A17; color:#F6EFE7; }
+  .card.dark .brand,.card.dark .foot{ color:#B9AA9A; }
+  .card.dark .sub{ color:#C9BBAC; }
+  .card.dark .divider{ background:#3A302A; }
+  /* top brand */
+  .brand{ display:flex; align-items:center; gap:16px; font-size:26px; letter-spacing:2px;
+    color:var(--sub); font-weight:bold; }
+  .brand .dot{ width:20px; height:20px; border-radius:50%; background:var(--red); flex:none; }
+  .brand .tag{ margin-left:auto; font-size:22px; color:#fff; background:var(--red);
+    padding:8px 20px; border-radius:999px; letter-spacing:1px; }
+  .card.dark .brand .tag{ background:var(--gold); color:#201A17; }
+  /* body area */
+  .main{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .kicker{ font-size:34px; color:var(--red); font-weight:bold; margin-bottom:22px; letter-spacing:1px; }
+  .card.dark .kicker{ color:var(--gold); }
+  h1{ font-size:104px; line-height:1.12; font-weight:bold; letter-spacing:1px; }
+  h1.mid{ font-size:82px; }
+  h1.sm{ font-size:66px; line-height:1.18; }
+  .lead{ font-size:40px; line-height:1.6; color:var(--ink); margin-top:14px; }
+  .card.dark .lead{ color:#F0E7DC; }
+  .divider{ height:6px; width:120px; background:var(--red); border-radius:3px; margin:30px 0; }
+  /* two column */
+  .cols{ display:flex; gap:34px; margin-top:20px; }
+  .col{ flex:1; background:var(--paper); border:3px solid var(--line); border-radius:26px; padding:40px 36px; }
+  .col.bad{ border-color:#E7C9C3; }
+  .col.good{ border-color:#CFE3C9; background:#F4F9F1; }
+  .col h3{ font-size:44px; margin-bottom:18px; }
+  .col.bad h3{ color:var(--deepred); }
+  .col.good h3{ color:#3C7A34; }
+  .col p{ font-size:31px; line-height:1.55; color:var(--sub); }
+  /* list */
+  .list{ display:flex; flex-direction:column; gap:30px; margin-top:14px; }
+  .item{ background:var(--paper); border-radius:22px; padding:34px 38px;
+    box-shadow:0 6px 22px rgba(120,80,40,.06); border-left:12px solid var(--red); }
+  .card.dark .item{ background:#2B2320; border-left-color:var(--gold); }
+  .item .q{ font-size:38px; font-weight:bold; line-height:1.4; }
+  .item .a{ font-size:32px; color:var(--sub); margin-top:10px; line-height:1.5; }
+  .card.dark .item .a{ color:#C9BBAC; }
+  .item .a b{ color:var(--red); }
+  .card.dark .item .a b{ color:var(--gold); }
+  /* numbered layers */
+  .layers{ display:flex; flex-direction:column; gap:20px; margin-top:10px; }
+  .layer{ display:flex; align-items:center; gap:28px; font-size:37px; }
+  .layer .n{ width:66px; height:66px; flex:none; border-radius:50%; background:var(--red); color:#fff;
+    font-weight:bold; display:flex; align-items:center; justify-content:center; font-size:36px; }
+  .card.dark .layer .n{ background:var(--gold); color:#201A17; }
+  .layer .t{ font-weight:bold; }
+  .layer .d{ color:var(--sub); font-size:31px; }
+  .card.dark .layer .d{ color:#C9BBAC; }
+  /* toc */
+  .toc{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
+  .vol{ background:var(--paper); border-radius:20px; padding:26px 30px; display:flex; flex-direction:column; }
+  .card.dark .vol{ background:#2B2320; }
+  .vol .no{ font-size:29px; font-weight:bold; color:var(--red); flex:none; margin-bottom:8px; }
+  .card.dark .vol .no{ color:var(--gold); }
+  .vol .nm{ font-size:32px; font-weight:bold; line-height:1.25; }
+  .vol .ds{ font-size:26px; color:var(--sub); margin-top:10px; line-height:1.4; }
+  .card.dark .vol .ds{ color:#C9BBAC; }
+  .vol .txt{ display:flex; flex-direction:column; }
+  /* switches */
+  .sw{ display:flex; flex-direction:column; gap:26px; margin-top:10px; }
+  .swi{ background:var(--paper); border-radius:22px; padding:32px 36px; }
+  .card.dark .swi{ background:#2B2320; }
+  .swi .h{ font-size:40px; font-weight:bold; }
+  .swi .h span{ color:var(--red); }
+  .card.dark .swi .h span{ color:var(--gold); }
+  .swi .p{ font-size:31px; color:var(--sub); margin-top:10px; line-height:1.5; }
+  .card.dark .swi .p{ color:#C9BBAC; }
+  /* cta */
+  .fork{ display:flex; gap:30px; margin-top:26px; }
+  .fside{ flex:1; border-radius:24px; padding:40px 34px; }
+  .fside.a{ background:#F3EBE4; }
+  .fside.b{ background:var(--red); color:#fff; }
+  .card.dark .fside.a{ background:#2B2320; }
+  .fside .lbl{ font-size:34px; font-weight:bold; margin-bottom:16px; }
+  .fside.a .lbl{ color:var(--deepred); }
+  .fside p{ font-size:30px; line-height:1.5; }
+  .fside.a p{ color:var(--sub); }
+  .card.dark .fside.a p{ color:#C9BBAC; }
+  .cta-line{ margin-top:34px; text-align:center; font-size:40px; font-weight:bold; }
+  .cta-line .pill{ display:inline-block; background:var(--red); color:#fff; padding:14px 40px;
+    border-radius:999px; margin-top:20px; }
+  .card.dark .cta-line .pill{ background:var(--gold); color:#201A17; }
+  .bignum{ font-size:150px; font-weight:bold; color:var(--red); line-height:1; }
+  .card.dark .bignum{ color:var(--gold); }
+  /* footer */
+  .foot{ display:flex; align-items:center; font-size:24px; color:var(--sub); letter-spacing:1px;
+    border-top:2px solid var(--line); padding-top:22px; }
+  .card.dark .foot{ border-top-color:#3A302A; }
+  .foot .pg{ margin-left:auto; font-weight:bold; }
+  .note{ font-size:27px; color:var(--sub); margin-top:16px; line-height:1.5; }
+  .card.dark .note{ color:#C9BBAC; }
+  .hl{ color:var(--red); font-weight:bold; }
+  .card.dark .hl{ color:var(--gold); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const R = "销售定价学 · 全球实证弹药库";
+const cards = [
+/* ============ 精选十条 (5) ============ */
+{ set:"jx", pg:"01 / 05", tag:"精选十条", html:`
+  <div class="main">
+    <div class="kicker">01 · 封面</div>
+    <h1>世界上<br>有两种老板</h1>
+    <div class="divider"></div>
+    <div class="cols">
+      <div class="col bad"><h3>第一种</h3><p>凭「我觉得」管理：发钱靠感觉、招人靠眼缘、定目标靠去年加两成。很努力，却在报表看不见的地方，持续漏钱、赶走最能干的人。</p></div>
+      <div class="col good"><h3>第二种</h3><p>凭证据和地图管理：每个动作背后，全球 40 年数据判了什么，他都知道。犯的错更少，因为手里有别人没有的地图。</p></div>
+    </div>
+    <div class="lead" style="margin-top:34px">这 10 条，是你从第一种走向第二种的<span class="hl">第一步</span>。</div>
+  </div>`},
+
+{ set:"jx", pg:"02 / 05", tag:"精选十条", html:`
+  <div class="main">
+    <div class="kicker">02 · 你自以为对，其实天天在漏钱</div>
+    <h1 class="sm">4 个动作，<br>正在偷走你的钱</h1>
+    <div class="list">
+      <div class="item"><div class="q">「低底薪+纯提成，最公平」</div><div class="a">→ 每年<b>少收 2.4%~17.9%</b></div></div>
+      <div class="item"><div class="q">「谁卖得好就提谁当主管」</div><div class="a">→ 「卖得好」和「带得好」在数据上<b>接近负相关</b></div></div>
+      <div class="item"><div class="q">「月月加码，完不成扣提成」</div><div class="a">→ 富国同一台机器，把老实人逼成两类：<b>走的和造假的</b></div></div>
+      <div class="item"><div class="q">「排行榜实名+金额全公开」</div><div class="a">→ 27883 人数据：<b>正在赶走你最好的人</b></div></div>
+    </div>
+    <div class="note">每一条，都不在任何报表上。所以你从来没心疼过。</div>
+  </div>`},
+
+{ set:"jx", pg:"03 / 05", tag:"精选十条", html:`
+  <div class="main">
+    <div class="kicker">03 · 精选里最扎心的几条</div>
+    <h1 class="sm">这些结论，<br>每一条都值钱</h1>
+    <div class="list">
+      <div class="item"><div class="q">001 钱的形状定理</div><div class="a">同样薪酬预算，纯提成每年让你<b>少收 2.4%~17.9%</b>（哈佛×耶鲁，348 销售×3 年真实数据）</div></div>
+      <div class="item"><div class="q">054 提销冠当主管</div><div class="a">是发全公司<b>最贵的奖品</b>、用错的尺子</div></div>
+      <div class="item"><div class="q">017 季末那波不是团队爆发</div><div class="a">是销售在<b>拿你的毛利，买他自己的提成</b></div></div>
+      <div class="item"><div class="q">富国铁案 · 一句 KPI</div><div class="a">罚 <b>30 亿</b> / 开 <b>5300 人</b> / CEO 辞职</div></div>
+    </div>
+    <div class="note">……第 10 条，会把前 9 条串成你意想不到的东西。</div>
+  </div>`},
+
+{ set:"jx", pg:"04 / 05", tag:"精选十条", html:`
+  <div class="main">
+    <div class="kicker">04 · 凭什么信</div>
+    <h1 class="mid">不是我的观点，<br>是全球 40 年的<br>实证判决</h1>
+    <div class="lead" style="margin-top:26px">哈佛商学院 · QJE · 《Journal of Marketing》· 诺奖得主研究，外加富国银行这种有监管文书的<span class="hl">公开铁案</span>。</div>
+    <div class="list" style="margin-top:30px">
+      <div class="item"><div class="q">✅ 顶刊 / 诺奖级</div></div>
+      <div class="item"><div class="q">📖 行业口径，照实说</div></div>
+      <div class="item"><div class="q">🕵 本库原创推论</div></div>
+    </div>
+    <div class="note">每个数字都标了 DOI、卷期——我不怕你查，我怕你不查。<br>诚实，是唯一不可再生的资产。</div>
+  </div>`},
+
+{ set:"jx", pg:"05 / 05", tag:"精选十条", html:`
+  <div class="main">
+    <div class="kicker">05 · 你现在，站在岔路口</div>
+    <h1 class="mid">往哪边走，<br>你自己定</h1>
+    <div class="fork">
+      <div class="fside a"><div class="lbl">「我以为我懂」</div><p>继续用「我觉得」发钱、招人、定目标，继续在看不见的地方，一年漏掉几十万、逼走几个销冠。</p></div>
+      <div class="fside b"><div class="lbl">「我真的知道」</div><p>手里有判决、有数据，每一个动作，都知道全球数据站在哪一边。</p></div>
+    </div>
+    <div class="cta-line">你已经读完了 10 条<br><span class="pill">想要 → 看主页 / 私信扣「10」</span></div>
+    <div class="note" style="text-align:center">完整 138 条 + 四大开关操作系统，随后奉上。</div>
+  </div>`},
+
+/* ============ 138 条 (6) ============ */
+{ set:"full", dark:true, pg:"01 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">01 · 封面</div>
+    <h1 class="mid">销售管理，<br>别再靠「我觉得」</h1>
+    <div class="lead" style="margin-top:24px">138 条判决 · 四大开关操作系统</div>
+    <div class="divider" style="background:var(--gold)"></div>
+    <div class="lead">懂结论的人，满网都是。<br>懂「你的毛利、团队、周期、人群，<span class="hl">此刻该拨哪一档</span>」的——极少。</div>
+    <div class="note" style="font-size:32px;margin-top:34px">这套，就是那副让你不再打偏的瞄准镜。</div>
+  </div>`},
+
+{ set:"full", dark:true, pg:"02 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">02 · 138 条 = 8 卷</div>
+    <h1 class="sm">按「九柱」编目</h1>
+    <div class="toc">
+      <div class="vol"><div class="no">卷首</div><div class="txt"><div class="nm">总纲</div><div class="ds">四大开关操作系统 · 怎么用这套弹药库</div></div></div>
+      <div class="vol"><div class="no">卷一</div><div class="txt"><div class="nm">方案结构 · 薪酬心理</div><div class="ds">提成 / 底薪 / 封顶怎么定</div></div></div>
+      <div class="vol"><div class="no">卷二</div><div class="txt"><div class="nm">配额科学 · 成交科学</div><div class="ds">目标怎么定、月底怎么不漏毛利</div></div></div>
+      <div class="vol"><div class="no">卷三</div><div class="txt"><div class="nm">招聘效度 · 招聘暗面</div><div class="ds">怎么招对人、识破面试表演</div></div></div>
+      <div class="vol"><div class="no">卷四</div><div class="txt"><div class="nm">辅导 · 爬坡 · 带教</div><div class="ds">新人怎么带、销冠怎么教人</div></div></div>
+      <div class="vol"><div class="no">卷五</div><div class="txt"><div class="nm">留人 · 主管提拔 · 团队激励</div><div class="ds">留住该留的、团队奖不发歪</div></div></div>
+      <div class="vol"><div class="no">卷六</div><div class="txt"><div class="nm">地盘 · 惨案簿 · 组织级决定</div><div class="ds">划地盘、避开考核失控惨案</div></div></div>
+      <div class="vol"><div class="no">卷八</div><div class="txt"><div class="nm">总目录 · 索引册</div><div class="ds">一秒定位条号，三视角交叉查</div></div></div>
+    </div>
+  </div>`},
+
+{ set:"full", dark:true, pg:"03 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">03 · 每条八层</div>
+    <h1 class="sm">拆到你能<br>直接落地</h1>
+    <div class="layers">
+      <div class="layer"><div class="n">1</div><div><span class="t">一分钟看懂</span> <span class="d">先扎心，再讲理</span></div></div>
+      <div class="layer"><div class="n">2</div><div><span class="t">证据全景</span> <span class="d">这研究凭什么信</span></div></div>
+      <div class="layer"><div class="n">3</div><div><span class="t">值多少钱</span> <span class="d">在你公司的损失对照表</span></div></div>
+      <div class="layer"><div class="n">4</div><div><span class="t">正确的样子</span> <span class="d">目标状态长什么样</span></div></div>
+      <div class="layer"><div class="n">5</div><div><span class="t">落地规格书</span> <span class="d">逐字话术+条款+表格，照抄就能上线</span></div></div>
+      <div class="layer"><div class="n">6</div><div><span class="t">边界与失灵</span> <span class="d">什么情况下别用</span></div></div>
+      <div class="layer"><div class="n">7</div><div><span class="t">员工异议预案</span> <span class="d">员工这么问，你这么答</span></div></div>
+      <div class="layer"><div class="n">8</div><div><span class="t">查证指引</span> <span class="d">DOI / 卷期，自己核</span></div></div>
+    </div>
+    <div class="note">不是「知识」，是能直接装进公司的「操作件」。</div>
+  </div>`},
+
+{ set:"full", dark:true, pg:"04 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">04 · 核心方法论</div>
+    <h1 class="sm">四大开关<br>让你不再打偏</h1>
+    <div class="sw">
+      <div class="swi"><div class="h">开关一 · <span>任务可测性</span></div><div class="p">越难量化的活越不能重激励——否则易测的部分会掏空难测的部分。</div></div>
+      <div class="swi"><div class="h">开关二 · <span>团队结构</span></div><div class="p">协作可识别可互补→团队奖是燃料；大而松散、搭便车难防→团队奖是毒药。</div></div>
+      <div class="swi"><div class="h">开关三 · <span>人群分层</span></div><div class="p">同一激励对领先者和落后者效果相反——榜首/榜眼/垫底/新人，各是一档。</div></div>
+      <div class="swi"><div class="h">开关四 · <span>参照点</span></div><div class="p">同一笔钱，落在心理参照点之上是奖励，之下是羞辱。</div></div>
+    </div>
+    <div class="note">档位拨对了是燃料，拨错了是毒药。</div>
+  </div>`},
+
+{ set:"full", dark:true, pg:"05 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">05 · 不止给弹药</div>
+    <h1 class="sm">给你一整套<br>改造样板</h1>
+    <div class="item" style="border-left-color:var(--gold);background:#2B2320;padding:44px">
+      <div class="q" style="font-size:42px">宏图机电全案</div>
+      <div class="a" style="font-size:34px;margin-top:16px">一家 <b>10 人、年回款 1000 万</b>的公司，被这套弹药库<b>从头改造到尾</b>的完整轨迹。</div>
+    </div>
+    <div class="lead" style="margin-top:34px">薪酬结构怎么改 · 目标怎么重定 · 销冠该不该提主管 · 排行榜怎么挂 · 新人怎么带 · 该留的人怎么留……</div>
+    <div class="note" style="font-size:32px;margin-top:30px">每一步都对应到具体条号——你照着改，就是照着一家真公司的路径走。</div>
+  </div>`},
+
+{ set:"full", dark:true, pg:"06 / 06", tag:"完整版 138 条", html:`
+  <div class="main">
+    <div class="kicker">06 · 你现在，站在岔路口</div>
+    <h1 class="mid">往哪边走，<br>你自己定</h1>
+    <div class="fork">
+      <div class="fside a"><div class="lbl">继续第一种</div><p>用「我觉得」发钱招人定目标，在看不见的地方一年漏掉几十万，还不知道错在哪。</p></div>
+      <div class="fside b" style="background:var(--gold);color:#201A17"><div class="lbl" style="color:#201A17">走向第二种</div><p>138 条判决 + 四大开关 + 总目录索引 + 宏图机电全案 + 终身更新 + 每月答疑。</p></div>
+    </div>
+    <div class="cta-line">买的不是一份文件，是一套会长大的系统<br><span class="pill">想要 → 看主页 / 私信扣「138」</span></div>
+  </div>`},
+];
+
+const root = document.getElementById("root");
+cards.forEach(c => {
+  const el = document.createElement("div");
+  el.className = "card" + (c.dark ? " dark" : "");
+  el.innerHTML = `
+    <div class="brand"><span class="dot"></span><span>${R}</span><span class="tag">${c.tag}</span></div>
+    ${c.html}
+    <div class="foot"><span>老良 · 销售定价学</span><span class="pg">${c.pg}</span></div>`;
+  root.appendChild(el);
+});
+</script>
+</body>
+</html>
