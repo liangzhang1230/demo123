@@ -30,6 +30,19 @@ server.listen(port, () => {
   if (process.env.API_DEV_AUTH !== '1') console.log('[api] 提示：会话认证在 Step 2 接入前，所有需身份接口返回 501');
 });
 
-for (const sig of ['SIGINT', 'SIGTERM']) {
-  process.on(sig, () => server.close(() => process.exit(0)));
+/* 🔴 优雅退出：先停止收新请求，再 flush 数据库（PGlite 目录持久化是后台异步刷盘，
+   退出前显式 close() 把内存中未落盘的写入刷到磁盘，降低硬退时丢最近几秒写入的风险）。
+   兜底：无论如何 3 秒后强制退出，避免卡死进程管理器。 */
+let shuttingDown = false;
+async function shutdown(sig) {
+  if (shuttingDown) return; shuttingDown = true;
+  console.log(`[api] 收到 ${sig}，优雅退出中…`);
+  const force = setTimeout(() => process.exit(0), 3000);
+  try {
+    await new Promise(res => server.close(res));   // 停止 accept 新连接
+    await db.close();                              // flush PGlite 到磁盘
+    console.log('[api] 已 flush 数据库，安全退出');
+  } catch (e) { console.error('[api] 退出时出错：', e.message); }
+  finally { clearTimeout(force); process.exit(0); }
 }
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => shutdown(sig));
