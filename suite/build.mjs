@@ -27,7 +27,7 @@ ${css}
 <div id="subnav"></div>
 <main id="view"></main>
 <div class="footer-note" id="backup-note"></div>
-<div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 单文件 · 无后端 · 无网络 · 数据只在你电脑</div>
+<div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 数据归你 · 随时全量导出 · 永不锁定</div>
 <nav id="bottomnav"></nav>
 <div id="moresheet"></div>
 <div id="modal-root"></div>

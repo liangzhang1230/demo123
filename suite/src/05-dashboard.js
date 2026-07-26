@@ -120,9 +120,9 @@
         </div>`)}
         ${h.card('目标与人效', `<div class="frm">
           ${h.field('规划年份', h.seg('company.targetYearMode', [{ v: 'next', t: '明年' }, { v: 'this', t: '今年' }], c.targetYearMode))}
-          ${h.field('目标年毛利（万）', h.input('company.targetYearGrossWan', 'num', { value: c.targetYearGrossWan }))}
-          ${h.field('去年人均毛利（万/年·真值）', h.input('company.lastYearPerCapitaWan', 'num', { value: c.lastYearPerCapitaWan }), '总毛利÷销售人数，别用配额')}
-          ${h.field('达标销售月毛利目标（万）', h.input('company.targetPersonalMonthlyGrossWan', 'num', { value: c.targetPersonalMonthlyGrossWan, step: 0.5 }), '参考：去年人均月毛利×1.1–1.3')}
+          ${h.field('今年公司回款目标（万）', h.input('company.targetYearCollectWan', 'num', { value: c.targetYearCollectWan }), `系统按毛利率自动换算内部毛利口径（当前 ≈ ${c.targetYearGrossWan != null ? c.targetYearGrossWan : '—'} 万毛利）`)}
+          ${h.field('去年人均回款（万/年·真值）', h.input('company.lastYearPerCapitaCollectWan', 'num', { value: c.lastYearPerCapitaCollectWan }), '去年总回款÷销售人数，别用配额')}
+          ${h.field('达标销售月回款目标（万）', h.input('company.targetPersonalMonthlyCollectWan', 'num', { value: c.targetPersonalMonthlyCollectWan, step: 1 }), '参考：去年人均月回款×1.2')}
           ${h.field('单人全负担年成本（万）', h.input('company.fullLoadWan', 'num', { value: c.fullLoadWan }), '底薪+社保+提成全含')}
           ${h.field(`提成率 r 口径 ${h.linked()}`, h.seg('company.rMode', [{ v: 'auto', t: '定价器实时' }, { v: 'manual', t: '手工锁定' }], c.rMode), c.rMode === 'manual' ? '' : '当前 r = ' + fmt.pct(SK.rRate()))}
           ${c.rMode === 'manual' ? h.field('手工提成率 %', h.input('company.rManual', 'pct100', { value: Math.round(c.rManual * 10000) / 100, step: 0.01 })) : ''}
@@ -158,7 +158,7 @@
     vBackup() {
       const kb = SK.storageKB();
       return `
-      <div class="sect"><h2>备份与迁移</h2><span class="sub">单文件 · 无后端 · 数据不出你的电脑 · 导出永不锁定</span></div>
+      <div class="sect"><h2>备份与迁移</h2><span class="sub">随时全量导出 · 一键恢复 · 数据永不锁定</span></div>
       <div class="grid g2">
         ${h.card('📦 全量备份', `
           <p class="hint" style="margin-bottom:8px">导出整个系统的全部数据（公司档案/员工/成交/日报/协议/系数覆盖…）为一个 JSON 文件。换电脑时导入即可完整恢复。</p>
@@ -174,7 +174,7 @@
           <div class="kv"><span class="k">数据实体</span><b>员工 ${SK.DB.people.length} · 成交 ${SK.DB.deals.length} · 线索 ${SK.DB.leads.length} · 日报 ${SK.DB.dailyReports.length}</b></div>
           <div class="kv"><span class="k"></span><b>折扣 ${SK.DB.discounts.length} · 发放 ${SK.DB.payouts.length} · 协议 ${SK.DB.m28Agreements.length} · 候选人 ${SK.DB.candidates.length}</b></div>`)}
       </div>
-      ${h.banner('🔒 两条底线：① 数据不出你电脑——本文件无后端、无网络、无埋点；② 每个数字经得起较真——所有判定带 📎 出处，系数可在「系数矩阵」覆盖。', 'n')}`;
+      ${h.banner('🔒 两条底线：① 数据归你——随时全量导出、永不锁定，正式版数据存在你自己的服务器上；② 每个数字经得起较真——所有判定带 📎 出处，系数可在「系数矩阵」覆盖。', 'n')}`;
     },
     vSelftest() {
       const res = SK.tests.map(t => {

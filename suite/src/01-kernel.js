@@ -178,6 +178,14 @@ const SK = (() => {
         targetYearGrossWan: 1000, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
         attritionRate: 0.35, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
         rMode: 'auto', rManual: 0.2706,
+        // v2.7 极简：老板只填「回款」口径，系统内部 ×毛利率 换算成毛利喂引擎（毛利字段仍是引擎口径）
+        targetYearCollectWan: 3333.3, lastYearPerCapitaCollectWan: 333.3, targetPersonalMonthlyCollectWan: 30,
+        leaversLastYear: null,        // 去年走了几个销售（人）→ 换算年流失率；null=直接用 attritionRate
+        // 自定义底薪(b,分/月)与自定义提成(rc,占回款 0–1)；null=用参考矩阵值
+        customPay: {
+          sales_effective: { b: null, rc: null }, sales_efficient: { b: null, rc: null }, sales_leading: { b: null, rc: null },
+          manager: { b: null, rc: null }, executive: { b: null, rc: null },
+        },
       },
       people: [], categories: [], leads: [], deals: [], discounts: [], payouts: [], refunds: [], opcosts: [],
       candidates: [], weights: JSON.parse(JSON.stringify(COEF_DEFAULT.zhaoren.hiringWeightsFactory)),
@@ -214,6 +222,15 @@ const SK = (() => {
         for (const k of ['ui', 'company', 'governance', 'priceTag', 'dividend', 'paceConfig', 'shiftConfig', 'weights', 'dt']) {
           DB[k] = Object.assign(getPath(emptyDB(), k) || {}, stored[k] || {});
         }
+        // v2.7 迁移：老档案无回款口径字段 → 由现有毛利口径 ÷ 毛利率反推，保证升级后显示与内部一致
+        if (stored.company && stored.company.targetYearCollectWan == null) {
+          const c = DB.company, m = c.blendedMarginRate > 0 ? c.blendedMarginRate : 0.30;
+          if (c.targetYearGrossWan != null) c.targetYearCollectWan = Math.round(c.targetYearGrossWan / m * 10) / 10;
+          if (c.targetPersonalMonthlyGrossWan != null) c.targetPersonalMonthlyCollectWan = Math.round(c.targetPersonalMonthlyGrossWan / m * 10) / 10;
+          if (c.lastYearPerCapitaWan != null) c.lastYearPerCapitaCollectWan = Math.round(c.lastYearPerCapitaWan / m * 10) / 10;
+        }
+        // customPay 结构兜底（一层合并可能带入残缺对象）
+        DB.company.customPay = Object.assign(getPath(emptyDB(), 'company.customPay'), DB.company.customPay || {});
         return;
       }
     } catch (e) { /* 损坏则重建 */ }
@@ -236,6 +253,7 @@ const SK = (() => {
       name: '示例 · 王总的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
       targetYearGrossWan: 1800, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
       attritionRate: 0.30, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
+      targetYearCollectWan: 6000, lastYearPerCapitaCollectWan: 333.3, targetPersonalMonthlyCollectWan: 30,
     });
     // 品类
     const catStd = { id: 'cat_std', name: '标准品', grossMarginRate: 0.50, medianStayDays: 30 };
@@ -358,6 +376,23 @@ const SK = (() => {
     const dj = X('dingjia');
     return (dj && dj.r != null) ? dj.r : (c.rManual != null ? c.rManual : 0.2706);
   }
+  /* v2.7 回款→毛利同步：老板只填回款口径，这里换算写回引擎用的毛利口径字段。
+     只在 UI 绑定层的指定路径变更时调用（targetXxxCollectWan / blendedMarginRate / leaversLastYear），
+     不做全局钩子——测试与云端直接写毛利字段的旧路径完全不受影响。 */
+  function syncPricing() {
+    const c = DB && DB.company; if (!c) return;
+    const m = c.blendedMarginRate;
+    if (m > 0) {
+      if (c.targetYearCollectWan != null) c.targetYearGrossWan = Math.round(c.targetYearCollectWan * m * 100) / 100;
+      if (c.targetPersonalMonthlyCollectWan != null) c.targetPersonalMonthlyGrossWan = Math.round(c.targetPersonalMonthlyCollectWan * m * 1000) / 1000;
+      if (c.lastYearPerCapitaCollectWan != null) c.lastYearPerCapitaWan = Math.round(c.lastYearPerCapitaCollectWan * m * 100) / 100;
+    }
+    if (c.leaversLastYear != null) {
+      const n = DB.people.filter(p => p.isActive && p.positionType === 'sales').length;
+      c.attritionRate = clamp(c.leaversLastYear / Math.max(n + c.leaversLastYear, 1), 0, 0.9);
+    }
+  }
+
   /* 共用聚合：在职销售 / 主管 */
   const activeSales = () => DB.people.filter(p => p.isActive && p.positionType === 'sales');
   const activeManagers = () => DB.people.filter(p => p.isActive && p.positionType === 'manager');
@@ -378,7 +413,7 @@ const SK = (() => {
     today, setTestToday, fmt, RAMP, SEGMENT_MAP, CYCLE_CN, CITY_CN, POS_CN, newHireYearRate, calcRamp80,
     COEF_DEFAULT, getCoef, getPath,
     get DB() { return DB; }, loadDB, persist, emptyDB: () => { DB = emptyDB(); }, seedDemo, storageKB, LS_KEY,
-    X, xReset, summary, rRate, activeSales, activeManagers, personById, catById, maskPhone,
+    X, xReset, summary, rRate, syncPricing, activeSales, activeManagers, personById, catById, maskPhone,
     modules, registerModule, actions, tests,
     _setToast(fn) { toastFn = fn; },
   };

@@ -383,7 +383,7 @@ svg .axis{stroke:var(--line2)}
 <div id="subnav"></div>
 <main id="view"></main>
 <div class="footer-note" id="backup-note"></div>
-<div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 单文件 · 无后端 · 无网络 · 数据只在你电脑</div>
+<div class="footer-note">系统边界：这个系统不会让一个卖不动的产品卖动。 · 数据归你 · 随时全量导出 · 永不锁定</div>
 <nav id="bottomnav"></nav>
 <div id="moresheet"></div>
 <div id="modal-root"></div>
@@ -571,6 +571,14 @@ const SK = (() => {
         targetYearGrossWan: 1000, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
         attritionRate: 0.35, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
         rMode: 'auto', rManual: 0.2706,
+        // v2.7 极简：老板只填「回款」口径，系统内部 ×毛利率 换算成毛利喂引擎（毛利字段仍是引擎口径）
+        targetYearCollectWan: 3333.3, lastYearPerCapitaCollectWan: 333.3, targetPersonalMonthlyCollectWan: 30,
+        leaversLastYear: null,        // 去年走了几个销售（人）→ 换算年流失率；null=直接用 attritionRate
+        // 自定义底薪(b,分/月)与自定义提成(rc,占回款 0–1)；null=用参考矩阵值
+        customPay: {
+          sales_effective: { b: null, rc: null }, sales_efficient: { b: null, rc: null }, sales_leading: { b: null, rc: null },
+          manager: { b: null, rc: null }, executive: { b: null, rc: null },
+        },
       },
       people: [], categories: [], leads: [], deals: [], discounts: [], payouts: [], refunds: [], opcosts: [],
       candidates: [], weights: JSON.parse(JSON.stringify(COEF_DEFAULT.zhaoren.hiringWeightsFactory)),
@@ -607,6 +615,15 @@ const SK = (() => {
         for (const k of ['ui', 'company', 'governance', 'priceTag', 'dividend', 'paceConfig', 'shiftConfig', 'weights', 'dt']) {
           DB[k] = Object.assign(getPath(emptyDB(), k) || {}, stored[k] || {});
         }
+        // v2.7 迁移：老档案无回款口径字段 → 由现有毛利口径 ÷ 毛利率反推，保证升级后显示与内部一致
+        if (stored.company && stored.company.targetYearCollectWan == null) {
+          const c = DB.company, m = c.blendedMarginRate > 0 ? c.blendedMarginRate : 0.30;
+          if (c.targetYearGrossWan != null) c.targetYearCollectWan = Math.round(c.targetYearGrossWan / m * 10) / 10;
+          if (c.targetPersonalMonthlyGrossWan != null) c.targetPersonalMonthlyCollectWan = Math.round(c.targetPersonalMonthlyGrossWan / m * 10) / 10;
+          if (c.lastYearPerCapitaWan != null) c.lastYearPerCapitaCollectWan = Math.round(c.lastYearPerCapitaWan / m * 10) / 10;
+        }
+        // customPay 结构兜底（一层合并可能带入残缺对象）
+        DB.company.customPay = Object.assign(getPath(emptyDB(), 'company.customPay'), DB.company.customPay || {});
         return;
       }
     } catch (e) { /* 损坏则重建 */ }
@@ -629,6 +646,7 @@ const SK = (() => {
       name: '示例 · 王总的公司', cityTier: 'tier1', cycleTier: 'regular', tierGrade: 'effective', mgrGrade: 'effective',
       targetYearGrossWan: 1800, lastYearPerCapitaWan: 100, targetPersonalMonthlyGrossWan: 9,
       attritionRate: 0.30, hiringCycleDays: 45, blendedMarginRate: 0.30, fullLoadWan: 28,
+      targetYearCollectWan: 6000, lastYearPerCapitaCollectWan: 333.3, targetPersonalMonthlyCollectWan: 30,
     });
     // 品类
     const catStd = { id: 'cat_std', name: '标准品', grossMarginRate: 0.50, medianStayDays: 30 };
@@ -751,6 +769,23 @@ const SK = (() => {
     const dj = X('dingjia');
     return (dj && dj.r != null) ? dj.r : (c.rManual != null ? c.rManual : 0.2706);
   }
+  /* v2.7 回款→毛利同步：老板只填回款口径，这里换算写回引擎用的毛利口径字段。
+     只在 UI 绑定层的指定路径变更时调用（targetXxxCollectWan / blendedMarginRate / leaversLastYear），
+     不做全局钩子——测试与云端直接写毛利字段的旧路径完全不受影响。 */
+  function syncPricing() {
+    const c = DB && DB.company; if (!c) return;
+    const m = c.blendedMarginRate;
+    if (m > 0) {
+      if (c.targetYearCollectWan != null) c.targetYearGrossWan = Math.round(c.targetYearCollectWan * m * 100) / 100;
+      if (c.targetPersonalMonthlyCollectWan != null) c.targetPersonalMonthlyGrossWan = Math.round(c.targetPersonalMonthlyCollectWan * m * 1000) / 1000;
+      if (c.lastYearPerCapitaCollectWan != null) c.lastYearPerCapitaWan = Math.round(c.lastYearPerCapitaCollectWan * m * 100) / 100;
+    }
+    if (c.leaversLastYear != null) {
+      const n = DB.people.filter(p => p.isActive && p.positionType === 'sales').length;
+      c.attritionRate = clamp(c.leaversLastYear / Math.max(n + c.leaversLastYear, 1), 0, 0.9);
+    }
+  }
+
   /* 共用聚合：在职销售 / 主管 */
   const activeSales = () => DB.people.filter(p => p.isActive && p.positionType === 'sales');
   const activeManagers = () => DB.people.filter(p => p.isActive && p.positionType === 'manager');
@@ -771,7 +806,7 @@ const SK = (() => {
     today, setTestToday, fmt, RAMP, SEGMENT_MAP, CYCLE_CN, CITY_CN, POS_CN, newHireYearRate, calcRamp80,
     COEF_DEFAULT, getCoef, getPath,
     get DB() { return DB; }, loadDB, persist, emptyDB: () => { DB = emptyDB(); }, seedDemo, storageKB, LS_KEY,
-    X, xReset, summary, rRate, activeSales, activeManagers, personById, catById, maskPhone,
+    X, xReset, summary, rRate, syncPricing, activeSales, activeManagers, personById, catById, maskPhone,
     modules, registerModule, actions, tests,
     _setToast(fn) { toastFn = fn; },
   };
@@ -858,6 +893,10 @@ const SK = (() => {
       case 'wan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * SK.WAN) : 0; }        // 万元 → 分
       case 'fen-yuan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * 100) : 0; }      // 元 → 分
       case 'pct100': { const v = parseFloat(raw); return isFinite(v) ? v / 100 : 0; }                    // % → 0–1
+      case 'fen-yuan?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? Math.round(v * 100) : null; }  // 空=null（用参考值）
+      case 'pct100?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? v / 100 : null; }
+      case 'int?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? Math.round(v) : null; }
+      case 'num?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? v : null; }
       case 'bool': return raw === true || raw === 'true' || raw === 'on';
       default: return raw;
     }
@@ -867,6 +906,8 @@ const SK = (() => {
     if (path.startsWith('coef:')) return { obj: SK.DB.coefOverrides, key: path.slice(5), coef: true };
     return { obj: SK.DB, key: path };
   }
+  // 回款口径字段/毛利率/去年离职数变更 → 同步换算内部毛利口径与流失率（只在这些路径上触发，不碰直接写 DB 的场景）
+  const SYNC_PATHS = /^company\.(targetYearCollectWan|targetPersonalMonthlyCollectWan|lastYearPerCapitaCollectWan|blendedMarginRate|leaversLastYear)$/;
   function handleBind(el) {
     const t = bindTarget(el);
     let raw = el.type === 'checkbox' ? el.checked : el.value;
@@ -874,6 +915,7 @@ const SK = (() => {
     if (t.coef) {
       if (raw === '' || raw == null) delete t.obj[t.key]; else t.obj[t.key] = val;
     } else setPath(t.obj, t.key, val);
+    if (!t.coef && SYNC_PATHS.test(t.key)) SK.syncPricing();
     commit();
   }
 
@@ -983,9 +1025,9 @@ const SK = (() => {
   }
   function backupNote() {
     const last = SK.DB.ui.lastExportAt, nd = SK.getCoef('shared.backupNudgeDays');
-    if (!last) return `💾 建议定期在「数据中心」导出备份 · 本地存储占用 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+    if (!last) return `💾 建议定期在「数据中心」导出备份 · 本地存储占用 ${SK.storageKB() || 0} KB · 数据归你，永不锁定`;
     const d = SK.diffDays(last, SK.today());
-    return d > nd ? `💾 你已 ${d} 天没备份数据了——硬盘损坏/换电脑前请到「数据中心」导出备份` : `💾 上次备份 ${last} · 本地存储 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+    return d > nd ? `💾 你已 ${d} 天没备份数据了——请到「数据中心」导出备份` : `💾 上次备份 ${last} · 本地存储 ${SK.storageKB() || 0} KB · 数据归你，永不锁定`;
   }
 
   /* ---------- 主题 ---------- */
@@ -1040,6 +1082,7 @@ const SK = (() => {
       const val = d.vtype === 'num' ? parseFloat(d.val) : d.vtype === 'bool' ? d.val === 'true' : d.val;
       if (d.path.startsWith('coef:')) SK.DB.coefOverrides[d.path.slice(5)] = val;
       else setPath(SK.DB, d.path, val);
+      if (!d.path.startsWith('coef:') && SYNC_PATHS.test(d.path)) SK.syncPricing();
       commit();
     },
     'ui.modal-close': () => closeModal(),
@@ -1234,9 +1277,9 @@ const SK = (() => {
         </div>`)}
         ${h.card('目标与人效', `<div class="frm">
           ${h.field('规划年份', h.seg('company.targetYearMode', [{ v: 'next', t: '明年' }, { v: 'this', t: '今年' }], c.targetYearMode))}
-          ${h.field('目标年毛利（万）', h.input('company.targetYearGrossWan', 'num', { value: c.targetYearGrossWan }))}
-          ${h.field('去年人均毛利（万/年·真值）', h.input('company.lastYearPerCapitaWan', 'num', { value: c.lastYearPerCapitaWan }), '总毛利÷销售人数，别用配额')}
-          ${h.field('达标销售月毛利目标（万）', h.input('company.targetPersonalMonthlyGrossWan', 'num', { value: c.targetPersonalMonthlyGrossWan, step: 0.5 }), '参考：去年人均月毛利×1.1–1.3')}
+          ${h.field('今年公司回款目标（万）', h.input('company.targetYearCollectWan', 'num', { value: c.targetYearCollectWan }), `系统按毛利率自动换算内部毛利口径（当前 ≈ ${c.targetYearGrossWan != null ? c.targetYearGrossWan : '—'} 万毛利）`)}
+          ${h.field('去年人均回款（万/年·真值）', h.input('company.lastYearPerCapitaCollectWan', 'num', { value: c.lastYearPerCapitaCollectWan }), '去年总回款÷销售人数，别用配额')}
+          ${h.field('达标销售月回款目标（万）', h.input('company.targetPersonalMonthlyCollectWan', 'num', { value: c.targetPersonalMonthlyCollectWan, step: 1 }), '参考：去年人均月回款×1.2')}
           ${h.field('单人全负担年成本（万）', h.input('company.fullLoadWan', 'num', { value: c.fullLoadWan }), '底薪+社保+提成全含')}
           ${h.field(`提成率 r 口径 ${h.linked()}`, h.seg('company.rMode', [{ v: 'auto', t: '定价器实时' }, { v: 'manual', t: '手工锁定' }], c.rMode), c.rMode === 'manual' ? '' : '当前 r = ' + fmt.pct(SK.rRate()))}
           ${c.rMode === 'manual' ? h.field('手工提成率 %', h.input('company.rManual', 'pct100', { value: Math.round(c.rManual * 10000) / 100, step: 0.01 })) : ''}
@@ -1272,7 +1315,7 @@ const SK = (() => {
     vBackup() {
       const kb = SK.storageKB();
       return `
-      <div class="sect"><h2>备份与迁移</h2><span class="sub">单文件 · 无后端 · 数据不出你的电脑 · 导出永不锁定</span></div>
+      <div class="sect"><h2>备份与迁移</h2><span class="sub">随时全量导出 · 一键恢复 · 数据永不锁定</span></div>
       <div class="grid g2">
         ${h.card('📦 全量备份', `
           <p class="hint" style="margin-bottom:8px">导出整个系统的全部数据（公司档案/员工/成交/日报/协议/系数覆盖…）为一个 JSON 文件。换电脑时导入即可完整恢复。</p>
@@ -1288,7 +1331,7 @@ const SK = (() => {
           <div class="kv"><span class="k">数据实体</span><b>员工 ${SK.DB.people.length} · 成交 ${SK.DB.deals.length} · 线索 ${SK.DB.leads.length} · 日报 ${SK.DB.dailyReports.length}</b></div>
           <div class="kv"><span class="k"></span><b>折扣 ${SK.DB.discounts.length} · 发放 ${SK.DB.payouts.length} · 协议 ${SK.DB.m28Agreements.length} · 候选人 ${SK.DB.candidates.length}</b></div>`)}
       </div>
-      ${h.banner('🔒 两条底线：① 数据不出你电脑——本文件无后端、无网络、无埋点；② 每个数字经得起较真——所有判定带 📎 出处，系数可在「系数矩阵」覆盖。', 'n')}`;
+      ${h.banner('🔒 两条底线：① 数据归你——随时全量导出、永不锁定，正式版数据存在你自己的服务器上；② 每个数字经得起较真——所有判定带 📎 出处，系数可在「系数矩阵」覆盖。', 'n')}`;
     },
     vSelftest() {
       const res = SK.tests.map(t => {
@@ -1427,10 +1470,10 @@ const SK = (() => {
 
   const ENUMS = {
     cityTier: [['tier1', '一线'], ['tier2', '二线'], ['tier34', '三四线']],
-    cycleTier: [['short', '短期≤30天'], ['regular', '常规1–3月'], ['midLong', '中长4–6月'], ['long', '长期7–12月'], ['ultraLong', '超长>12月']],
+    cycleTier: [['short', '一个月内成单'], ['regular', '1–3个月'], ['midLong', '4–6个月'], ['long', '7–12个月'], ['ultraLong', '一年以上']],
     tierGrade: [['effective', '初级（有效）'], ['efficient', '中级（高效）'], ['leading', '高级（领先）']],
-    complementLevel: [['solo', '各干各的'], ['partial', '部分协作'], ['chained', '环环相扣']],
-    attributableLevel: [['no', '说不清谁干的'], ['partial', '部分能分清'], ['yes', '能精确到人头']],
+    complementLevel: [['solo', '各干各的'], ['partial', '混着干（多数团队）'], ['chained', '环环相扣']],
+    attributableLevel: [['no', '说不清谁干的'], ['partial', '大概分得清'], ['yes', '能精确到人头']],
     positionType: [['pure_sales', '纯销售'], ['advisory', '顾问建议岗'], ['aftersales', '售后服务岗']],
     commissionBaseType: [['contract_amount', '按合同额/回款额'], ['margin_based', '按毛利'], ['neutral_kpi', '按中性指标']],
     guardrailMetric: [['complaint_rate', '客诉率'], ['refund_rate', '退款率'], ['discount_rate', '折扣率']],
@@ -1537,13 +1580,23 @@ const SK = (() => {
     const Gof = lv => lv === 'sales' ? I4 : lv === 'manager' ? safeDiv(I5, 12 * Math.max(managerNeeded, 1)) : I5 / 12;
     const layers = ['sales', 'manager', 'executive'];
     const count = { sales: totalHeadTarget, manager: managerNeeded, executive: 1 };
+    const cp = inp.customPay || {};                             // v2.7：老板自定义底薪/提成为准，矩阵值降级为参考
     const rows = layers.map(lv => {
       const idx = lv === 'sales' ? gi : gmi;                    // 销售用销售档，主管+高管共用 mgrGrade 档
-      const B = Bof(lv, idx), T = Tof(lv, idx), G = Gof(lv);
-      const longAmt = Math.round(T * ltr), gapAmt = Math.round(T * (1 - ltr)) - B;
-      const blocked = B >= T * (1 - ltr), r = blocked ? null : safeDiv(gapAmt, G);
+      const cRow = cp[lv === 'sales' ? 'sales_' + grade : lv] || {};
+      const refB = Bof(lv, idx), T = Tof(lv, idx), G = Gof(lv);
+      const custB = cRow.b > 0 ? roundYuanFen(cRow.b) : null;   // 自定义底薪（分/月），空=参考矩阵
+      const B = custB != null ? custB : refB;
+      const longAmt = Math.round(T * ltr);
+      let gapAmt = Math.round(T * (1 - ltr)) - B;
+      let blocked = B >= T * (1 - ltr), r = blocked ? null : safeDiv(gapAmt, G);
+      const custRc = cRow.rc > 0 ? cRow.rc : null;              // 自定义提成（占回款 0–1），空=按 T 反推
+      if (custRc != null && I11 > 0) { r = custRc / I11; gapAmt = Math.round(r * G); blocked = false; }
       const belowMinWage = B < minW, floatShare = safeDiv(gapAmt, T);
-      return { level: lv, B, T, G, longAmt, gapAmt, blocked, r, belowMinWage, floatShare, count: count[lv] };
+      const survivalB = Bof(lv, 0);                             // 该层活命线（预警档倍数）
+      return { level: lv, B, refB, custB, custRc, T, G, longAmt, gapAmt, blocked, r,
+        rc: (r != null && I11 > 0) ? r * I11 : null,            // 回款口径提成（展示：回款的 X%）
+        belowMinWage, floatShare, survivalB, belowSurvival: B < survivalB, count: count[lv] };
     });
     const sales = rows[0], Bwarn = Bof('sales', 0), Twarn = Tof('sales', 0);
     const goodHire = Math.min(sales.B / Bwarn, sales.T / Twarn);
@@ -1660,6 +1713,7 @@ const SK = (() => {
       attritionRate: c.attritionRate, hiringCycleDays: c.hiringCycleDays, blendedMarginRate: c.blendedMarginRate,
       complementLevel: c.complementLevel, attributableLevel: c.attributableLevel,
       targetYearMode: c.targetYearMode || 'next',
+      customPay: c.customPay || null,
     };
   }
   // 主计算入口（顺序 B→D→A→C→E→合计；today 显式传入，纯函数）
@@ -1691,7 +1745,8 @@ const SK = (() => {
     const A = R.A, s = A ? A.sales : null;
     return {
       ok: !!s,
-      r: s ? s.r : null,                       // 销售层提成率
+      r: s ? s.r : null,                       // 销售层提成率（毛利口径，跨板块引擎用）
+      rCollect: s ? s.rc : null,               // 销售层提成率（回款口径，展示用）
       matrixT: s ? s.T : null,                 // 销售档达标收入 T（分）
       matrixB: s ? s.B : null,                 // 销售档底薪 B（分）
       floatShare: s ? s.floatShare : null,
@@ -1742,94 +1797,140 @@ const SK = (() => {
     </div>`;
   }
 
-  /* ---- 输入面板 ---- */
+  /* ---- 输入面板（v2.7 极简三步：定薪表 → 两个回款数 → 选填）---- */
   function vInput() {
     const c = SK.DB.company;
     const salesN = SK.activeSales().length, mgrN = SK.activeManagers().length;
+    const moreOpen = SK.DB.ui.pricingMoreOpen === true;
+    const refMonthly = c.lastYearPerCapitaCollectWan > 0 ? Math.round(c.lastYearPerCapitaCollectWan / 12 * 1.2 * 10) / 10 : null;
+    const attrHint = c.leaversLastYear != null
+      ? `已按「走了 ${c.leaversLastYear} 人」换算年流失率 ≈ ${fmt.pct(c.attritionRate, 0)}`
+      : `不填按行业均值 ${fmt.pct(c.attritionRate, 0)} 算`;
+    const moreBody = `
+    <div class="grid g2" style="margin-top:8px">
+      ${h.card('去年的底子', `<div class="frm">
+        ${h.field('去年人均回款（万元/年）', h.input('company.lastYearPerCapitaCollectWan', 'num', { value: c.lastYearPerCapitaCollectWan }), '去年全公司回款 ÷ 销售人数。用来算「该招几个人 / 走一个人亏多少」')}
+        ${h.field('去年走了几个销售（人）', h.input('company.leaversLastYear', 'int?', { value: c.leaversLastYear != null ? c.leaversLastYear : '', ph: '如 3' }), attrHint)}
+        ${h.field('招一个人多久能到岗', h.seg('company.hiringCycleDays', [{ v: 15, t: '半个月' }, { v: 45, t: '一个半月' }, { v: 90, t: '三个月' }], c.hiringCycleDays, 'num'), '从发招聘到人坐到工位')}
+      </div>`)}
+      ${h.card('团队怎么干活', `<div class="frm">
+        ${h.field('团队怎么协作', h.seg('company.complementLevel', ENUMS.complementLevel.map(([v, t]) => ({ v, t })), c.complementLevel), '决定「团队奖该不该发」')}
+        ${h.field('谁签的单分得清吗', h.seg('company.attributableLevel', ENUMS.attributableLevel.map(([v, t]) => ({ v, t })), c.attributableLevel))}
+      </div>`)}
+    </div>`;
     return `
-    <div class="sect"><h2>销售人力总算盘</h2><span class="sub">输入共享字段（改一处，五个板块同帧换算），5 分钟看清：定薪定多少、该招几个人、走一个人亏多少、缺几个主管、团队奖该不该发。</span></div>
-    <div class="sect" style="margin-top:2px"><h2 style="font-size:14px">第一步 · 定薪基准</h2><span class="sub">给“什么样的人”定薪？</span></div>
+    <div class="sect"><h2>定价器 · 三步定薪</h2><span class="sub">选城市周期 → 定底薪提成（可自定义，以你为准）→ 填两个回款数。改一处，五个板块同帧换算。</span></div>
+    <div class="sect" style="margin-top:2px"><h2 style="font-size:14px">第一步 · 定底薪、定提成</h2><span class="sub">先选城市和成单周期，参考价自动出来；每一行都能填你自己的数——<b>填了就按你的算</b>，不填用参考价。</span></div>
     ${h.card('', `
-      <p class="hint" style="margin-bottom:8px">先选城市与成交周期——下面会实时算出销售初级/中级/高级、以及配套主管、高管的<b>真实底薪与达标月收入</b>。你不用理解「有效/高效/领先」，看数、点一行就行。</p>
       <div class="grid g2">
-        ${h.field('城市线级', h.seg('company.cityTier', ENUMS.cityTier.map(([v, t]) => ({ v, t })), c.cityTier))}
-        ${h.field('成交周期档', h.seg('company.cycleTier', ENUMS.cycleTier.map(([v, t]) => ({ v, t })), c.cycleTier), '从客户首次接触到回款的典型时长')}
+        ${h.field('公司在什么城市', h.seg('company.cityTier', ENUMS.cityTier.map(([v, t]) => ({ v, t })), c.cityTier))}
+        ${h.field('一单谈多久能回款', h.seg('company.cycleTier', ENUMS.cycleTier.map(([v, t]) => ({ v, t })), c.cycleTier), '从客户首次接触到钱到账的典型时长')}
       </div>
       ${tierTableHtml()}`)}
-    <div class="sect" style="margin-top:10px"><h2 style="font-size:14px">第二步 · 目标 · 团队 · 生意</h2></div>
-    <div class="grid g3" style="grid-template-columns:repeat(auto-fit,minmax(250px,1fr));display:grid;gap:10px">
-      ${h.card('钱与目标', `<div class="frm">
-        ${h.field('达标销售的月毛利目标（万元）', h.input('company.targetPersonalMonthlyGrossWan', 'num', { value: c.targetPersonalMonthlyGrossWan, step: 0.5 }), '参考：去年人均月毛利 ×1.1–1.3')}
-        ${h.field('目标年公司毛利（万元/年）', h.input('company.targetYearGrossWan', 'num', { value: c.targetYearGrossWan }))}
-        ${h.field('去年人均毛利（万元/年·真值）', h.input('company.lastYearPerCapitaWan', 'num', { value: c.lastYearPerCapitaWan }), '总毛利÷销售人数，别用配额')}
-        ${h.field('规划年份', h.seg('company.targetYearMode', [{ v: 'next', t: '明年' }, { v: 'this', t: '今年' }], c.targetYearMode))}
+    <div class="sect" style="margin-top:10px"><h2 style="font-size:14px">第二步 · 两个回款数 + 毛利率</h2><span class="sub">只填回款（打到账上的钱），系统内部自动换算，不用你算毛利。</span></div>
+    <div class="grid g2">
+      ${h.card('两个回款数', `<div class="frm">
+        ${h.field('达标销售一个月要回款多少（万元）', h.input('company.targetPersonalMonthlyCollectWan', 'num', { value: c.targetPersonalMonthlyCollectWan, step: 1 }), refMonthly != null ? `参考：去年人均月回款 ×1.2 ≈ ${refMonthly} 万` : '一个合格销售每月该收回来的钱')}
+        ${h.field('今年全公司要回款多少（万元）', h.input('company.targetYearCollectWan', 'num', { value: c.targetYearCollectWan }), salesN ? `现有 ${salesN} 个销售。目标定多高，「该招几个人」就跟着变` : '')}
+        ${h.field('这个目标是哪一年的', h.seg('company.targetYearMode', [{ v: 'next', t: '明年' }, { v: 'this', t: '今年' }], c.targetYearMode))}
       </div>`)}
-      ${h.card('人', `<div class="frm">
-        ${h.field(`现有销售人数 ${h.linked()}`, `<b style="font-size:16px">${salesN} 人</b>`, '由员工档案实时统计，不再手填')}
-        ${h.field(`现有销售主管人数 ${h.linked()}`, `<b style="font-size:16px">${mgrN} 人</b>`, '由员工档案实时统计')}
-        <div style="margin:-2px 0 8px">${h.btn('去员工档案维护 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="data" data-sub="people"' })}</div>
-        ${h.field('年流失率 %', h.input('company.attritionRate', 'pct100', { value: Math.round(c.attritionRate * 1000) / 10, step: 1 }), '全球销售岗基准约 35%')}
-        ${h.field('招聘周期（天）', h.input('company.hiringCycleDays', 'int', { value: c.hiringCycleDays }), '从发帖到到岗，行业参考 45 天')}
-      </div>`)}
-      ${h.card('生意', `<div class="frm">
-        ${h.field('综合毛利率 %', h.input('company.blendedMarginRate', 'pct100', { value: Math.round(c.blendedMarginRate * 1000) / 10, step: 0.1 }), '全品类加权')}
-        ${h.field('团队任务互补性', h.seg('company.complementLevel', ENUMS.complementLevel.map(([v, t]) => ({ v, t })), c.complementLevel))}
-        ${h.field('个人贡献可见度', h.seg('company.attributableLevel', ENUMS.attributableLevel.map(([v, t]) => ({ v, t })), c.attributableLevel))}
+      ${h.card('毛利率 + 人', `<div class="frm">
+        ${h.field('100 块回款里大约赚几块毛利', h.seg('company.blendedMarginRate', [{ v: 0.1, t: '10%' }, { v: 0.2, t: '20%' }, { v: 0.3, t: '30%' }, { v: 0.4, t: '40%' }, { v: 0.5, t: '50%' }], c.blendedMarginRate, 'num'), '拿不准就选 30%。只用于系统内部把回款换算成毛利，你不用管')}
+        ${h.field(`现有销售 / 主管 ${h.linked()}`, `<b style="font-size:16px">${salesN} 个销售 · ${mgrN} 个主管</b>`, '由员工档案实时统计，不用手填')}
+        <div style="margin:-2px 0 4px">${h.btn('去员工档案维护 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="data" data-sub="people"' })}</div>
       </div>`)}
     </div>
-    <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
-      ${h.btn('查看五张账单 →', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="dash"' })}
-      <span class="hint">所有输入 change 即全站重算——底部实时条与其他板块同帧更新。</span>
+    <div data-act="dj.more" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-top:12px">
+      <b style="font-size:12.8px">${moreOpen ? '▾' : '▸'} 想算得更准（选填 · 都有默认值，不填也能出账单）</b>
+      <span class="hint">去年人均回款 · 去年走了几个人 · 招人要多久 · 团队怎么协作</span>
     </div>
-    <div class="footer-note hint" style="margin-top:14px;text-align:center">本工具纯本地运行，数据不出你的电脑——我们碰不到，也不想碰。</div>`;
+    ${moreOpen ? moreBody : ''}
+    <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+      ${h.btn('看五张账单 →', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="dash"' })}
+      <span class="hint">改任何一个数，五张账单和其他板块同帧重算。</span>
+    </div>`;
   }
   function tierTableHtml() {
     const c = SK.DB.company, I1 = c.cityTier, I2 = c.cycleTier;
-    if (!I1 || !I2) return `<div class="hint" style="padding:14px;text-align:center">⬆︎ 选好上面的「城市线级」与「成交周期档」，这里会自动展开销售初级/中级/高级、以及主管、高管的真实底薪与达标月收入。</div>`;
+    if (!I1 || !I2) return `<div class="hint" style="padding:14px;text-align:center">⬆︎ 选好上面的「城市」与「成单周期」，这里会自动出参考底薪、参考提成——每行都能改成你自己的数。</div>`;
     const cityB = SK.getCoef('dingjia.cityBase')[I1], cf = SK.getCoef('dingjia.cycleFactor')[I2],
-      lm = SK.getCoef('dingjia.levelMultiplier'), tt = SK.getCoef('dingjia.thresholdTTable')[I1];
+      lm = SK.getCoef('dingjia.levelMultiplier'), tt = SK.getCoef('dingjia.thresholdTTable')[I1],
+      ltr = SK.getCoef('shared.longTermRate');
     const Bof = (lv, idx) => roundYuanFen(cityB * lm[lv][idx] * cf), Tof = (lv, idx) => tt[lv][idx] * 100;
     const cityLab = ENUMS.cityTier.find(x => x[0] === I1)[1], cycLab = ENUMS.cycleTier.find(x => x[0] === I2)[1];
-    const gi = gradeIndex(c.tierGrade);
+    const cp = c.customPay || {};
+    // 回款口径参考提成：rc = (T×(1−长期池) − 底薪) ÷ 月回款目标（销售用个人目标，主管/高管用公司目标分摊）
+    const R = results(), mn = R && R.D ? Math.max(R.D.managerNeeded, 1) : 1;
+    const Gc = {
+      sales: c.targetPersonalMonthlyCollectWan > 0 ? c.targetPersonalMonthlyCollectWan * WAN : null,
+      manager: c.targetYearCollectWan > 0 ? c.targetYearCollectWan * WAN / (12 * mn) : null,
+      executive: c.targetYearCollectWan > 0 ? c.targetYearCollectWan * WAN / 12 : null,
+    };
+    const rcOf = (lv, B, T) => { const g = Gc[lv]; if (!g) return null; const gap = T * (1 - ltr) - B; return gap <= 0 ? null : gap / g; };
+    const pctIn = v => v != null ? Math.round(v * 10000) / 100 : '';
+    const warns = [];
+    // 一行：参考底薪 | 自定义底薪 | 参考提成(占回款) | 自定义提成 | 达标月收入
+    const rowCells = (lv, key, idx, label) => {
+      const cRow = cp[key] || {};
+      const refB = Bof(lv, idx), T = Tof(lv, idx), surv = Bof(lv, 0);
+      const custB = cRow.b > 0 ? cRow.b : null, B = custB != null ? roundYuanFen(custB) : refB;
+      const refRc = rcOf(lv, B, T), rc = cRow.rc > 0 ? cRow.rc : refRc;
+      if (B < surv) warns.push(`${label}：底薪 ${fmt.yuan(B)} 低于活命线 ${fmt.yuan(surv)}——低于这条线人留不住、还容易逼出动作变形（只提醒，不拦你）`);
+      return `
+        <td class="num mono">${fmt.yuan(refB)}</td>
+        <td class="num"><input type="number" data-bind="company.customPay.${key}.b" data-type="fen-yuan?"
+          value="${custB != null ? Math.round(custB / 100) : ''}" placeholder="空=参考" style="width:96px" inputmode="numeric"></td>
+        <td class="num mono">${rc != null ? '回款的 ' + fmt.pct(rc) : DASH}</td>
+        <td class="num" style="white-space:nowrap"><input type="number" data-bind="company.customPay.${key}.rc" data-type="pct100?"
+          value="${cRow.rc > 0 ? pctIn(cRow.rc) : ''}" placeholder="空=参考" step="0.1" style="width:76px" inputmode="decimal"> %</td>
+        <td class="num mono">${fmt.yuan(T)}</td>`;
+    };
     const gradeRows = ['effective', 'efficient', 'leading'].map(g => {
-      const idx = gradeIndex(g), sel = c.tierGrade === g;
-      return `<tr data-act="dj.grade" data-g="${g}" style="cursor:pointer;${sel ? 'background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)' : ''}">
-        <td><b>销售·${GRADE_SHORT[g]}</b> <span class="hint">（${GRADE_TECH[g]}）${sel ? ' ✓ 已选' : ''}</span></td>
-        <td class="num mono">${fmt.yuan(Bof('sales', idx))}</td><td class="num mono">${fmt.yuan(Tof('sales', idx))}</td>
-        <td class="hint">${GRADE_DESC[g]}</td></tr>`;
+      const sel = c.tierGrade === g;
+      return `<tr style="${sel ? 'background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)' : ''}">
+        <td style="white-space:nowrap">${h.btn((sel ? '✓ ' : '') + '销售·' + GRADE_SHORT[g], 'dj.grade', { cls: 'sm' + (sel ? ' pri' : ' ghost'), data: `data-g="${g}"` })}
+          <div class="hint" style="margin-top:3px;max-width:170px;white-space:normal">${GRADE_DESC[g]}</div></td>
+        ${rowCells('sales', 'sales_' + g, gradeIndex(g), '销售·' + GRADE_SHORT[g])}</tr>`;
     });
-    // 🔴 v2.5：主管/高管档位（mgrGrade）独立选择，与销售档解耦
+    const cols = [{ t: '档位（点选给谁定薪）' }, { t: '参考底薪', num: 1 }, { t: '我要给的底薪（元/月）', num: 1 }, { t: '参考提成（占回款）', num: 1 }, { t: '我要给的提成', num: 1 }, { t: '达标月收入', num: 1 }];
+    // 主管/高管：档位独立选择，同样可自定义
     const gmi = gradeIndex(c.mgrGrade), mgrCur = c.mgrGrade || 'effective';
     const subRows = ['manager', 'executive'].map(lv =>
-      `<tr><td>${levelName(lv)}</td><td class="num mono">${fmt.yuan(Bof(lv, gmi))}</td><td class="num mono">${fmt.yuan(Tof(lv, gmi))}</td><td class="hint">${LEVEL_DESC[lv]}</td></tr>`);
-    const mgrSeg = h.seg('company.mgrGrade', [{ v: 'effective', t: '有效' }, { v: 'efficient', t: '高效' }, { v: 'leading', t: '领先' }], mgrCur);
-    // 🔴 v2.6：销售档 / 主管高管档均为可收起可展开（开合状态存 DB.ui.tierOpen，
-    //   跨全站重算持久——修复原生 <details> 在 UI.commit 全量重渲后被重置的收起 bug）。
+      `<tr><td style="white-space:nowrap"><b>${levelName(lv)}</b><div class="hint" style="margin-top:3px;max-width:170px;white-space:normal">${LEVEL_DESC[lv]}</div></td>${rowCells(lv, lv, gmi, levelName(lv))}</tr>`);
+    const mgrSeg = h.seg('company.mgrGrade', [{ v: 'effective', t: '初级' }, { v: 'efficient', t: '中级' }, { v: 'leading', t: '高级' }], mgrCur);
     const to = SK.DB.ui.tierOpen || {}, sOpen = to.sales !== false, mOpen = to.mgr === true;
     const head = (k, open, title, note) =>
       `<div data-act="dj.tier" data-k="${k}" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-top:10px">
         <b style="font-size:12.8px">${title}</b> <span class="hint">${note}</span>
         <span class="hint" style="margin-left:auto;white-space:nowrap">${open ? '▾ 收起' : '▸ 展开'}</span>
       </div>`;
+    // 已选档最终方案一句话（引擎口径，含自定义）
+    const A = R ? R.A : null;
+    const s = A ? A.sales : null;
+    const planLine = s && s.r != null
+      ? `<div style="margin-top:9px;padding:9px 12px;background:var(--accent-soft);border-radius:9px;font-size:13px"><b>✅ 你的销售方案：</b>底薪 <b>${fmt.yuan(s.B)}</b>${s.custB != null ? '（自定义）' : '（参考价）'} ＋ 回款的 <b>${s.rc != null ? fmt.pct(s.rc) : DASH}</b> 提成${s.custRc != null ? '（自定义）' : ''} → 达标月收入约 <b>${fmt.yuan(s.B + s.gapAmt + s.longAmt)}</b></div>`
+      : `<div class="hint" style="margin-top:8px">⬇︎ 填好第二步的「月回款目标」，这里会出参考提成和你的最终方案。</div>`;
     const salesBody = `
-      ${h.tbl([{ t: '销售档位' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '这是什么人' }], gradeRows)}
+      ${h.tbl(cols, gradeRows)}
+      ${planLine}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
-        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？直接输入你现在给销售的月底薪，系统帮你反查</label>
+        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？输入你现在给销售的月底薪，系统帮你对号</label>
         <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
-        ${h.btn('反查匹配', 'dj.grade-match', { cls: 'sm' })}
+        ${h.btn('帮我对号', 'dj.grade-match', { cls: 'sm' })}
         ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
       </div>`;
     const mgrBody = `
       <div style="padding:8px 12px 11px;margin-top:6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card)">
         <div style="margin:2px 0 10px">${mgrSeg}</div>
-        ${h.tbl([{ t: '层级' }, { t: '底薪/月', num: 1 }, { t: '达标月收入', num: 1 }, { t: '说明' }], subRows)}
-        ${h.hint('主管/高管档位与销售档相互独立；底薪随成交周期升高（周期越长、噪音越大，底薪保险越厚），达标月收入只随城市与档位变、不随周期变。')}
+        ${h.tbl(cols, subRows)}
+        ${h.hint('主管/高管档位与销售档相互独立；同样可以直接填你要给的底薪和提成，填了就按你的算。')}
       </div>`;
     return `
-      ${head('sales', sOpen, '① 选销售档', `（${cityLab} · ${cycLab} · 当前「${GRADE_TECH[c.tierGrade] || '未定'}」· 点一行选定）`)}
+      ${head('sales', sOpen, '① 给销售定薪', `（${cityLab} · ${cycLab} · 当前按「${GRADE_SHORT[c.tierGrade] || '未定'}」档算 · 参考价可直接改）`)}
       ${sOpen ? salesBody : ''}
-      ${head('mgr', mOpen, '② 主管 / 高管档位', `（管理层单独定档 · 当前「${GRADE_TECH[mgrCur]}」）`)}
-      ${mOpen ? mgrBody : ''}`;
+      ${head('mgr', mOpen, '② 给主管 / 高管定薪', `（单独定档 · 当前「${GRADE_SHORT[mgrCur]}」档 · 同样可自定义）`)}
+      ${mOpen ? mgrBody : ''}
+      ${warns.length ? warns.map(w => h.banner('🟡 ' + w, 'a')).join('') : ''}`;
   }
 
   /* ---- 五张账单 ---- */
@@ -1856,7 +1957,7 @@ const SK = (() => {
     }
     out += `<div class="grid g2" style="margin-top:10px;align-items:start">`;
     if (R.A) out += `<div class="span2">${cardAHtml(R)}</div>`;
-    out += R.B ? cardBHtml(R) : dcard('B', '账单B · 产能与招人算钱器', '人均毛利缺失', DASH, '该招几人', `<div class="hint">去年人均毛利为 0，整卡无法计算，显“—”。</div>`);
+    out += R.B ? cardBHtml(R) : dcard('B', '账单B · 该招几个人', '去年人均回款缺失', DASH, '该招几人', `<div class="hint">「想算得更准」里的去年人均回款为 0，整卡无法计算，显“—”。</div>`);
     if (R.C) out += cardCHtml(R);
     if (R.D) out += cardDHtml(R);
     if (R.E) out += cardEHtml(R);
@@ -1865,16 +1966,19 @@ const SK = (() => {
   }
   function cardAHtml(R) {
     const A = R.A, s = A.sales;
-    const rowsHtml = A.rows.map(r => `<tr><td>${levelName(r.level)}</td>
+    const rowsHtml = A.rows.map(r => `<tr><td>${levelName(r.level)}${r.custB != null || r.custRc != null ? ' <span class="hint">（自定义）</span>' : ''}</td>
       <td class="num ${r.belowMinWage ? '' : ''}" style="${r.belowMinWage ? 'color:var(--red);font-weight:600' : ''}">${fmt.yuan(r.B)}${r.belowMinWage ? ' ⚠︎' : ''}</td>
-      <td class="num">${fmt.yuan(r.T)}</td><td class="num">${r.blocked ? DASH : fmt.pct(r.r)}</td><td class="num">${r.count != null ? r.count : DASH}</td></tr>`);
+      <td class="num">${fmt.yuan(r.T)}</td><td class="num">${r.blocked ? DASH : (r.rc != null ? '回款的 ' + fmt.pct(r.rc) : fmt.pct(r.r))}</td><td class="num">${r.count != null ? r.count : DASH}</td></tr>`);
     const [cb, cg, cl] = A.comp;
     const gi = A.goodHire, giTone = gi < 1 ? 'r' : gi < 1.2 ? 'a' : gi < 1.4 ? 'g' : 'gold';
     const giLab = gi < 1 ? '🔴 偏低' : gi < 1.2 ? '🟡 及格' : gi < 1.4 ? '🟢 好招' : '🏅 极好招';
     const bTone = A.burdenRate > 0.35 ? 'r' : A.burdenRate < 0.25 ? 'a' : '';
     let body = '';
     if (A.anyBlocked) body += gate('red', W_TEXT['W-02']({ row: A.rows.find(r => r.blocked) }));
-    body += h.tbl([{ t: '层级' }, { t: '底薪 B', num: 1 }, { t: '达标收入 T', num: 1 }, { t: '提成率 r', num: 1 }, { t: '目标人数', num: 1 }], rowsHtml);
+    A.rows.filter(r => (r.custB != null || r.custRc != null) && r.belowSurvival).forEach(r => {
+      body += gate('amber', `${levelName(r.level)}自定义底薪 ${fmt.yuan(r.B)} 低于活命线（${fmt.yuan(r.survivalB)}）——低于这条线人留不住、容易逼出动作变形。只提醒，不拦你。`);
+    });
+    body += h.tbl([{ t: '层级' }, { t: '底薪', num: 1 }, { t: '达标月收入', num: 1 }, { t: '提成（占回款）', num: 1 }, { t: '目标人数', num: 1 }], rowsHtml);
     body += `<div class="hint" style="margin-top:6px">销售层薪酬构成（底薪 : 提成缺口 : 长期分红池）</div>`;
     body += compbar([[cb, cb, '#6366f1'], [cg, cg, '#f59e0b'], [cl, cl, '#10b981']]);
     body += `<div style="margin:10px 0">${h.badge(`好招指数 ${gi.toFixed(2)} · ${giLab}`, giTone, true)}</div>`;
@@ -1885,9 +1989,9 @@ const SK = (() => {
       body += gate(g.light, (W_TEXT[g.code] || (() => ''))(Object.assign({ burdenRate: A.burdenRate, marginRate: A.marginRate }, g)));
     });
     if (A.fullBurden != null) body += h.banner(`ℹ️ 全口径人力负担（含底薪/社保/长期分红池）≈ <b>${fmt.pct(A.fullBurden)}</b>；按毛利率折营收 ≈ <b>${fmt.pct(A.fullRev)}</b>，对标 CCOS 健康带 8–15% 营收。`, 'n');
-    body += killer('这不是工资单，是一张「普通人干出头部水平」压强表——r 越高、底薪越低，越像鱼饵。');
-    body += h.src('📎 三层定薪回算：B=城市基数×层级倍数×周期因子；T 查阈值矩阵；r=(T×90%−B)÷月毛利目标 G');
-    return dcard('A', '账单A · 定薪回算', `好招指数 ${A.goodHire.toFixed(2)} · 销售${GRADE_TECH[R.inp.tierGrade]}·管理层${GRADE_TECH[R.inp.mgrGrade]}档`, s.r != null ? fmt.pct(s.r) : DASH, '销售提成率 r', body);
+    body += killer('这不是工资单，是一张「普通人干出头部水平」压强表——提成越高、底薪越低，越像鱼饵。');
+    body += h.src('📎 回算逻辑：参考底薪=城市基数×层级倍数×周期因子；达标月收入查阈值矩阵；提成=(达标收入×90%−底薪)÷月回款目标。自定义值以你为准。');
+    return dcard('A', '账单A · 这样定薪亏不亏', `好招指数 ${A.goodHire.toFixed(2)} · 销售${GRADE_SHORT[R.inp.tierGrade]}·管理层${GRADE_SHORT[R.inp.mgrGrade]}档`, s.rc != null ? '回款的 ' + fmt.pct(s.rc) : (s.r != null ? fmt.pct(s.r) : DASH), '销售提成', body);
   }
   function cardBHtml(R) {
     const B = R.B;
@@ -1913,7 +2017,7 @@ const SK = (() => {
     body += killer(`你以为招 ${B.S1} 个，六步链算出要招 ${B.S6} 个——差的 ${B.S6 - B.S1} 个，就是「人头×配额」高估产能的代价。${late}`);
     body += `<div class="hint" style="margin-top:8px">规划年份：${B.targetYear}　${h.btn(R.inp.targetYearMode === 'this' ? '改回算明年' : '改算今年', 'dj.ty', { cls: 'sm ghost' })}</div>`;
     body += `<div style="margin-top:8px;display:flex;align-items:center;gap:8px">${h.btn('招人器有完整十二道闸与时间轴 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="zhaoren"' })}<span class="hint">「该招几人」六步链与招人器同源共享字段 ${h.linked()}</span></div>`;
-    return dcard('B', '账单B · 产能与招人算钱器', `天真 ${B.S1} 人 → 六步链 ${B.S6} 人`, `${B.S6}`, '真实需招人数', body);
+    return dcard('B', '账单B · 该招几个人', `拍脑袋 ${B.S1} 人 → 算完账 ${B.S6} 人`, `${B.S6}`, '真实需招人数', body);
   }
   function cardCHtml(R) {
     const C = R.C;
@@ -1930,7 +2034,7 @@ const SK = (() => {
     body += compbar([[Math.max(C.idle, 1), '空窗', '#6366f1'], [Math.max(C.rampGap, 1), '爬坡', '#f59e0b'], [Math.max(C.recruitFee, C.tag * 0.03), '招聘', '#10b981']]);
     body += h.hint('注：本卡为「简版（3 项）」，不与留人器 6 项口径（约 75 万）并列比较。');
     body += killer('最大的一块是爬坡缺口——所以「缩短爬坡」比「降低流失」更值钱。');
-    return dcard('C', '账单C · 流失价签', '简版（3 项）', fmt.wan(C.tag), '走一个销售亏（明细口径）', body);
+    return dcard('C', '账单C · 走一个人亏多少钱', '简版（3 项）', fmt.wan(C.tag), '走一个销售亏（明细口径）', body);
   }
   function cardDHtml(R) {
     const D = R.D, B = R.B;
@@ -1943,7 +2047,7 @@ const SK = (() => {
     let body = h.tbl([{ t: '口径' }, { t: '数值', num: 1 }], rows);
     body += killer(`你要招的不是 ${S6} 个销售，是 ${S6} 个销售加 ${D.gap} 个主管——辅导剂量不足会推高流失与爬坡时长。`);
     body += h.src('📎 跨度公式：周管理可用 = 40h×30% − 3h 固定会议 = 9h；跨度上限 = ⌊9 ÷ 1.1h/人⌋ = 8 人');
-    return dcard('D', '账单D · 管理跨度', `需 ${D.managerNeeded} 主管 · 缺 ${D.gap}`, `${D.gap}`, '主管缺口', body);
+    return dcard('D', '账单D · 该配几个主管', `需 ${D.managerNeeded} 主管 · 缺 ${D.gap}`, `${D.gap}`, '主管缺口', body);
   }
   function cardEHtml(R) {
     const E = R.E, light = E.light, dot = light === 'green' ? '🟢' : light === 'amber' ? '🟡' : '🔴';
@@ -1960,7 +2064,7 @@ const SK = (() => {
     body += h.meter(E.TIS / 100, tone, [0.4, 0.7]) + meterCap('0', '红 <40 · 黄 40–70 · 绿 ≥70', '100');
     body += killer(msg);
     body += h.src('📎 TIS = 0.4×规模分 + 0.3×互补分 + 0.3×可见分；规模分 8 人满分线性递减至 20 人归零');
-    return dcard('E', '账单E · 团队奖红绿灯', `TIS ${E.TIS.toFixed(0)}`, `${dot} ${E.TIS.toFixed(0)}`, '团队激励适配分', body);
+    return dcard('E', '账单E · 团队奖该不该发', `TIS ${E.TIS.toFixed(0)}`, `${dot} ${E.TIS.toFixed(0)}`, '团队激励适配分', body);
   }
 
   /* ---- 方案风洞 ---- */
@@ -2062,7 +2166,8 @@ const SK = (() => {
 
   /* ---- 场景与信用书 ---- */
   const SNAP_FIELDS = ['cityTier', 'cycleTier', 'tierGrade', 'mgrGrade', 'complementLevel', 'attributableLevel', 'targetYearMode',
-    'targetYearGrossWan', 'lastYearPerCapitaWan', 'targetPersonalMonthlyGrossWan', 'attritionRate', 'hiringCycleDays', 'blendedMarginRate', 'fullLoadWan'];
+    'targetYearGrossWan', 'lastYearPerCapitaWan', 'targetPersonalMonthlyGrossWan', 'attritionRate', 'hiringCycleDays', 'blendedMarginRate', 'fullLoadWan',
+    'targetYearCollectWan', 'lastYearPerCapitaCollectWan', 'targetPersonalMonthlyCollectWan', 'leaversLastYear', 'customPay'];
   function snapCompany() {
     const c = SK.DB.company, s = {};
     SNAP_FIELDS.forEach(f => { s[f] = c[f]; });
@@ -2103,7 +2208,7 @@ const SK = (() => {
         <div style="position:absolute;top:16px;right:18px;color:#b91c1c;border:2px solid #b91c1c;padding:4px 11px;border-radius:6px;transform:rotate(-3deg);font-weight:700;font-size:12.5px;letter-spacing:.05em">${cv.code}</div>
         <h1 style="text-align:center;font-size:20px;letter-spacing:.1em;margin:0 0 8px;color:#111">销售岗位薪酬信用书</h1>
         <div style="font-size:14px;line-height:2.1;margin:22px 0">兹承诺：<b style="border-bottom:1px solid #333;padding:0 4px">${esc(cv.candidateName)}</b> 入职后担任<b>销售</b>（<b>${gradeFull(s.tierGrade)}</b>档），
-          月度底薪 <b>${fmt.yuan(s.baseSalaryAmt)}</b>；月度达标收入 <b>${fmt.yuan(s.thresholdTAmt)}</b>（含提成，提成按毛利口径、比例 <b>${s.commissionRate != null ? fmt.pct(s.commissionRate) : '—'}</b>）；
+          月度底薪 <b>${fmt.yuan(s.baseSalaryAmt)}</b>；月度达标收入 <b>${fmt.yuan(s.thresholdTAmt)}</b>（含提成，${s.commissionRateCollect != null ? `提成按回款口径、比例 <b>${fmt.pct(s.commissionRateCollect)}</b>` : `提成按毛利口径、比例 <b>${s.commissionRate != null ? fmt.pct(s.commissionRate) : '—'}</b>`}）；
           本信用书编号 <b>${cv.code}</b>，一经签发，条款不因业绩上调而单方下调。</div>
         <div style="font-size:11.5px;color:#555;background:#faf5f0;border-left:3px solid #b91c1c;padding:11px 13px;line-height:1.7">依中国劳动法与司法实践，用人单位单方下调已约定提成/降薪，须负举证责任并经民主程序，否则劳动者可主张按原标准补发。本信用书即把这份「不可单方反悔」白纸黑字化——它保护员工，也帮你少打一场大概率会输的仲裁。</div>
         <div style="margin-top:30px;display:flex;justify-content:space-between;font-size:13px;color:#333"><div>签发日期：${cv.issuedDate}</div><div>——公司盖章处——</div></div>
@@ -2122,6 +2227,7 @@ const SK = (() => {
       to[d.k] = !cur; UI.commit();
     },
     'dj.ty': () => { SK.DB.company.targetYearMode = SK.DB.company.targetYearMode === 'this' ? 'next' : 'this'; UI.commit(); },
+    'dj.more': () => { SK.DB.ui.pricingMoreOpen = SK.DB.ui.pricingMoreOpen !== true; UI.commit(); },   // 「想算得更准」折叠开合
     'dj.grade': d => { SK.DB.company.tierGrade = d.g; gradeBaseDraft = null; matchNote = ''; UI.commit(); },
     'dj.grade-match': () => {
       const inp = document.getElementById('dj-gbase'); if (!inp) return;
@@ -2206,7 +2312,7 @@ const SK = (() => {
       const scn = { scenarioId: SK.uid('plan'), name: '信用书快照' + SK.today(), createdDate: SK.today(), snapshot: snapCompany() };
       SK.DB.scenarios.unshift(scn);
       const cv = { covenantId: SK.uid('cov'), code: genCovCode(), candidateName: name.slice(0, 10), scenarioId: scn.scenarioId, issuedDate: SK.today(),
-        snapshot: { levelType: 'sales', tierGrade: SK.DB.company.tierGrade, baseSalaryAmt: s.B, thresholdTAmt: s.T, commissionRate: s.r } };
+        snapshot: { levelType: 'sales', tierGrade: SK.DB.company.tierGrade, baseSalaryAmt: s.B, thresholdTAmt: s.T, commissionRate: s.r, commissionRateCollect: s.rc } };
       SK.DB.covenantDocs.unshift(cv);
       UI.commit(); UI.modal(covModalHtml(cv));
     },
@@ -4057,7 +4163,7 @@ const SK = (() => {
   const TALK = {
     landing1: '这个系统不复制销冠。销冠不可复制。它做两件事：① 把你团队的地板，抬高三万块。② 让你的销冠，第一次敢把他的本事交出来。',
     boundary: '这个系统不会让一个卖不动的产品卖动。如果你的产品本身有问题——先去改产品。这个系统帮不了你。',
-    privacy: '数据不出你电脑：本文件无后端、无网络请求、无埋点。',
+    privacy: '数据归你：随时全量导出、永不锁定，正式版数据存在你自己的服务器上。',
     rxFooter: '处方为成长参考，不构成考核依据。',
     spotFooter: '抽检为随机生成，全员同规。',
     y01_reject: '如果把他设为配方源，系统会蒸馏出什么？"多要线索+多打折+快速成交+不管售后"，然后教给你全公司的人。这不是在复制销冠。这是在把一个人的漏水，规模化。',

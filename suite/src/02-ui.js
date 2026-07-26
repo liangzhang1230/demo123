@@ -78,6 +78,10 @@
       case 'wan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * SK.WAN) : 0; }        // 万元 → 分
       case 'fen-yuan': { const v = parseFloat(raw); return isFinite(v) ? Math.round(v * 100) : 0; }      // 元 → 分
       case 'pct100': { const v = parseFloat(raw); return isFinite(v) ? v / 100 : 0; }                    // % → 0–1
+      case 'fen-yuan?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? Math.round(v * 100) : null; }  // 空=null（用参考值）
+      case 'pct100?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? v / 100 : null; }
+      case 'int?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? Math.round(v) : null; }
+      case 'num?': { const v = parseFloat(raw); return raw !== '' && isFinite(v) ? v : null; }
       case 'bool': return raw === true || raw === 'true' || raw === 'on';
       default: return raw;
     }
@@ -87,6 +91,8 @@
     if (path.startsWith('coef:')) return { obj: SK.DB.coefOverrides, key: path.slice(5), coef: true };
     return { obj: SK.DB, key: path };
   }
+  // 回款口径字段/毛利率/去年离职数变更 → 同步换算内部毛利口径与流失率（只在这些路径上触发，不碰直接写 DB 的场景）
+  const SYNC_PATHS = /^company\.(targetYearCollectWan|targetPersonalMonthlyCollectWan|lastYearPerCapitaCollectWan|blendedMarginRate|leaversLastYear)$/;
   function handleBind(el) {
     const t = bindTarget(el);
     let raw = el.type === 'checkbox' ? el.checked : el.value;
@@ -94,6 +100,7 @@
     if (t.coef) {
       if (raw === '' || raw == null) delete t.obj[t.key]; else t.obj[t.key] = val;
     } else setPath(t.obj, t.key, val);
+    if (!t.coef && SYNC_PATHS.test(t.key)) SK.syncPricing();
     commit();
   }
 
@@ -203,9 +210,9 @@
   }
   function backupNote() {
     const last = SK.DB.ui.lastExportAt, nd = SK.getCoef('shared.backupNudgeDays');
-    if (!last) return `💾 建议定期在「数据中心」导出备份 · 本地存储占用 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+    if (!last) return `💾 建议定期在「数据中心」导出备份 · 本地存储占用 ${SK.storageKB() || 0} KB · 数据归你，永不锁定`;
     const d = SK.diffDays(last, SK.today());
-    return d > nd ? `💾 你已 ${d} 天没备份数据了——硬盘损坏/换电脑前请到「数据中心」导出备份` : `💾 上次备份 ${last} · 本地存储 ${SK.storageKB() || 0} KB · 数据不出你的电脑`;
+    return d > nd ? `💾 你已 ${d} 天没备份数据了——请到「数据中心」导出备份` : `💾 上次备份 ${last} · 本地存储 ${SK.storageKB() || 0} KB · 数据归你，永不锁定`;
   }
 
   /* ---------- 主题 ---------- */
@@ -260,6 +267,7 @@
       const val = d.vtype === 'num' ? parseFloat(d.val) : d.vtype === 'bool' ? d.val === 'true' : d.val;
       if (d.path.startsWith('coef:')) SK.DB.coefOverrides[d.path.slice(5)] = val;
       else setPath(SK.DB, d.path, val);
+      if (!d.path.startsWith('coef:') && SYNC_PATHS.test(d.path)) SK.syncPricing();
       commit();
     },
     'ui.modal-close': () => closeModal(),
