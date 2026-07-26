@@ -993,6 +993,7 @@ const SK = (() => {
       </div>`;
   }
   let renderScheduled = false;
+  let lastViewKey = null;                                // 上次渲染的路由键：同页重渲保滚动/焦点，换页才回顶部
   function render() {
     SK.xReset();
     parseHash();
@@ -1004,18 +1005,38 @@ const SK = (() => {
         const el = document.getElementById(id); if (el) el.innerHTML = '';
       });
       document.getElementById('view').innerHTML = SK.authGate.render();
-      window.scrollTo(0, 0);
+      if (lastViewKey !== '#gate') window.scrollTo(0, 0);
+      lastViewKey = '#gate';
       return;
     }
     document.body.classList.remove('gated');
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
+    /* 🔴 同页重渲（输入/点选/后台同步触发）不许跳页：记录滚动位置与正在输入的控件，渲染后原位恢复 */
+    const viewKey = m.id + '/' + (route.sub || '');
+    const sameView = viewKey === lastViewKey; lastViewKey = viewKey;
+    const keepY = window.scrollY;
+    const ae = document.activeElement;
+    const keepFocus = (sameView && ae && ae.dataset && ae.dataset.bind && ae.closest && ae.closest('#view'))
+      ? { bind: ae.dataset.bind, value: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
     renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
     const view = document.getElementById('view');
     try { view.innerHTML = m.render(route.sub); }
     catch (e) { console.error(e); view.innerHTML = h.banner('渲染出错：' + esc(e.message), 'r'); }
     document.getElementById('backup-note').innerHTML = backupNote();
-    window.scrollTo(0, 0);
+    if (sameView) {
+      window.scrollTo(0, keepY);
+      if (keepFocus) {
+        const el2 = view.querySelector(`[data-bind="${keepFocus.bind}"]`);
+        if (el2) {
+          // 先聚焦再赋值：number 输入不支持 setSelectionRange，聚焦后赋值可让光标落在末尾（继续输入不断字）
+          el2.focus({ preventScroll: true });
+          el2.value = '';
+          el2.value = keepFocus.value;
+          try { el2.setSelectionRange(keepFocus.s, keepFocus.e); } catch (e) { /* number 型不支持，光标已在末尾 */ }
+        }
+      }
+    } else window.scrollTo(0, 0);
   }
   function commit() {
     SK.persist();
@@ -1102,9 +1123,10 @@ const SK = (() => {
       const fn = SK.actions[el.dataset.act];
       if (fn) fn(el.dataset, el, ev); else console.warn('未注册动作', el.dataset.act);
     });
+    let liveBindTimer = null;
     document.addEventListener('change', ev => {
       const el = ev.target.closest('[data-bind]');
-      if (el) handleBind(el);
+      if (el) { clearTimeout(liveBindTimer); handleBind(el); }
     });
     document.addEventListener('input', ev => {
       const el = ev.target.closest('[data-bind]');
@@ -1117,6 +1139,12 @@ const SK = (() => {
       }
       const live = SK.actions['ui.live-input'];   // 模块可注册细粒度实时响应
       if (live) live({ path: el.dataset.bind, value: el.value }, el, ev);
+      // 🔴 数字输入实时生效（通用规则：点选立即算、输入停 0.6 秒即算、失焦/回车必算）。
+      //    重渲染有滚动+焦点保护，边输边算不打断输入。
+      if (el.type === 'number' && el.dataset.type !== 'str') {
+        clearTimeout(liveBindTimer);
+        liveBindTimer = setTimeout(() => { if (document.contains(el)) handleBind(el); }, 600);
+      }
     });
     document.addEventListener('keydown', ev => {
       const p = document.getElementById('palette');
@@ -1129,6 +1157,11 @@ const SK = (() => {
       }
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openPalette(); return; }
       if (ev.key === 'Escape') closeModal();
+      // 回车 = 确认输入（触发 change 立即生效），Excel 同款习惯
+      if (ev.key === 'Enter') {
+        const t = ev.target;
+        if (t && t.dataset && t.dataset.bind && t.tagName === 'INPUT' && t.type !== 'checkbox') t.blur();
+      }
     });
     window.addEventListener('hashchange', render);
   }
@@ -1913,8 +1946,9 @@ const SK = (() => {
     const salesBody = `
       ${h.tbl(cols, gradeRows)}
       ${planLine}
+      ${h.hint('参考提成怎么来的：按你所在城市、该档销售的<b>市场达标月收入</b>倒推——底薪＋提成×月回款目标＋长期池＝达标月收入。它<b>与毛利率无关</b>（不管你卖什么行业的货，人才市场给这类销售的价就是这个数）；毛利率只用来判断这套方案你<b>付不付得起</b>——账单A里「全链提成负担占毛利 25–35% 健康带」那一条才看毛利率。')}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
-        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？输入你现在给销售的月底薪，系统帮你对号</label>
+        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？输入你现在给销售的月底薪，点「帮我对号」＝自动选中最接近的档位（等于帮你点了那一行，立即生效）</label>
         <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
         ${h.btn('帮我对号', 'dj.grade-match', { cls: 'sm' })}
         ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
@@ -6802,18 +6836,23 @@ const SK = (() => {
        原样推回只会白烧版本号（并放大多端环回）。 */
     clearTimeout(pushTimer); pushTimer = null;
   }
+  let syncToastShown = false;                 // 成功提示只出一次：之后静默同步（Google Docs 式），失败才提示
   async function pushNow() {
     if (!inTenant()) return;
     if (syncing) return; syncing = true;
     try {
       const d = await api('/v1/state', { method: 'PUT', body: { doc: SK.DB, version: C.version || 1 } });
       C.version = Number(d.version); C.lastSyncAt = new Date().toISOString(); lastError = null; saveCfg();
-      UI.toast('已同步到云端 · 版本 ' + C.version);
+      if (!syncToastShown) { syncToastShown = true; UI.toast('已同步到云端 · 版本 ' + C.version + '（此后自动静默同步）'); }
     } catch (e) {
       if (e.code === 'VERSION_CONFLICT') { conflictModal(); }
       else if (e.code === 'TENANT_SUSPENDED') { lastError = '订阅已停机（数据可导出，恢复订阅后可继续写入）'; UI.toast('⚠ ' + lastError); }
       else { lastError = e.message; UI.toast('云同步失败：' + e.message); }
-    } finally { syncing = false; UI.render(); }
+    } finally {
+      syncing = false;
+      // 只有停在「云端」板块才需要刷新状态行；其余页面绝不因后台同步整页重渲打断操作
+      if ((location.hash || '').startsWith('#/cloud')) UI.render();
+    }
   }
   function conflictModal() {
     UI.modal(`<h3>⚠️ 云端有更新的版本</h3>
@@ -6878,6 +6917,7 @@ const SK = (() => {
         await api('/v1/tenants', { method: 'POST', body: { name: g('cl-tname').value.trim() || '我的公司', email: C.email } });
         teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
+        UI.commit();                                       // 显式重渲：入租户后撤登录闸（不依赖 pushNow 的渲染副作用）
         UI.toast('租户已创建，你是老板（boss）——本地数据已作为首版推送云端');
       } catch (e) { UI.toast('创建失败：' + e.message); }
     },
@@ -6886,6 +6926,7 @@ const SK = (() => {
         await api('/v1/join', { method: 'POST', body: { code: g('cl-code').value.trim(), email: C.email } });
         teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
+        UI.commit();
         UI.toast('已加入 ' + (C.tenantName || '租户') + '——云端数据已拉取到本机');
       } catch (e) { UI.toast('加入失败：' + e.message); }
     },

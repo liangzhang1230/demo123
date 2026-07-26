@@ -66,18 +66,23 @@
        原样推回只会白烧版本号（并放大多端环回）。 */
     clearTimeout(pushTimer); pushTimer = null;
   }
+  let syncToastShown = false;                 // 成功提示只出一次：之后静默同步（Google Docs 式），失败才提示
   async function pushNow() {
     if (!inTenant()) return;
     if (syncing) return; syncing = true;
     try {
       const d = await api('/v1/state', { method: 'PUT', body: { doc: SK.DB, version: C.version || 1 } });
       C.version = Number(d.version); C.lastSyncAt = new Date().toISOString(); lastError = null; saveCfg();
-      UI.toast('已同步到云端 · 版本 ' + C.version);
+      if (!syncToastShown) { syncToastShown = true; UI.toast('已同步到云端 · 版本 ' + C.version + '（此后自动静默同步）'); }
     } catch (e) {
       if (e.code === 'VERSION_CONFLICT') { conflictModal(); }
       else if (e.code === 'TENANT_SUSPENDED') { lastError = '订阅已停机（数据可导出，恢复订阅后可继续写入）'; UI.toast('⚠ ' + lastError); }
       else { lastError = e.message; UI.toast('云同步失败：' + e.message); }
-    } finally { syncing = false; UI.render(); }
+    } finally {
+      syncing = false;
+      // 只有停在「云端」板块才需要刷新状态行；其余页面绝不因后台同步整页重渲打断操作
+      if ((location.hash || '').startsWith('#/cloud')) UI.render();
+    }
   }
   function conflictModal() {
     UI.modal(`<h3>⚠️ 云端有更新的版本</h3>
@@ -142,6 +147,7 @@
         await api('/v1/tenants', { method: 'POST', body: { name: g('cl-tname').value.trim() || '我的公司', email: C.email } });
         teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
+        UI.commit();                                       // 显式重渲：入租户后撤登录闸（不依赖 pushNow 的渲染副作用）
         UI.toast('租户已创建，你是老板（boss）——本地数据已作为首版推送云端');
       } catch (e) { UI.toast('创建失败：' + e.message); }
     },
@@ -150,6 +156,7 @@
         await api('/v1/join', { method: 'POST', body: { code: g('cl-code').value.trim(), email: C.email } });
         teamCache = null; cardsCache = null;
         await loadIdentity(); await pullNow();
+        UI.commit();
         UI.toast('已加入 ' + (C.tenantName || '租户') + '——云端数据已拉取到本机');
       } catch (e) { UI.toast('加入失败：' + e.message); }
     },

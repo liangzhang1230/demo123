@@ -178,6 +178,7 @@
       </div>`;
   }
   let renderScheduled = false;
+  let lastViewKey = null;                                // 上次渲染的路由键：同页重渲保滚动/焦点，换页才回顶部
   function render() {
     SK.xReset();
     parseHash();
@@ -189,18 +190,38 @@
         const el = document.getElementById(id); if (el) el.innerHTML = '';
       });
       document.getElementById('view').innerHTML = SK.authGate.render();
-      window.scrollTo(0, 0);
+      if (lastViewKey !== '#gate') window.scrollTo(0, 0);
+      lastViewKey = '#gate';
       return;
     }
     document.body.classList.remove('gated');
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
+    /* 🔴 同页重渲（输入/点选/后台同步触发）不许跳页：记录滚动位置与正在输入的控件，渲染后原位恢复 */
+    const viewKey = m.id + '/' + (route.sub || '');
+    const sameView = viewKey === lastViewKey; lastViewKey = viewKey;
+    const keepY = window.scrollY;
+    const ae = document.activeElement;
+    const keepFocus = (sameView && ae && ae.dataset && ae.dataset.bind && ae.closest && ae.closest('#view'))
+      ? { bind: ae.dataset.bind, value: ae.value, s: ae.selectionStart, e: ae.selectionEnd } : null;
     renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();
     const view = document.getElementById('view');
     try { view.innerHTML = m.render(route.sub); }
     catch (e) { console.error(e); view.innerHTML = h.banner('渲染出错：' + esc(e.message), 'r'); }
     document.getElementById('backup-note').innerHTML = backupNote();
-    window.scrollTo(0, 0);
+    if (sameView) {
+      window.scrollTo(0, keepY);
+      if (keepFocus) {
+        const el2 = view.querySelector(`[data-bind="${keepFocus.bind}"]`);
+        if (el2) {
+          // 先聚焦再赋值：number 输入不支持 setSelectionRange，聚焦后赋值可让光标落在末尾（继续输入不断字）
+          el2.focus({ preventScroll: true });
+          el2.value = '';
+          el2.value = keepFocus.value;
+          try { el2.setSelectionRange(keepFocus.s, keepFocus.e); } catch (e) { /* number 型不支持，光标已在末尾 */ }
+        }
+      }
+    } else window.scrollTo(0, 0);
   }
   function commit() {
     SK.persist();
@@ -287,9 +308,10 @@
       const fn = SK.actions[el.dataset.act];
       if (fn) fn(el.dataset, el, ev); else console.warn('未注册动作', el.dataset.act);
     });
+    let liveBindTimer = null;
     document.addEventListener('change', ev => {
       const el = ev.target.closest('[data-bind]');
-      if (el) handleBind(el);
+      if (el) { clearTimeout(liveBindTimer); handleBind(el); }
     });
     document.addEventListener('input', ev => {
       const el = ev.target.closest('[data-bind]');
@@ -302,6 +324,12 @@
       }
       const live = SK.actions['ui.live-input'];   // 模块可注册细粒度实时响应
       if (live) live({ path: el.dataset.bind, value: el.value }, el, ev);
+      // 🔴 数字输入实时生效（通用规则：点选立即算、输入停 0.6 秒即算、失焦/回车必算）。
+      //    重渲染有滚动+焦点保护，边输边算不打断输入。
+      if (el.type === 'number' && el.dataset.type !== 'str') {
+        clearTimeout(liveBindTimer);
+        liveBindTimer = setTimeout(() => { if (document.contains(el)) handleBind(el); }, 600);
+      }
     });
     document.addEventListener('keydown', ev => {
       const p = document.getElementById('palette');
@@ -314,6 +342,11 @@
       }
       if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openPalette(); return; }
       if (ev.key === 'Escape') closeModal();
+      // 回车 = 确认输入（触发 change 立即生效），Excel 同款习惯
+      if (ev.key === 'Enter') {
+        const t = ev.target;
+        if (t && t.dataset && t.dataset.bind && t.tagName === 'INPUT' && t.type !== 'checkbox') t.blur();
+      }
     });
     window.addEventListener('hashchange', render);
   }

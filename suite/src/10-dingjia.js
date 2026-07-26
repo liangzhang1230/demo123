@@ -473,8 +473,9 @@
     const salesBody = `
       ${h.tbl(cols, gradeRows)}
       ${planLine}
+      ${h.hint('参考提成怎么来的：按你所在城市、该档销售的<b>市场达标月收入</b>倒推——底薪＋提成×月回款目标＋长期池＝达标月收入。它<b>与毛利率无关</b>（不管你卖什么行业的货，人才市场给这类销售的价就是这个数）；毛利率只用来判断这套方案你<b>付不付得起</b>——账单A里「全链提成负担占毛利 25–35% 健康带」那一条才看毛利率。')}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:9px">
-        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？输入你现在给销售的月底薪，系统帮你对号</label>
+        <label style="font-size:12.8px;font-weight:600;flex:1 1 auto;min-width:200px">不确定选哪档？输入你现在给销售的月底薪，点「帮我对号」＝自动选中最接近的档位（等于帮你点了那一行，立即生效）</label>
         <span>¥</span><input id="dj-gbase" type="number" placeholder="如 8000" style="width:110px" value="${gradeBaseDraft != null ? gradeBaseDraft : ''}">
         ${h.btn('帮我对号', 'dj.grade-match', { cls: 'sm' })}
         ${matchNote ? `<div class="hint" style="flex-basis:100%;color:var(--accent)">→ ${matchNote}</div>` : ''}
