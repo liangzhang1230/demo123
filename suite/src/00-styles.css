@@ -122,6 +122,18 @@ body.gated #view{max-width:none;margin:0;padding:0}
 .ag-col{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card2,var(--panel))}
 .ag-col-h{font-size:13px;font-weight:700;margin-bottom:10px}
 .ag-col .field{margin-bottom:10px}
+/* 平台管理后台（宽版、顶对齐） */
+.authgate.ag-top{align-items:flex-start;padding-top:36px}
+.ag-card.ag-admin{max-width:960px;padding:22px 24px}
+.ag-adm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ag-adm-me{font-size:12.5px;color:var(--ink3);display:flex;align-items:center;gap:8px}
+.ag-sec{padding:14px 0;border-bottom:1px solid var(--line2)}
+.ag-sec:last-of-type{border-bottom:none}
+.ag-sec-h{font-size:13.5px;font-weight:700;margin-bottom:9px}
+.ag-sec-h .hint{font-weight:450}
+.ag-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.ag-row input{padding:8px 11px}
 
 /* ---------- 主体 ---------- */
 #view{max-width:1280px;margin:0 auto;padding:14px 18px 90px}

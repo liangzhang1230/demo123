@@ -381,6 +381,53 @@ export function buildServer(db, {
         return { status: 200, body: { subscription: sub } };
       } },
 
+    /* ══ 开户（标准流程）：平台创建租户+指定老板邮箱 → 老板注册/登录即自动接管 ══ */
+    { method: 'POST', re: /^\/v1\/platform\/tenants$/, opts: { platform: true },
+      handler: async ({ db, ctx, body }) => {
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        if (!name || name.length > 80) throw new ApiError(400, 'BAD_NAME', '公司名必填（≤80 字）');
+        const email = normEmail(body.bossEmail);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiError(400, 'BAD_EMAIL', '老板邮箱格式不对');
+        const inTenant = await q(db, `select 1 from members m join accounts a on a.user_id = m.user_id
+          where a.email = $1 and m.is_active`, [email]);
+        if (inTenant.length) throw new ApiError(409, 'EMAIL_IN_TENANT', '该邮箱已属于某个租户');
+        const pending = await q(db, `select 1 from member_whitelist where contact = $1 and used_by is null`, [email]);
+        if (pending.length) throw new ApiError(409, 'WL_EXISTS', '该邮箱已有待注册的开户/邀请');
+        let tenantId = null;
+        await db.transaction(async tx => {
+          const r = await tx.query(`insert into tenants(name, created_by) values ($1, $2) returning id`, [name, ctx.actorId]);
+          tenantId = r.rows[0].id;
+          await tx.query(`insert into subscriptions(tenant_id) values ($1)`, [tenantId]);
+          await tx.query(`insert into suite_state(tenant_id, doc, updated_by) values ($1, '{}'::jsonb, $2)`, [tenantId, ctx.actorId]);
+          await tx.query(`insert into member_whitelist(tenant_id, contact, kind, role, note, created_by)
+            values ($1, $2, 'email', 'boss', $3, $4)`,
+            [tenantId, email, typeof body.note === 'string' ? body.note.slice(0, 120) : null, ctx.actorId]);
+          await tx.query(`insert into event_stream(tenant_id, type, actor_id, payload) values ($1,'tenant_provisioned',$2,$3)`,
+            [tenantId, ctx.actorId, JSON.stringify({ name, bossEmail: email })]);
+        });
+        return { status: 201, body: { tenantId, name, bossEmail: email } };
+      } },
+
+    { method: 'GET', re: /^\/v1\/platform\/boss-invites$/, opts: { platform: true },
+      handler: async ({ db }) => {
+        const rows = await q(db,
+          `select w.tenant_id, t.name as tenant_name, w.contact, w.note, w.used_by, w.used_at, w.created_at
+             from member_whitelist w join tenants t on t.id = w.tenant_id
+            where w.role = 'boss' order by w.created_at desc limit 200`);
+        return { status: 200, body: { invites: rows } };
+      } },
+
+    /* 撤销开户：仅允许删除零成员租户（老板还没注册）——级联清掉白名单/订阅/状态 */
+    { method: 'DELETE', re: /^\/v1\/platform\/tenants\/(?<tid>[0-9a-f-]{36})$/, opts: { platform: true },
+      handler: async ({ db, params }) => {
+        const t = await q(db, `select 1 from tenants where id = $1`, [params.tid]);
+        if (!t.length) throw new ApiError(404, 'NOT_FOUND', '租户不存在');
+        const mem = await q(db, `select count(*)::int n from members where tenant_id = $1`, [params.tid]);
+        if (mem[0].n > 0) throw new ApiError(409, 'TENANT_NOT_EMPTY', '该租户已有成员，不能删除（可停机）');
+        await db.query(`delete from tenants where id = $1`, [params.tid]);   // cascade 清干净
+        return { status: 200, body: { removed: params.tid } };
+      } },
+
     /* 平台开户白名单（AUTH_WHITELIST_ONLY 下新老板注册的唯一入口） */
     { method: 'GET', re: /^\/v1\/platform\/signup-allow$/, opts: { platform: true },
       handler: async ({ db }) => {
@@ -394,6 +441,29 @@ export function buildServer(db, {
         await db.query(`insert into platform_signup_allow(email, note) values ($1, $2)
           on conflict (email) do update set note = excluded.note`, [email, body.note ?? null]);
         return { status: 201, body: { email } };
+      } },
+    { method: 'DELETE', re: /^\/v1\/platform\/signup-allow\/(?<email>[^/]{3,120})$/, opts: { platform: true },
+      handler: async ({ db, params }) => {
+        const email = normEmail(decodeURIComponent(params.email));
+        const r = await db.query(`delete from platform_signup_allow where email = $1`, [email]);
+        if (!(r.affectedRows > 0)) throw new ApiError(404, 'NOT_FOUND', '开户白名单中无此邮箱');
+        return { status: 200, body: { removed: email } };
+      } },
+
+    /* 按邮箱查账号（重置密码的前置查找；只回基本信息+成员关系摘要，不回任何业务数据） */
+    { method: 'GET', re: /^\/v1\/platform\/accounts$/, opts: { platform: true },
+      handler: async ({ db, query }) => {
+        const email = normEmail(query.get('email') ?? '');
+        if (!email) throw new ApiError(400, 'BAD_EMAIL', '需要 email 查询参数');
+        const rows = await q(db,
+          `select a.user_id, a.email, a.created_at, a.must_change_password,
+                  m.tenant_id, m.role, m.is_active, t.name as tenant_name
+             from accounts a
+             left join members m on m.user_id = a.user_id
+             left join tenants t on t.id = m.tenant_id
+            where a.email = $1`, [email]);
+        if (!rows.length) throw new ApiError(404, 'NOT_FOUND', '无此账号');
+        return { status: 200, body: { account: rows[0] } };
       } },
 
     /* 平台重置任意账号密码（老板忘密的兜底：你线下核验身份后重置，返回临时密码转达） */

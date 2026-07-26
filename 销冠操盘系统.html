@@ -130,6 +130,18 @@ body.gated #view{max-width:none;margin:0;padding:0}
 .ag-col{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card2,var(--panel))}
 .ag-col-h{font-size:13px;font-weight:700;margin-bottom:10px}
 .ag-col .field{margin-bottom:10px}
+/* 平台管理后台（宽版、顶对齐） */
+.authgate.ag-top{align-items:flex-start;padding-top:36px}
+.ag-card.ag-admin{max-width:960px;padding:22px 24px}
+.ag-adm-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ag-adm-me{font-size:12.5px;color:var(--ink3);display:flex;align-items:center;gap:8px}
+.ag-sec{padding:14px 0;border-bottom:1px solid var(--line2)}
+.ag-sec:last-of-type{border-bottom:none}
+.ag-sec-h{font-size:13.5px;font-weight:700;margin-bottom:9px}
+.ag-sec-h .hint{font-weight:450}
+.ag-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.ag-row input{padding:8px 11px}
 
 /* ---------- 主体 ---------- */
 #view{max-width:1280px;margin:0 auto;padding:14px 18px 90px}
@@ -6742,6 +6754,7 @@ const SK = (() => {
         C.mustChange = sess.mustChangePassword === true; saveCfg();
         if (C.mustChange) { UI.commit(); UI.toast('首次登录，请先设置你自己的密码'); return; }
         await loadIdentity();
+        if (!inTenant()) await probePlatform();           // 无租户 → 探测是否平台管理员
         if (inTenant()) await pullNow();
         UI.commit(); UI.toast('已登录' + (C.tenantName ? ' · ' + C.tenantName : ''));
       } catch (e) { UI.toast('登录失败：' + e.message); }
@@ -6749,8 +6762,8 @@ const SK = (() => {
     'cloud.logout': async () => {
       clearTimeout(pushTimer);
       try { if (connected()) await api('/v1/auth/logout', { method: 'POST', body: {} }); } catch (e) {}
-      Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null, mustChange: false });
-      teamCache = null; cardsCache = null;
+      Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null, mustChange: false, isPlatform: null });
+      teamCache = null; cardsCache = null; platCache = null;
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       saveCfg(); UI.commit(); UI.toast('已退出（本地数据保留）');
     },
@@ -6967,6 +6980,131 @@ const SK = (() => {
       </div>
       <p class="hint" style="margin-top:8px">停用成员：档案与业绩留在公司（审计不灭），席位释放给新人；复职需席位配额内。</p>`);
   }
+  /* ---------- 平台管理后台（平台管理员登录后进这里，不进业务应用） ---------- */
+  let platCache = null, platLoading = false, platProbing = false;
+  async function probePlatform() {                       // 探测当前账号是否平台管理员
+    try { const d = await api('/v1/platform/overview'); C.isPlatform = true; saveCfg();
+      platCache = { tenants: d.tenants, allow: null }; }
+    catch (e) { if (e.status === 403) { C.isPlatform = false; saveCfg(); } }
+  }
+  function fmtDate(v) { return v ? String(v).replace('T', ' ').slice(0, 16) : '—'; }
+  function renderAdminPanel() {
+    if (!platCache && !platLoading) SK.actions['plat.refresh']();
+    const pc = platCache || { tenants: null, allow: null };
+    const tRows = (pc.tenants || []).map(t => `<tr>
+      <td><b>${esc(t.name || '')}</b></td>
+      <td>${t.status === 'active' ? '<span style="color:var(--green)">正常</span>' : `<span style="color:var(--amber)">${esc(t.status || '')}</span>`}</td>
+      <td>${esc(t.plan || '—')}</td>
+      <td class="num">${t.seats_used ?? 0} / ${t.seat_quota ?? '—'}</td>
+      <td class="hint">${fmtDate(t.last_active)}</td>
+      <td>${t.status === 'active'
+        ? `<button class="btn sm ghost" data-act="plat.tenant-status" data-tid="${t.tenant_id}" data-status="suspended">停机</button>`
+        : `<button class="btn sm pri" data-act="plat.tenant-status" data-tid="${t.tenant_id}" data-status="active">复通</button>`}</td></tr>`).join('');
+    const iRows = (pc.invites || []).map(w => `<tr>
+      <td><b>${esc(w.tenant_name || '')}</b></td>
+      <td class="mono">${esc(w.contact)}</td>
+      <td>${w.used_by ? '<span style="color:var(--green)">已接管</span>' : '<span class="hint">待注册</span>'}</td>
+      <td class="hint">${esc(w.note || '')}</td>
+      <td class="hint">${fmtDate(w.created_at)}</td>
+      <td>${!w.used_by ? `<button class="btn sm ghost" data-act="plat.invite-del" data-tid="${w.tenant_id}">撤销</button>` : ''}</td></tr>`).join('');
+    return `<div class="authgate ag-top"><div class="ag-card ag-admin">
+      <div class="ag-adm-head">
+        <div class="ag-brand" style="margin:0"><div class="ag-logo">销</div><div class="ag-name">平台管理后台</div></div>
+        <div class="ag-adm-me">${esc(C.email || '')} · <button class="btn sm ghost" data-act="cloud.logout">退出</button></div>
+      </div>
+      ${platLoading && !platCache ? '<p class="hint" style="text-align:center;padding:20px">加载中…</p>' : ''}
+
+      <div class="ag-sec"><div class="ag-sec-h">🏦 开户 · 创建客户租户 <span class="hint">（收款后：填公司名+老板邮箱 → 老板用该邮箱注册/登录即自动接管自己的租户）</span></div>
+      <div class="ag-row">
+        <input id="pt-name" type="text" placeholder="客户公司名（如：王总的公司）" style="flex:2 1 180px">
+        <input id="pt-email" type="email" placeholder="老板邮箱" style="flex:2 1 180px">
+        <input id="pt-note" type="text" placeholder="备注(单号/套餐,选填)" style="flex:1 1 120px">
+        ${h.btn('创建租户', 'plat.tenant-add', { cls: 'sm pri' })}
+      </div>
+      ${iRows ? `<div class="tbl-wrap" style="margin-top:10px"><table class="tbl">
+        <thead><tr><th>公司</th><th>老板邮箱</th><th>状态</th><th>备注</th><th>开户时间</th><th></th></tr></thead>
+        <tbody>${iRows}</tbody></table></div>` : (pc.invites ? '<p class="hint" style="margin-top:8px">还没有开户记录</p>' : '')}</div>
+
+      <div class="ag-sec"><div class="ag-sec-h">🏢 租户概览</div>
+      ${tRows ? `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>公司</th><th>状态</th><th>套餐</th><th>席位</th><th>最近活跃</th><th></th></tr></thead>
+        <tbody>${tRows}</tbody></table></div>` : (pc.tenants ? '<p class="hint">还没有租户</p>' : '')}
+      <p class="hint">停机=暂停该客户写入（数据不动、仍可导出）；复通即恢复。到期/席位调整可用接口或找技术。</p></div>
+
+      <div class="ag-sec"><div class="ag-sec-h">🔑 重置账号密码 <span class="hint">（客户忘密码：输入其登录邮箱 → 生成临时密码 → 线下告知，对方首登强制改密）</span></div>
+      <div class="ag-row">
+        <input id="pr-email" type="email" placeholder="客户登录邮箱" style="flex:2 1 200px">
+        ${h.btn('查找并重置', 'plat.reset', { cls: 'sm pri' })}
+      </div></div>
+
+      <div class="ag-sec"><div class="ag-sec-h">🗄 数据备份</div>
+      <div class="ag-row">${h.btn('下载整库备份', 'plat.backup', { cls: 'sm' })}
+        <span class="hint">每日自动备份请按部署手册配置 cron（ops/backup.sh）</span></div></div>
+
+      <div style="text-align:right;margin-top:6px">${h.btn(platLoading ? '刷新中…' : '刷新数据', 'plat.refresh', { cls: 'sm ghost' })}</div>
+    </div></div>`;
+  }
+
+  Object.assign(SK.actions, {
+    'plat.refresh': async () => {
+      try {
+        platLoading = true; UI.render();
+        const [ov, iv] = await Promise.all([api('/v1/platform/overview'), api('/v1/platform/boss-invites')]);
+        platCache = { tenants: ov.tenants, invites: iv.invites };
+      } catch (e) { UI.toast('加载失败：' + e.message); }
+      finally { platLoading = false; UI.render(); }
+    },
+    'plat.tenant-add': async () => {
+      const name = (g('pt-name') || {}).value || '', email = (g('pt-email') || {}).value || '', note = (g('pt-note') || {}).value || '';
+      if (!name.trim()) { UI.toast('先填客户公司名'); return; }
+      if (!email.trim()) { UI.toast('先填老板邮箱'); return; }
+      try {
+        await api('/v1/platform/tenants', { method: 'POST', body: { name, bossEmail: email, note } });
+        UI.toast('租户已创建——老板用 ' + email.trim() + ' 注册/登录即自动接管');
+        SK.actions['plat.refresh']();
+      } catch (e) { UI.toast('开户失败：' + e.message); }
+    },
+    'plat.invite-del': async d => {
+      try {
+        await api('/v1/platform/tenants/' + d.tid, { method: 'DELETE' });
+        UI.toast('已撤销该开户'); SK.actions['plat.refresh']();
+      } catch (e) { UI.toast('撤销失败：' + e.message); }
+    },
+    'plat.tenant-status': async d => {
+      try {
+        await api('/v1/platform/subscriptions/' + d.tid, { method: 'PATCH', body: { status: d.status } });
+        UI.toast(d.status === 'active' ? '已复通' : '已停机（数据不动，可随时复通）');
+        SK.actions['plat.refresh']();
+      } catch (e) { UI.toast('操作失败：' + e.message); }
+    },
+    'plat.reset': async () => {
+      const email = (g('pr-email') || {}).value || '';
+      if (!email.trim()) { UI.toast('先填客户登录邮箱'); return; }
+      try {
+        const found = await api('/v1/platform/accounts?email=' + encodeURIComponent(email.trim()));
+        const a = found.account;
+        const r = await api('/v1/platform/accounts/' + a.user_id + '/reset-password', { method: 'POST', body: {} });
+        UI.modal(`<h3>临时密码已生成</h3>
+          <p class="hint">${esc(a.email)}${a.tenant_name ? ' · ' + esc(a.tenant_name) : ''}——把临时密码线下告知客户，对方首次登录会强制改成自己的密码。</p>
+          <div class="hero" style="letter-spacing:.15em;font-family:ui-monospace,monospace">${esc(r.tempPassword)}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px">${h.btn('知道了', 'ui.modal-close', { cls: 'pri' })}</div>`);
+      } catch (e) { UI.toast(e.status === 404 ? '没有找到这个邮箱的账号' : '重置失败：' + e.message); }
+    },
+    'plat.backup': async () => {
+      try {
+        const res = await fetch(C.url.replace(/\/$/, '') + '/v1/platform/backup',
+          { headers: { Authorization: 'Bearer ' + C.token } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'suite-backup-' + new Date().toISOString().slice(0, 10) + '.tar.gz';
+        a.click(); URL.revokeObjectURL(a.href);
+        UI.toast('备份已开始下载');
+      } catch (e) { UI.toast('备份下载失败：' + e.message); }
+    },
+  });
+
   /* ---------- 登录闸（Salesforce 式：未登录纯白页只显示登录框，隐藏整个应用） ---------- */
   function renderAuthGate() {
     const brand = `<div class="ag-brand"><div class="ag-logo">销</div><div class="ag-name">销冠操盘系统</div></div>`;
@@ -6992,6 +7130,12 @@ const SK = (() => {
         </div>
         <div class="ag-actions">${h.btn('设置新密码并进入', 'cloud.change-pw', { cls: 'pri ag-btn' })}</div>
       </div></div>`;
+    }
+    /* ③′ 平台管理员 → 管理后台（不是开通团队；平台账号本就禁止建租户） */
+    if (C.isPlatform === true) return renderAdminPanel();
+    if (C.isPlatform == null) {                          // 身份未知 → 探测一次再渲染
+      if (!platProbing) { platProbing = true; probePlatform().finally(() => { platProbing = false; UI.render(); }); }
+      return `<div class="authgate"><div class="ag-card">${brand}<p class="hint" style="text-align:center;padding:8px">正在进入…</p></div></div>`;
     }
     return `<div class="authgate"><div class="ag-card ag-wide">${brand}
       <div class="ag-title">开通你的团队</div>
