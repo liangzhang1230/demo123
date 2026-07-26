@@ -195,6 +195,44 @@ let tenantId, bossUid;
   ok(txt2.includes('已认领') && txt2.includes('开工'), 'UI 同步显示已认领 + 下一步「开工」');
 }
 
+/* ═══ 老板重置成员密码 → 该成员临时密码登录被强制改密（运营四件套） ═══ */
+console.log('— 密码重置与首登改密 —');
+{
+  await boss.click('[data-act="cloud.team-refresh"]');
+  await boss.waitForTimeout(800);
+  const [wlRow] = (await db.query(
+    `select m.user_id from members m join accounts a on a.user_id = m.user_id where a.email = 'wl-new@x.com'`)).rows;
+  await boss.evaluate(uid => {
+    const btn = document.querySelector(`[data-act="cloud.member-reset"][data-uid="${uid}"]`);
+    if (btn) btn.click();
+  }, wlRow.user_id);
+  await boss.waitForTimeout(800);
+  const temp = await boss.evaluate(() => {
+    const el = document.querySelector('#modal-root .hero'); return el ? el.textContent.trim() : null;
+  });
+  ok(temp && /^[A-Z0-9]{8}$/.test(temp), `老板重置成员密码 → 弹出临时密码 ${temp}`);
+  await boss.click('[data-act="ui.modal-close"]');
+  // 用 wl-new@x.com（前面白名单自动入位的销售）验证：它的会话应已被撤销
+  const emp = await browser.newContext().then(c => c.newPage());
+  emp._errs = []; emp.on('pageerror', e => emp._errs.push(String(e)));
+  await emp.goto('file://' + join(root, 'dist', 'index.html')); await emp.waitForTimeout(300);
+  await emp.evaluate(() => { location.hash = '#/cloud'; }); await emp.waitForTimeout(200);
+  await emp.fill('#cl-url', apiBase); await emp.click('[data-act="cloud.save-cfg"]'); await emp.waitForTimeout(200);
+  await emp.fill('#cl-email', 'wl-new@x.com'); await emp.fill('#cl-pass', temp);
+  await emp.click('[data-act="cloud.login"]'); await emp.waitForTimeout(900);
+  const gate = await emp.evaluate(() => document.getElementById('cpw-old') != null);
+  ok(gate, '临时密码登录 → 强制改密界面（cpw-old 出现）');
+  await emp.fill('#cpw-old', temp); await emp.fill('#cpw-new', 'empNew888'); await emp.fill('#cpw-new2', 'empNew888');
+  await emp.click('[data-act="cloud.change-pw"]'); await emp.waitForTimeout(900);
+  const backToLogin = await emp.evaluate(() => document.getElementById('cl-email') != null);
+  ok(backToLogin, '改密成功 → 回登录页(需新密码重登)');
+  await emp.fill('#cl-email', 'wl-new@x.com'); await emp.fill('#cl-pass', 'empNew888');
+  await emp.click('[data-act="cloud.login"]'); await emp.waitForTimeout(1000);
+  const inNow = await emp.evaluate(() => /云端版本|同步状态/.test(document.getElementById('view').textContent));
+  ok(inNow, '新密码登录成功进入租户');
+  await emp.context().close();
+}
+
 /* ═══ 平台停机 → 前端 423 话术 → 复通恢复（Step 6 租户侧体验） ═══ */
 console.log('— 停机/复通 —');
 {

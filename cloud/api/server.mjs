@@ -14,8 +14,9 @@ import { readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ApiError, send, readJson, errorToHttp, matchRoute } from './http.mjs';
-import { makeActorGate, isUuid, todayShanghai } from './db.mjs';
-import { register, login, logout, sessionUser } from './auth.mjs';
+import { makeActorGate, isUuid, todayShanghai, dumpDb } from './db.mjs';
+import { register, login, logout, sessionUser, resetPassword, changePassword, genTempPassword, normEmail } from './auth.mjs';
+import { emailVerifyEnabled, requestCode, verifyCode } from './emailcode.mjs';
 import { assertTenantWritable } from '../server/writes.mjs';
 import { todayCards, transition, STATE_ORDER } from '../server/cardbus.mjs';
 import { submitDailyReport } from '../server/m1.mjs';
@@ -84,11 +85,34 @@ export function buildServer(db, {
       } },
 
     /* ══════════ 认证（系统通道；对 app_user 物理不可见） ══════════ */
+    { method: 'POST', re: /^\/v1\/auth\/email-code$/, opts: { public: true, system: true, auth: true },
+      handler: async ({ db, body }) => {
+        if (!emailVerifyEnabled()) throw new ApiError(404, 'NO_EMAIL_VERIFY', '未启用邮箱验证码');
+        await requestCode(db, body.email);
+        return { status: 200, body: { sent: true } };    // 不回显码；成功与否话术一致防枚举
+      } },
+
     { method: 'POST', re: /^\/v1\/auth\/register$/, opts: { public: true, system: true, auth: true },
       handler: async ({ db, body, ip, ua }) => {
         if (process.env.AUTH_ALLOW_REGISTER === '0')
           throw new ApiError(403, 'REGISTER_CLOSED', '注册暂未开放（内测邀请制）');
-        const r = await register(db, { email: body.email, password: body.password, ip, ua });
+        const email = normEmail(body.email);
+        /* 🔴 仅白名单可注册（AUTH_WHITELIST_ONLY=1）：邮箱须在 平台开户白名单 或 某租户成员白名单 内 */
+        if (process.env.AUTH_WHITELIST_ONLY === '1') {
+          const { rows } = await db.query(
+            `select 1 from platform_signup_allow where email = $1 and used_by is null
+             union all select 1 from member_whitelist where contact = $1 and used_by is null limit 1`, [email]);
+          if (!rows.length) throw new ApiError(403, 'NOT_INVITED', '该邮箱未获邀请——请联系为你开通的管理员');
+        }
+        /* 邮箱验证码（AUTH_EMAIL_VERIFY=1）：注册前必须先通过 email-code 校验 */
+        if (emailVerifyEnabled()) {
+          const okCode = await verifyCode(db, email, body.code);
+          if (!okCode) throw new ApiError(400, 'BAD_CODE', '验证码错误或已过期');
+        }
+        const r = await register(db, { email, password: body.password, ip, ua });
+        /* 平台开户白名单命中 → 标记已用（这是新老板注册的通道） */
+        await db.query(`update platform_signup_allow set used_by = $2, used_at = now()
+          where email = $1 and used_by is null`, [r.email, r.userId]);
         /* 白名单自动入位（§10.2）：老板已预登记该邮箱 → 注册即入租户、绑预设角色 */
         const joined = await tryAutoJoin(db, { userId: r.userId, contact: r.email });
         return { status: 201,
@@ -116,12 +140,21 @@ export function buildServer(db, {
         return { status: 200, body: { ok: true }, headers: { 'set-cookie': CLEAR_COOKIE } };
       } },
 
+    { method: 'POST', re: /^\/v1\/auth\/change-password$/, opts: { public: true, system: true, auth: true },
+      handler: async ({ db, token, body }) => {
+        const s = token ? await sessionUser(db, token) : null;
+        if (!s) throw new ApiError(401, 'NO_SESSION', '未登录');
+        await changePassword(db, s.userId, { oldPassword: body.oldPassword, newPassword: body.newPassword });
+        return { status: 200, body: { ok: true } };       // 旧会话已撤销，前端需重新登录
+      } },
+
     { method: 'GET', re: /^\/v1\/auth\/session$/, opts: { public: true, system: true },
       handler: async ({ db, token }) => {
         const s = token ? await sessionUser(db, token) : null;
         if (!s) throw new ApiError(401, 'NO_SESSION', '未登录或会话已失效');
-        const [acc] = await q(db, `select email from accounts where user_id = $1`, [s.userId]);
-        return { status: 200, body: { userId: s.userId, email: acc?.email ?? null, expiresAt: s.expiresAt } };
+        const [acc] = await q(db, `select email, must_change_password from accounts where user_id = $1`, [s.userId]);
+        return { status: 200, body: { userId: s.userId, email: acc?.email ?? null,
+          mustChangePassword: acc?.must_change_password === true, expiresAt: s.expiresAt } };
       } },
 
     /* ══════════ 业务（RLS 身份通道） ══════════ */
@@ -274,6 +307,19 @@ export function buildServer(db, {
         return { status: 200, body: { userId: params.uid, isActive: true } };
       } },
 
+    /* 老板重置本租户成员密码（返回一次性临时密码，线下转达；对方首登强制改） */
+    { method: 'POST', re: /^\/v1\/members\/(?<uid>[0-9a-f-]{36})\/reset-password$/, opts: { member: true },
+      handler: async ({ db, ctx, me, params }) => {
+        if (me.role !== 'boss') throw new ApiError(403, 'BOSS_ONLY', '仅老板可重置成员密码');
+        if (params.uid === ctx.actorId) throw new ApiError(400, 'USE_CHANGE', '给自己改密请用「修改密码」');
+        /* 哈希在 JS 算好，经 security definer 函数写 accounts（guard 在库内）——
+           全程在 RLS 通道，绝不嵌套 withSystem（会与外层 withActor 抢同一把锁而死锁） */
+        const { tempPassword, hash } = await genTempPassword();
+        await q(db, `select boss_reset_member_password($1, $2)`, [params.uid, hash]);
+        await logEvent(db, ctx, 'member_password_reset', params.uid, {});
+        return { status: 200, body: { userId: params.uid, tempPassword } };
+      } },
+
     { method: 'GET', re: /^\/v1\/events$/, opts: { member: true, mgmt: true },
       handler: async ({ db, ctx, query }) => {
         let limit = Number(query.get('limit') ?? 50);
@@ -333,6 +379,43 @@ export function buildServer(db, {
         }
         const sub = await subscription(db, tctx);
         return { status: 200, body: { subscription: sub } };
+      } },
+
+    /* 平台开户白名单（AUTH_WHITELIST_ONLY 下新老板注册的唯一入口） */
+    { method: 'GET', re: /^\/v1\/platform\/signup-allow$/, opts: { platform: true },
+      handler: async ({ db }) => {
+        const rows = await q(db, `select email, note, used_by, used_at, created_at from platform_signup_allow order by created_at desc`);
+        return { status: 200, body: { allow: rows } };
+      } },
+    { method: 'POST', re: /^\/v1\/platform\/signup-allow$/, opts: { platform: true },
+      handler: async ({ db, body }) => {
+        const email = normEmail(body.email);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiError(400, 'BAD_EMAIL', '邮箱格式不对');
+        await db.query(`insert into platform_signup_allow(email, note) values ($1, $2)
+          on conflict (email) do update set note = excluded.note`, [email, body.note ?? null]);
+        return { status: 201, body: { email } };
+      } },
+
+    /* 平台重置任意账号密码（老板忘密的兜底：你线下核验身份后重置，返回临时密码转达） */
+    { method: 'POST', re: /^\/v1\/platform\/accounts\/(?<uid>[0-9a-f-]{36})\/reset-password$/, opts: { platform: true },
+      handler: async ({ db, params }) => {
+        const { tempPassword } = await resetPassword(db, params.uid);
+        return { status: 200, body: { userId: params.uid, tempPassword } };
+      } },
+
+    /* 🔴 整库备份下载（平台）：gzip 快照，配合运维脚本每日拉取异地存放 */
+    { method: 'GET', re: /^\/v1\/platform\/backup$/, opts: { platform: true, raw: true },
+      handler: async ({ db, res }) => {
+        const blob = await dumpDb(db);
+        const buf = Buffer.from(await blob.arrayBuffer());
+        res.writeHead(200, {
+          'content-type': 'application/gzip',
+          'content-length': buf.length,
+          'content-disposition': `attachment; filename="suite-backup.tar.gz"`,
+          'cache-control': 'no-store',
+        });
+        res.end(buf);
+        return { raw: true, status: 200 };
       } },
   ];
 
@@ -429,11 +512,12 @@ export function buildServer(db, {
              唯一权威口径，API 前置检查只是双保险 */
           await db.query(`select set_config('app.uid', $1, false)`, [uid]);
           try {
-            return await route.handler({ db, ctx: { actorId: uid, today }, body, params, query: url.searchParams });
+            return await route.handler({ db, res, ctx: { actorId: uid, today }, body, params, query: url.searchParams });
           } finally {
             await db.query(`select set_config('app.uid', '', false)`);
           }
         });
+        if (out && out.raw) { status = out.status; return; }   // 备份等已自行 end(res)
       } else {
         const uid = await resolveActor(req, token);
         const today = resolveToday(req);

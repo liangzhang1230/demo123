@@ -14,9 +14,9 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));   // cloud/
 
 const SCHEMA_FILES = ['schema.sql', 'schema-c2.sql', 'schema-c3.sql', 'schema-c4.sql', 'schema-c6.sql'];
-/* 🔴 auth/白名单表必须在 GRANTS 之后装载：auth 要 revoke app_user 权限
+/* 🔴 auth/白名单/运营表必须在 GRANTS 之后装载：auth/运营表要 revoke app_user 权限
    （先装会被 "grant all tables" 冲掉），白名单要精确授权（顺序即安全） */
-const POST_GRANT_FILES = ['schema-auth.sql', 'schema-whitelist.sql'];
+const POST_GRANT_FILES = ['schema-auth.sql', 'schema-whitelist.sql', 'schema-ops.sql'];
 
 /* auth 兼容层 + 角色：与 tests/c*.test.mjs 引导完全同源（一字不差的语义） */
 const AUTH_SHIM = `
@@ -54,12 +54,18 @@ export async function openDb({ dataDir } = {}) {
     await db.exec(GRANTS);
     for (const f of POST_GRANT_FILES) await db.exec(readFileSync(join(root, 'db', f), 'utf8'));
   } else {
-    /* 老库增量补装（幂等）：accounts / member_whitelist 各自缺则补 */
-    const { rows: a } = await db.query(`select to_regclass('public.accounts') as a, to_regclass('public.member_whitelist') as w`);
+    /* 老库增量补装（幂等）：accounts / member_whitelist / platform_signup_allow 各自缺则补 */
+    const { rows: a } = await db.query(`select to_regclass('public.accounts') as a, to_regclass('public.member_whitelist') as w, to_regclass('public.platform_signup_allow') as o`);
     if (!a[0].a) await db.exec(readFileSync(join(root, 'db', 'schema-auth.sql'), 'utf8'));
     if (!a[0].w) await db.exec(readFileSync(join(root, 'db', 'schema-whitelist.sql'), 'utf8'));
+    if (!a[0].o) await db.exec(readFileSync(join(root, 'db', 'schema-ops.sql'), 'utf8'));
   }
   return db;
+}
+
+/* 整库快照（gzip）——备份端点用；PGlite dumpDataDir 已验证可 loadDataDir 还原 */
+export async function dumpDb(db) {
+  return db.dumpDataDir('gzip');                          // 返回 File/Blob
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

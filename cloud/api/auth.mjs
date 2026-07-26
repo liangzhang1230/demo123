@@ -116,6 +116,45 @@ export async function logout(db, token) {
   return { revoked: r.affectedRows ?? 0 };
 }
 
+/* 生成一次性临时密码 + 其哈希（纯 JS，不碰 DB）。去易混字符 0/O/1/l，便于线下口头转达。 */
+export async function genTempPassword() {
+  const alpha = 'ABCDEFGHJKMNPQRSTUVWXYZ', digit = '23456789';
+  const buf = randomBytes(8);
+  let temp = '';
+  for (let i = 0; i < 8; i++) temp += (i % 2 ? alpha : digit)[buf[i] % (i % 2 ? alpha.length : digit.length)];
+  return { tempPassword: temp, hash: await hashPassword(temp) };
+}
+
+/* ---- 平台重置某账号密码（系统通道直调；老板改成员密码走 SQL security definer 函数）---- */
+export async function resetPassword(db, userId) {
+  const rows = await q(db, `select email from accounts where user_id = $1`, [userId]);
+  if (!rows.length) throw err(404, 'ACCOUNT_NOT_FOUND', '账号不存在');
+  const { tempPassword, hash } = await genTempPassword();
+  await q(db, `update accounts set password_hash = $2, must_change_password = true,
+      failed_attempts = 0, locked_until = null where user_id = $1`, [userId, hash]);
+  await q(db, `update sessions set revoked_at = now() where user_id = $1 and revoked_at is null`, [userId]);
+  return { tempPassword };
+}
+
+/* ---- 首登改密：校验旧（临时）密码 → 换新 → 清标记 → 旧会话已在重置时撤销 ---- */
+export async function changePassword(db, userId, { oldPassword, newPassword }) {
+  if (!validPassword(newPassword)) throw err(400, 'WEAK_PASSWORD', '新密码需 ≥8 位且含字母和数字');
+  const rows = await q(db, `select password_hash from accounts where user_id = $1`, [userId]);
+  if (!rows.length) throw err(404, 'ACCOUNT_NOT_FOUND', '账号不存在');
+  if (!(await verifyPassword(oldPassword, rows[0].password_hash)))
+    throw err(401, 'BAD_OLD_PASSWORD', '原密码不正确');
+  const hash = await hashPassword(newPassword);
+  await q(db, `update accounts set password_hash = $2, must_change_password = false where user_id = $1`,
+    [userId, hash]);
+  await q(db, `update sessions set revoked_at = now() where user_id = $1 and revoked_at is null`, [userId]);
+  return { ok: true };
+}
+
+export async function mustChangePassword(db, userId) {
+  const rows = await q(db, `select must_change_password from accounts where user_id = $1`, [userId]);
+  return rows.length ? rows[0].must_change_password === true : false;
+}
+
 function err(status, code, message) {
   const e = new Error(message); e.httpStatus = status; e.httpCode = code; return e;
 }

@@ -6697,6 +6697,9 @@ const SK = (() => {
         const d = await api('/v1/auth/login', { method: 'POST', body: { email: g('cl-email').value.trim(), password: g('cl-pass').value } });
         C.token = d.token; C.email = d.email; C.userId = d.userId;
         saveCfg();
+        const sess = await api('/v1/auth/session');       // 取强制改密标记
+        C.mustChange = sess.mustChangePassword === true; saveCfg();
+        if (C.mustChange) { UI.commit(); UI.toast('首次登录，请先设置你自己的密码'); return; }
         await loadIdentity();
         if (inTenant()) await pullNow();
         UI.commit(); UI.toast('已登录' + (C.tenantName ? ' · ' + C.tenantName : ''));
@@ -6705,7 +6708,7 @@ const SK = (() => {
     'cloud.logout': async () => {
       clearTimeout(pushTimer);
       try { if (connected()) await api('/v1/auth/logout', { method: 'POST', body: {} }); } catch (e) {}
-      Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null });
+      Object.assign(C, { token: null, email: null, userId: null, tenantId: null, tenantName: null, role: null, version: null, mustChange: false });
       teamCache = null; cardsCache = null;
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       saveCfg(); UI.commit(); UI.toast('已退出（本地数据保留）');
@@ -6794,6 +6797,24 @@ const SK = (() => {
         SK.actions['cloud.team-refresh']();
       } catch (e) { UI.toast('复职失败：' + e.message); }
     },
+    'cloud.member-reset': async d => {
+      try {
+        const r = await api('/v1/members/' + d.uid + '/reset-password', { method: 'POST', body: {} });
+        UI.modal(`<h3>临时密码已生成</h3>
+          <p class="hint">把下面这串临时密码线下告诉该成员，TA 首次登录后系统会强制改成自己的密码。</p>
+          <div class="hero" style="letter-spacing:.15em;font-family:ui-monospace,monospace">${esc(r.tempPassword)}</div>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px">${h.btn('知道了', 'ui.modal-close', { cls: 'pri' })}</div>`);
+      } catch (e) { UI.toast('重置失败：' + e.message); }
+    },
+    'cloud.change-pw': async () => {
+      const oldP = (g('cpw-old') || {}).value || '', newP = (g('cpw-new') || {}).value || '', newP2 = (g('cpw-new2') || {}).value || '';
+      if (newP !== newP2) { UI.toast('两次新密码不一致'); return; }
+      try {
+        await api('/v1/auth/change-password', { method: 'POST', body: { oldPassword: oldP, newPassword: newP } });
+        C.token = null; C.mustChange = false; saveCfg();
+        UI.toast('密码已修改，请用新密码重新登录'); UI.commit();
+      } catch (e) { UI.toast('修改失败：' + e.message); }
+    },
     'cloud.push': () => pushNow(),
     'cloud.pull': async () => { try { await pullNow(); UI.toast('已拉取云端最新版本 ' + C.version); } catch (e) { UI.toast('拉取失败：' + e.message); } },
     'cloud.autosync': () => { C.autoSync = !C.autoSync; saveCfg(); UI.commit(); },
@@ -6869,7 +6890,7 @@ const SK = (() => {
         <td class="hint">${String(m.joined_at || '').slice(0, 10)}</td>
         <td>${isBoss && m.user_id !== C.userId
           ? (m.is_active
-            ? `<button class="btn sm ghost" data-act="cloud.member-off" data-uid="${m.user_id}">停用</button>`
+            ? `<button class="btn sm ghost" data-act="cloud.member-reset" data-uid="${m.user_id}">重置密码</button> <button class="btn sm ghost" data-act="cloud.member-off" data-uid="${m.user_id}">停用</button>`
             : `<button class="btn sm" data-act="cloud.member-on" data-uid="${m.user_id}">复职</button>`)
           : ''}</td></tr>`).join('');
     const wlRows = (teamCache && teamCache.whitelist || []).map(w =>
@@ -6916,6 +6937,16 @@ const SK = (() => {
       const head = `
       <div class="sect"><h2>云端协同</h2><span class="sub">可选——不配置就是纯离线单机版 · 多租户隔离由数据库 RLS 保证（cloud/tests 全套隔离与攻防测试）</span></div>
       <div style="display:flex;gap:6px;margin-bottom:10px">${step('①', '连服务器', C.url)} ${step('②', '登录', connected())} ${step('③', '入租户', inTenant())} ${step('④', '自动同步', inTenant() && C.autoSync)}</div>`;
+      if (connected() && C.mustChange) {                   // 强制改密闸：临时密码首登必须先改
+        return head + h.card('🔐 首次登录 · 设置你的密码', `
+          <p class="hint" style="margin-bottom:8px">管理员给你的是一次性临时密码，请设置成你自己的密码后再使用。</p>
+          <div class="frm">
+            ${h.field('临时密码（管理员给你的）', `<input id="cpw-old" type="password" placeholder="临时密码">`)}
+            ${h.field('新密码（≥8 位，含字母和数字）', `<input id="cpw-new" type="password">`)}
+            ${h.field('再输一次新密码', `<input id="cpw-new2" type="password">`)}
+          </div>
+          <div style="margin-top:10px">${h.btn('设置新密码', 'cloud.change-pw', { cls: 'pri' })}</div>`);
+      }
       if (!C.url || !connected()) {
         return head + `<div class="grid g2">
         ${h.card('① 服务器配置', `
