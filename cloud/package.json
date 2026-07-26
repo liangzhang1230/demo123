@@ -2,13 +2,16 @@
   "name": "cloud",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "api/index.mjs",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/index.mjs",
+    "test": "node tests/api.test.mjs && node tests/auth.test.mjs && node tests/whitelist.test.mjs && node tests/ops.test.mjs"
   },
+  "engines": { "node": ">=20" },
   "keywords": [],
   "author": "",
   "license": "ISC",
