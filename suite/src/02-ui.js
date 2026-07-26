@@ -175,6 +175,17 @@
     SK.xReset();
     parseHash();
     subnavOpen = false;                                  // 任何整页渲染(含前进/后退)都收起二级下拉
+    /* 🔴 登录闸：云端 Web 部署未登录 → 隐藏整个应用，只渲染全屏登录/注册（Salesforce 式） */
+    if (SK.authGate && SK.authGate.required()) {
+      document.body.classList.add('gated');
+      ['topnav', 'livebar', 'subnav', 'bottomnav', 'moresheet', 'backup-note'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.innerHTML = '';
+      });
+      document.getElementById('view').innerHTML = SK.authGate.render();
+      window.scrollTo(0, 0);
+      return;
+    }
+    document.body.classList.remove('gated');
     const m = boardById(route.board) || SK.modules[0];
     route.board = m.id;
     renderTopnav(); renderSubnav(); renderLivebar(); renderBottomnav(); renderMoresheet();

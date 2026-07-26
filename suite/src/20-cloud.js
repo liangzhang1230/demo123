@@ -16,6 +16,10 @@
   const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(C)); } catch (e) {} };
   const connected = () => !!(C.url && C.token);
   const inTenant = () => connected() && !!C.tenantId;
+  /* 🔴 云端 Web 模式：页面经 http(s) 由服务器托管 = SaaS 部署 → 强制登录；
+     以 file:// 直接打开 = 离线单机版 → 不设闸，行为不变。API 同源(origin)自动带出。 */
+  const webMode = location.protocol === 'http:' || location.protocol === 'https:';
+  if (webMode && !C.url) { C.url = location.origin; saveCfg(); }
 
   /* ---------- REST 客户端（原生 API：错误体 {error:{code,message}}） ---------- */
   async function api(path, opts = {}) {
@@ -345,6 +349,50 @@
       </div>
       <p class="hint" style="margin-top:8px">停用成员：档案与业绩留在公司（审计不灭），席位释放给新人；复职需席位配额内。</p>`);
   }
+  /* ---------- 登录闸（Salesforce 式：未登录纯白页只显示登录框，隐藏整个应用） ---------- */
+  function renderAuthGate() {
+    const brand = `<div class="ag-brand"><div class="ag-logo">销</div><div class="ag-name">销冠操盘系统</div></div>`;
+    if (!connected()) {                                  // ① 未登录 → 登录/注册
+      return `<div class="authgate"><div class="ag-card">${brand}
+        <div class="ag-title">登录 / 注册</div>
+        <div class="frm">
+          ${h.field('邮箱', `<input id="cl-email" type="email" autocomplete="username" placeholder="you@company.com" value="${esc(C.email || '')}">`)}
+          ${h.field('密码', `<input id="cl-pass" type="password" autocomplete="current-password" placeholder="≥8 位，含字母和数字">`)}
+        </div>
+        <div class="ag-actions">${h.btn('登 录', 'cloud.login', { cls: 'pri ag-btn' })}${h.btn('注册新账号', 'cloud.signup', { cls: 'ag-btn ghost' })}</div>
+        <p class="ag-foot">连错 5 次密码将临时锁定 15 分钟</p>
+      </div></div>`;
+    }
+    if (C.mustChange) {                                  // ② 临时密码首登 → 强制改密
+      return `<div class="authgate"><div class="ag-card">${brand}
+        <div class="ag-title">🔐 首次登录 · 设置密码</div>
+        <p class="ag-sub">管理员给你的是一次性临时密码，请改成你自己的密码。</p>
+        <div class="frm">
+          ${h.field('临时密码', `<input id="cpw-old" type="password" placeholder="临时密码">`)}
+          ${h.field('新密码（≥8 位，含字母和数字）', `<input id="cpw-new" type="password">`)}
+          ${h.field('再输一次新密码', `<input id="cpw-new2" type="password">`)}
+        </div>
+        <div class="ag-actions">${h.btn('设置新密码并进入', 'cloud.change-pw', { cls: 'pri ag-btn' })}</div>
+      </div></div>`;
+    }
+    return `<div class="authgate"><div class="ag-card ag-wide">${brand}
+      <div class="ag-title">开通你的团队</div>
+      <p class="ag-sub">当前登录：${esc(C.email || '')} · <button class="btn sm ghost" data-act="cloud.logout">退出</button></p>
+      <div class="ag-two">
+        <div class="ag-col"><div class="ag-col-h">我是老板 · 创建团队</div>
+          ${h.field('公司 / 团队名', `<input id="cl-tname" type="text" placeholder="如：王总的公司">`)}
+          ${h.btn('创建团队', 'cloud.create-tenant', { cls: 'pri ag-btn' })}</div>
+        <div class="ag-col"><div class="ag-col-h">我被邀请 · 加入团队</div>
+          ${h.field('邀请码', `<input id="cl-code" type="text" placeholder="12 位邀请码" style="letter-spacing:.08em">`)}
+          ${h.btn('凭码加入', 'cloud.join-tenant', { cls: 'ag-btn' })}</div>
+      </div>
+    </div></div>`;
+  }
+  SK.authGate = {
+    required: () => webMode && !(connected() && inTenant() && !C.mustChange),
+    render: renderAuthGate,
+  };
+
   SK.registerModule({
     id: 'cloud', title: '云端', icon: '☁️', order: 98,
     subnav: [],
@@ -377,7 +425,7 @@
           ${h.field('密码', `<input id="cl-pass" type="password" placeholder="≥8 位，含字母和数字">`)}
           <div style="margin-top:10px;display:flex;gap:8px">${h.btn('登录', 'cloud.login', { cls: 'pri' })}${h.btn('注册新账号', 'cloud.signup')}</div>` : h.banner('先完成 ① 服务器配置', 'n'))}
         </div>
-        ${h.banner('说明：云端版数据存服务器（老板/同事多端协同）；不配置则数据只在本机。注册即登录；连错 5 次密码锁 15 分钟。注意：claude.ai 托管的 Artifact 版禁止外联，云端协同请用下载版单文件或自部署网页。', 'b')}`;
+        ${h.banner('云端版：数据存服务器，老板与同事多端协同、实时同步；注册即登录，连错 5 次密码将临时锁定 15 分钟。', 'b')}`;
       }
       if (!inTenant()) {
         return head + `<div class="grid g2">
