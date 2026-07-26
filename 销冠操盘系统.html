@@ -1507,9 +1507,9 @@ const SK = (() => {
     tierGrade: [['effective', '初级（有效）'], ['efficient', '中级（高效）'], ['leading', '高级（领先）']],
     complementLevel: [['solo', '各干各的'], ['partial', '混着干（多数团队）'], ['chained', '环环相扣']],
     attributableLevel: [['no', '说不清谁干的'], ['partial', '大概分得清'], ['yes', '能精确到人头']],
-    positionType: [['pure_sales', '纯销售'], ['advisory', '顾问建议岗'], ['aftersales', '售后服务岗']],
-    commissionBaseType: [['contract_amount', '按合同额/回款额'], ['margin_based', '按毛利'], ['neutral_kpi', '按中性指标']],
-    guardrailMetric: [['complaint_rate', '客诉率'], ['refund_rate', '退款率'], ['discount_rate', '折扣率']],
+    positionType: [['pure_sales', '纯销售（签单收钱）'], ['advisory', '顾问/技术岗'], ['aftersales', '售后岗']],
+    commissionBaseType: [['contract_amount', '按合同额/回款提'], ['margin_based', '按毛利提'], ['neutral_kpi', '按复购/满意度提']],
+    guardrailMetric: [['complaint_rate', '客户投诉多不多'], ['refund_rate', '退货退款多不多'], ['discount_rate', '打折打得凶不凶']],
   };
   const CONTROLS = [['no_discount', '不许降价'], ['discount_excluded', '折扣不计提成'], ['old_client_excluded', '老客续费不计'],
     ['heavy_monitoring', '过程强监控'], ['push_deadline', '月底冲刺压单'], ['forbid_backlog', '禁止押单挪单']];
@@ -1523,36 +1523,36 @@ const SK = (() => {
   };
   const controlLabel = v => { const f = CONTROLS.find(x => x[0] === v); return f ? f[1] : v; };
 
-  /* ---- W 系话术库（逐字，件五 W-00~W-31）---- */
+  /* ---- 警示话术库（v2.8 全部人话；编号只做内部标识，不再上屏）---- */
   const W_TEXT = {
-    'W-01': g => `你的综合毛利率 ${fmt.pct(g.marginRate)}，属于低毛利生意——提成必须按毛利口径计（本系统默认如此）。若你现行方案按回款提成，大概率卖一单亏一单。`,
-    'W-02': g => `底薪已吃穿现金目标：底薪 ${fmt.yuan(g.row.B)} ≥ 月收入目标的 90%（${fmt.yuan(g.row.T)}×90%）。这不是方案，是固定工资。请调低底薪或上调收入档位。`,
-    'W-03': () => `饥饿-鱼饵警报：你把底薪压到了预警线以下。底薪低于生存线 + 提成高到刺眼 = 你不是在激励销售，是在制造一个必然作弊的人。`,
-    'W-04': () => `浮动占比已贴着鱼饵线（65%）。短周期生意可用，但请确认底薪足以生存。`,
-    'W-05': g => `全链提成占目标毛利 ${fmt.pct(g.burdenRate)}，超过 35% 红线——团队长大这套方案会把你撑穿。（35% 毛利 ≈ 毛利率约 25–30% 时的营收薪酬上限）`,
-    'W-06': g => `全链提成占目标毛利仅 ${fmt.pct(g.burdenRate)}，低于 25%——鱼饵不香，好手不来（提成给薄了）。`,
-    'W-09': () => `按此人数，人均目标已超满产真实水平的 120%——这是「人人满产」的幻觉。全球真实达标率（达标人数占比）只有 43–51%。`,
-    'W-29': g => `底薪疑似违法：${levelName(g.row.level)} 底薪 ${fmt.yuan(g.row.B)} 低于你所在城市的最低工资参考（${fmt.yuan(g.minW)}）。底薪低于当地最低工资涉嫌违法，员工可追讨差额并申请劳动仲裁。请上调底薪，或到「数据中心 · 系数矩阵」把 minWageTable 改成你当地真实标准。`,
-    'ok': () => `全链提成占目标毛利在 25–35% 健康带内——鱼饵香、撑不穿。`,
-    'W-19': () => `菜单暂不可用：你的底薪已低于生存线。饥饿状态下的「自选目标」只会全员挤最低档——先修底薪，再谈菜单。`,
-    'W-20': g => `富国银行方程成立：人均目标已达真实产能上限的 ${fmt.pct(g.ratioCur)}（红线 130%），且底薪贴着生存线。目标高到正常干法够不着时，人只剩两条路——走人，或造假。📎 结局参考：350 万个假账户、累计罚款和解超 30 亿美元、5,300 人被开、CEO 下台、2017 年起永久废除销售配额。`,
-    'W-20b': g => `人均目标已达真实产能上限的 ${fmt.pct(g.ratioCur)}。底薪尚有缓冲，暂不构成造假高压，但「人人满产」仍是幻觉——达标率会先塌。`,
-    'W-21': () => `提成基数与客户利益反向：顾问/售后按合同额提成 = 系统性诱导过度推销。📎 Sears 1992 同构方案 → 全公司「没病修出病」（卧底 37 例中 34 例被荐不必要维修）→ 41 州调查、1500 万美元和解、19 起集体诉讼、董事长立即废除提成。✅ 改法：基数换成留存·复购·满意度联动的中性指标。`,
-    'W-21b': () => `纯销售岗按合同额/回款额提成，在低毛利品类会卖一单亏一单——建议切换毛利口径（本系统默认口径）。`,
-    'W-22': () => `每个强目标必须配一个护栏指标（客诉率/退款率/折扣率任选其一）。你把 100% 的光打在回款上，阴影里长出来的就是砍价、乱承诺、老客荒废——选定护栏后方可导出方案书。`,
-    'W-23': g => `你设了 ${g.n} 条「最低要求」。📎 AER 2006：底线管理换来底线员工——多数人会把产出降到底线附近。系统已预约一个证据：接入算账器后，M36 将用你自己的数据算出团队「卡线率」。过程红线要少而致命，产出激励要上不封顶。`,
-    'W-24': g => `开拓型任务合同（模板）：保底期 ${g.floorMonths} 个月，底薪按矩阵、不挂业绩（且不得低于当地最低工资 ${fmt.yuan(g.minWage)}）；里程碑奖三档（首单成交 / 管道达月配额 3 倍 / 首季回款达标）；结算周期为季度，禁用月结提成。📎 MS 2013：纯绩效工资惩罚试错，而试错是探索的必经之路。`,
-    'W-25': g => `你堵了 ${g.n} 个洞，水改从上面 ${g.n} 个出口漏。没有一个方案能同时堵死所有洞——你能做的是选一个付得起的出口，并让它可见、可归因。`,
-    'W-26': () => `勾选你现行方案里的控制手段，看看水会从哪里漏出来。`,
+    'W-01': g => `你的毛利率只有 ${fmt.pct(g.marginRate)}，是低毛利生意——提成给高一点就吃掉利润。本系统的参考值已经按毛利帮你算过账，放心用；但别在系统外再按回款私下加码。`,
+    'W-02': g => `底薪 ${fmt.yuan(g.row.B)} 已经快赶上达标月收入 ${fmt.yuan(g.row.T)} 了——干多干少一个样，这不是激励方案，是死工资。要么调低底薪，要么调高收入档。`,
+    'W-03': () => `底薪压到活命线以下了：人活不下去，要么走人、要么乱来。把底薪调回活命线以上。`,
+    'W-04': () => `这套方案里，工资的 65% 以上要靠业绩挣——快成交的生意可以这么狠，但请确认底薪够活。`,
+    'W-05': g => `全公司的提成加起来，要吃掉目标毛利的 ${fmt.pct(g.burdenRate)}（健康上限 35%）——目标毛利撑不起这套工资：要么哪一层给高了，要么目标定低了。人越多、亏越多。`,
+    'W-06': g => `全公司的提成加起来只占目标毛利 ${fmt.pct(g.burdenRate)}（不到 25%）——给得太抠，好销售看不上这份钱。`,
+    'W-09': () => `按这个人数，人均任务已经超过真实水平的 120%——「人人都干得到满产」是幻觉：全球真实达标的人只有四到五成。`,
+    'W-29': g => `${levelName(g.row.level)}底薪 ${fmt.yuan(g.row.B)} 低于你所在城市的最低工资参考（${fmt.yuan(g.minW)}）——涉嫌违法，员工可以仲裁追讨。请上调底薪（如果你当地标准不同，可到「数据中心 · 系数矩阵」改）。`,
+    'ok': () => `全公司提成占目标毛利在 25–35% 之间——给得起，也够香。`,
+    'W-19': () => `先别玩「自选目标」：你的底薪已低于活命线，这时让员工自己挑目标，全员都会挑最低档。先修底薪。`,
+    'W-20': g => `危险组合：人均目标已是团队真实能力上限的 ${fmt.pct(g.ratioCur)}（红线 130%），而且底薪贴着活命线。目标高到正常干够不着时，人只剩两条路——走人，或造假。（真实案例：美国富国银行就这么干，员工造出 350 万个假账户，罚了 30 多亿美元，CEO 下台。）`,
+    'W-20b': g => `人均目标已是团队真实能力上限的 ${fmt.pct(g.ratioCur)}。底薪还有缓冲，暂时不至于逼人造假，但「人人满产」仍是幻觉——先塌的是达标率。`,
+    'W-21': () => `提成方向和客户利益拧着：顾问/售后类岗位按合同额提成，等于鼓励他们过度推销。（真实案例：美国 Sears 修车店按修理费提成，结果「没病也修出病」，被 41 个州调查。）改法：这类岗位改按复购、留存、满意度提。`,
+    'W-21b': () => `纯销售按合同额/回款提成，在低毛利品类会卖一单亏一单——建议按毛利口径算（本系统默认就是）。`,
+    'W-22': () => `只考核回款一个数，砍价、乱承诺、冷落老客就会在你看不见的地方长出来——从「客诉率/退款率/折扣率」里挑一个一起盯着再发方案。`,
+    'W-23': g => `你设了 ${g.n} 条「最低要求」。要求越多，员工越是只做到及格线。过程红线要少而致命，产出奖励上不封顶。`,
+    'W-24': g => `开新市场/新产品，别用月度提成逼人：给 ${g.floorMonths} 个月保底期（底薪照发、不挂业绩、不得低于最低工资 ${fmt.yuan(g.minWage)}），设三档里程碑奖（首单/管道充足/首季回款），按季度结算。`,
+    'W-25': g => `你堵了 ${g.n} 个口子，员工就会从另外 ${g.n} 个口子钻。没有方案能堵死所有口子——挑一个你付得起的，盯着它就行。`,
+    'W-26': () => `勾选你现在用的管控手段，看看员工会从哪儿钻空子。`,
   };
   const GATE_BRIEF = {
-    'W-01': '低毛利生意——提成必须按毛利口径计',
-    'W-02': '底薪吃穿现金目标（固定工资化）',
-    'W-03': '饥饿-鱼饵警报：底薪压到预警线以下',
-    'W-04': '浮动占比贴着鱼饵线 65%',
-    'W-05': '全链提成负担超过 35% 红线',
-    'W-06': '全链提成负担低于 25%（鱼饵不香）',
-    'W-29': '底薪疑似低于当地最低工资',
+    'W-01': '低毛利生意——提成多一点就吃掉利润',
+    'W-02': '底薪快赶上达标收入——变死工资',
+    'W-03': '底薪低于活命线',
+    'W-04': '工资 65% 以上靠业绩挣——底薪要够活',
+    'W-05': '提成总盘子超过毛利 35% 上限——会亏',
+    'W-06': '提成总盘子不到毛利 25%——太抠',
+    'W-29': '底薪低于当地最低工资——违法风险',
   };
 
   /* ================= 1. 引擎（纯函数，逐字复刻 v2.5）================= */
@@ -1812,6 +1812,9 @@ const SK = (() => {
   const gate = (light, txt) => h.banner(`${light === 'red' ? '🔴' : light === 'amber' ? '🟡' : light === 'gold' ? '🏅' : '🟢'} ${txt}`,
     light === 'red' ? 'r' : light === 'amber' ? 'a' : 'g');
   const killer = t => `<div class="killer">💬 ${t}</div>`;
+  // 每张账单开头的三行人话摘要：回答什么问题 / 你现在的答案 / 一句话原因
+  const plain3 = (q, a, why) => `<div style="background:var(--accent-soft);border-radius:10px;padding:10px 13px;margin-bottom:10px;font-size:13px;line-height:1.7">
+    <div class="hint">❓ ${q}</div><div style="font-weight:720">${a}</div><div class="hint">${why}</div></div>`;
   const compbar = segs => `<div style="display:flex;height:22px;border-radius:7px;overflow:hidden;margin:9px 0 4px;font-size:11px;color:#fff;font-weight:600">${
     segs.map(([flex, label, color]) => `<div style="flex:${flex};background:${color};display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap">${label}</div>`).join('')}</div>`;
   const meterCap = (l, m, r) => `<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3);margin-top:2px"><span>${l}</span><span>${m}</span><span>${r}</span></div>`;
@@ -1844,11 +1847,7 @@ const SK = (() => {
       ${h.card('去年的底子', `<div class="frm">
         ${h.field('去年人均回款（万元/年）', h.input('company.lastYearPerCapitaCollectWan', 'num', { value: c.lastYearPerCapitaCollectWan }), '去年全公司回款 ÷ 销售人数。用来算「该招几个人 / 走一个人亏多少」')}
         ${h.field('去年走了几个销售（人）', h.input('company.leaversLastYear', 'int?', { value: c.leaversLastYear != null ? c.leaversLastYear : '', ph: '如 3' }), attrHint)}
-        ${h.field('招一个人多久能到岗', h.seg('company.hiringCycleDays', [{ v: 15, t: '半个月' }, { v: 45, t: '一个半月' }, { v: 90, t: '三个月' }], c.hiringCycleDays, 'num'), '从发招聘到人坐到工位')}
-      </div>`)}
-      ${h.card('团队怎么干活', `<div class="frm">
-        ${h.field('团队怎么协作', h.seg('company.complementLevel', ENUMS.complementLevel.map(([v, t]) => ({ v, t })), c.complementLevel), '决定「团队奖该不该发」')}
-        ${h.field('谁签的单分得清吗', h.seg('company.attributableLevel', ENUMS.attributableLevel.map(([v, t]) => ({ v, t })), c.attributableLevel))}
+        ${h.field('招一个人多久能到岗', h.seg('company.hiringCycleDays', [{ v: 7, t: '一周内' }, { v: 15, t: '半个月' }, { v: 45, t: '一个半月' }, { v: 90, t: '三个月' }], c.hiringCycleDays, 'num'), '从发招聘到人坐到工位（影响「最晚开招日」和空窗损失）')}
       </div>`)}
     </div>`;
     return `
@@ -1869,13 +1868,13 @@ const SK = (() => {
       </div>`)}
       ${h.card('毛利率 + 人', `<div class="frm">
         ${h.field('100 块回款里大约赚几块毛利', h.seg('company.blendedMarginRate', [{ v: 0.1, t: '10%' }, { v: 0.2, t: '20%' }, { v: 0.3, t: '30%' }, { v: 0.4, t: '40%' }, { v: 0.5, t: '50%' }], c.blendedMarginRate, 'num'), '拿不准就选 30%。只用于系统内部把回款换算成毛利，你不用管')}
-        ${h.field(`现有销售 / 主管 ${h.linked()}`, `<b style="font-size:16px">${salesN} 个销售 · ${mgrN} 个主管</b>`, '由员工档案实时统计，不用手填')}
+        ${h.field(`现有销售 / 主管 ${h.linked()}`, `<b style="font-size:16px">${salesN} 个销售 · ${mgrN} 个主管</b>`, SK.DB.meta && SK.DB.meta.seeded ? '⚠ 当前是演示数据（示例·王总的公司）——去员工档案换成你自己的人，数字才是你的' : '由员工档案实时统计，不用手填')}
         <div style="margin:-2px 0 4px">${h.btn('去员工档案维护 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="data" data-sub="people"' })}</div>
       </div>`)}
     </div>
     <div data-act="dj.more" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin-top:12px">
       <b style="font-size:12.8px">${moreOpen ? '▾' : '▸'} 想算得更准（选填 · 都有默认值，不填也能出账单）</b>
-      <span class="hint">去年人均回款 · 去年走了几个人 · 招人要多久 · 团队怎么协作</span>
+      <span class="hint">去年人均回款 · 去年走了几个人 · 招人要多久</span>
     </div>
     ${moreOpen ? moreBody : ''}
     <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
@@ -1901,7 +1900,8 @@ const SK = (() => {
     };
     const rcOf = (lv, B, T) => { const g = Gc[lv]; if (!g) return null; const gap = T * (1 - ltr) - B; return gap <= 0 ? null : gap / g; };
     const pctIn = v => v != null ? Math.round(v * 10000) / 100 : '';
-    const warns = [];
+    const margin = c.blendedMarginRate;
+    const warns = []; let infeasible = false;
     // 一行：参考底薪 | 自定义底薪 | 参考提成(占回款) | 自定义提成 | 达标月收入
     const rowCells = (lv, key, idx, label) => {
       const cRow = cp[key] || {};
@@ -1909,11 +1909,17 @@ const SK = (() => {
       const custB = cRow.b > 0 ? cRow.b : null, B = custB != null ? roundYuanFen(custB) : refB;
       const refRc = rcOf(lv, B, T), rc = cRow.rc > 0 ? cRow.rc : refRc;
       if (B < surv) warns.push(`${label}：底薪 ${fmt.yuan(B)} 低于活命线 ${fmt.yuan(surv)}——低于这条线人留不住、还容易逼出动作变形（只提醒，不拦你）`);
+      // 荒谬保护：参考提成 ≥ 毛利率 = 每收一块钱、提成先吃光毛利——不能当参考值上屏
+      let rcCell;
+      if (cRow.rc > 0) rcCell = '回款的 ' + fmt.pct(rc);
+      else if (rc == null) rcCell = DASH;
+      else if (margin > 0 && rc >= margin) { infeasible = true; rcCell = `<span style="color:var(--amber);font-weight:600">撑不起 ⚠</span>`; }
+      else rcCell = '回款的 ' + fmt.pct(rc);
       return `
         <td class="num mono">${fmt.yuan(refB)}</td>
         <td class="num"><input type="number" data-bind="company.customPay.${key}.b" data-type="fen-yuan?"
           value="${custB != null ? Math.round(custB / 100) : ''}" placeholder="空=参考" style="width:96px" inputmode="numeric"></td>
-        <td class="num mono">${rc != null ? '回款的 ' + fmt.pct(rc) : DASH}</td>
+        <td class="num mono">${rcCell}</td>
         <td class="num" style="white-space:nowrap"><input type="number" data-bind="company.customPay.${key}.rc" data-type="pct100?"
           value="${cRow.rc > 0 ? pctIn(cRow.rc) : ''}" placeholder="空=参考" step="0.1" style="width:76px" inputmode="decimal"> %</td>
         <td class="num mono">${fmt.yuan(T)}</td>`;
@@ -1940,8 +1946,11 @@ const SK = (() => {
     // 已选档最终方案一句话（引擎口径，含自定义）
     const A = R ? R.A : null;
     const s = A ? A.sales : null;
+    const planFeasible = !(s && s.custRc == null && margin > 0 && s.rc != null && s.rc >= margin);
     const planLine = s && s.r != null
-      ? `<div style="margin-top:9px;padding:9px 12px;background:var(--accent-soft);border-radius:9px;font-size:13px"><b>✅ 你的销售方案：</b>底薪 <b>${fmt.yuan(s.B)}</b>${s.custB != null ? '（自定义）' : '（参考价）'} ＋ 回款的 <b>${s.rc != null ? fmt.pct(s.rc) : DASH}</b> 提成${s.custRc != null ? '（自定义）' : ''} → 达标月收入约 <b>${fmt.yuan(s.B + s.gapAmt + s.longAmt)}</b></div>`
+      ? (planFeasible
+        ? `<div style="margin-top:9px;padding:9px 12px;background:var(--accent-soft);border-radius:9px;font-size:13px"><b>✅ 你的销售方案：</b>底薪 <b>${fmt.yuan(s.B)}</b>${s.custB != null ? '（自定义）' : '（参考价）'} ＋ 回款的 <b>${s.rc != null ? fmt.pct(s.rc) : DASH}</b> 提成${s.custRc != null ? '（自定义）' : ''} → 达标月收入约 <b>${fmt.yuan(s.B + s.gapAmt + s.longAmt)}</b></div>`
+        : `<div style="margin-top:9px;padding:9px 12px;background:var(--amber-soft,#fef3c7);border-radius:9px;font-size:13px">⚠ <b>按参考算撑不起这一档</b>：月回款目标只有 ${c.targetPersonalMonthlyCollectWan} 万，够不着该档市场收入。先核对目标（按「万元」填），或直接在上面「我要给的」里填你自己的底薪和提成。</div>`)
       : `<div class="hint" style="margin-top:8px">⬇︎ 填好第二步的「月回款目标」，这里会出参考提成和你的最终方案。</div>`;
     const salesBody = `
       ${h.tbl(cols, gradeRows)}
@@ -1959,6 +1968,7 @@ const SK = (() => {
         ${h.tbl(cols, subRows)}
         ${h.hint('主管/高管档位与销售档相互独立；同样可以直接填你要给的底薪和提成，填了就按你的算。')}
       </div>`;
+    if (infeasible) warns.unshift(`有档位显示「撑不起」：按你填的月回款目标（${c.targetPersonalMonthlyCollectWan || '—'} 万/月），提成要吃掉的比例已超过毛利率（${fmt.pct(margin)}）——每收一块钱先亏一块。两种可能：① 月回款目标单位填错了（注意按「万元」填，3 万填 3 不是 30000）；② 你的生意撑不起这一档的市场收入——选低一档，或直接在「我要给的」里填你自己的底薪和提成。`);
     return `
       ${head('sales', sOpen, '① 给销售定薪', `（${cityLab} · ${cycLab} · 当前按「${GRADE_SHORT[c.tierGrade] || '未定'}」档算 · 参考价可直接改）`)}
       ${sOpen ? salesBody : ''}
@@ -1975,18 +1985,18 @@ const SK = (() => {
         ${h.banner('还没有账单——在「输入面板」把共享字段填全，这里会实时展开明细。', 'n')}
         ${h.btn('去输入面板', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
     }
-    let out = `<div class="sect"><h2>五张账单</h2><span class="sub">规划年份 ${R.targetYear} · 销售按${gradeFull(R.inp.tierGrade)}档 · 管理层按${GRADE_TECH[R.inp.mgrGrade]}档 · 全部数字实时换算</span>
+    let out = `<div class="sect"><h2>五张账单</h2><span class="sub">算 ${R.targetYear} 年 · 销售按${GRADE_SHORT[R.inp.tierGrade]}档、管理层按${GRADE_SHORT[R.inp.mgrGrade]}档 · 每张账单点开看明细，改任何输入实时重算</span>
       <span style="margin-left:auto;display:flex;gap:6px">${h.btn('保存场景', 'dj.scn-save', { cls: 'sm' })}${h.btn('签发信用书', 'dj.cov-issue', { cls: 'sm' })}</span></div>`;
     // 总漏损条
     if (R.total) {
       const annual = R.total.annual, expose = R.total.expose;
       out += `<div class="card" style="background:linear-gradient(135deg,#191640,#2f2a6b 55%,#4a2f78);color:#fff;border:none">
-        <div style="font-size:11.5px;color:#c4b5fd;font-weight:600;letter-spacing:.05em;text-transform:uppercase">今年已注定漏损 ≈</div>
+        <div style="font-size:11.5px;color:#c4b5fd;font-weight:600;letter-spacing:.05em">照现在这么干，今年大约要白白亏掉</div>
         <div class="mono" style="font-size:38px;font-weight:800;letter-spacing:-.02em;margin:4px 0 8px">${fmt.wan(R.total.total)}</div>
-        <div style="font-size:12.8px;color:#c9c5ea;line-height:1.6;max-width:680px">流失总账 ${fmt.wan(annual)} ＋ 产能高估暴露 ${fmt.wan(expose)}。这两笔钱不在任何报表上——它们是「按老算法办事」的价格。</div>
+        <div style="font-size:12.8px;color:#c9c5ea;line-height:1.6;max-width:680px">两笔钱：人员流失要亏 ${fmt.wan(annual)}（账单C）＋ 招人招少了要差 ${fmt.wan(expose)}（账单B）。都不在报表上，但都是真的。</div>
         <div style="display:flex;height:7px;border-radius:6px;overflow:hidden;margin-top:13px;max-width:520px">
           <span style="flex:${Math.max(annual, 1)};background:#f472b6"></span><span style="flex:${Math.max(expose, 1)};background:#a78bfa"></span></div>
-        <div style="display:flex;gap:16px;font-size:10.5px;color:#a8a3d4;margin-top:5px;max-width:520px"><span>■ 流失总账</span><span style="color:#c4b5fd">■ 产能高估暴露</span></div>
+        <div style="display:flex;gap:16px;font-size:10.5px;color:#a8a3d4;margin-top:5px;max-width:520px"><span>■ 人员流失亏的</span><span style="color:#c4b5fd">■ 少招人差的</span></div>
       </div>`;
     }
     out += `<div class="grid g2" style="margin-top:10px;align-items:start">`;
@@ -1996,6 +2006,9 @@ const SK = (() => {
     if (R.D) out += cardDHtml(R);
     if (R.E) out += cardEHtml(R);
     out += `</div>`;
+    out += `<div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+      ${h.btn('🔬 防钻空子体检（选用）→', 'ui.nav', { cls: 'sm ghost', data: 'data-board="dingjia" data-sub="wt"' })}
+      <span class="hint">发方案之前，模拟一下员工会怎么钻这套方案的空子——想看再点，不看不影响。</span></div>`;
     return out;
   }
   function cardAHtml(R) {
@@ -2007,98 +2020,118 @@ const SK = (() => {
     const gi = A.goodHire, giTone = gi < 1 ? 'r' : gi < 1.2 ? 'a' : gi < 1.4 ? 'g' : 'gold';
     const giLab = gi < 1 ? '🔴 偏低' : gi < 1.2 ? '🟡 及格' : gi < 1.4 ? '🟢 好招' : '🏅 极好招';
     const bTone = A.burdenRate > 0.35 ? 'r' : A.burdenRate < 0.25 ? 'a' : '';
-    let body = '';
+    const verdict = A.burdenRate == null ? '数据不全'
+      : A.burdenRate > 0.35 ? `不健康：全公司提成要吃掉目标毛利的 ${fmt.pct(A.burdenRate)}（上限 35%）——按这套发工资，目标毛利撑不住`
+      : A.burdenRate < 0.25 ? `偏抠：提成总盘子只占目标毛利 ${fmt.pct(A.burdenRate)}（低于 25%）——好销售看不上`
+      : `健康：提成总盘子占目标毛利 ${fmt.pct(A.burdenRate)}（25–35% 之间）——给得起，也够香`;
+    const vShort = verdict.includes('：') ? verdict.slice(0, verdict.indexOf('：')) : verdict;
+    let body = plain3('这样定薪，公司亏不亏、人来不来？', verdict,
+      '两头看：①下面表里的「达标月收入」跟市场价比，决定招不招得到人；②全公司提成加起来占目标毛利的比例，决定你亏不亏。');
     if (A.anyBlocked) body += gate('red', W_TEXT['W-02']({ row: A.rows.find(r => r.blocked) }));
     A.rows.filter(r => (r.custB != null || r.custRc != null) && r.belowSurvival).forEach(r => {
       body += gate('amber', `${levelName(r.level)}自定义底薪 ${fmt.yuan(r.B)} 低于活命线（${fmt.yuan(r.survivalB)}）——低于这条线人留不住、容易逼出动作变形。只提醒，不拦你。`);
     });
     body += h.tbl([{ t: '层级' }, { t: '底薪', num: 1 }, { t: '达标月收入', num: 1 }, { t: '提成（占回款）', num: 1 }, { t: '目标人数', num: 1 }], rowsHtml);
-    body += `<div class="hint" style="margin-top:6px">销售层薪酬构成（底薪 : 提成缺口 : 长期分红池）</div>`;
+    body += `<div class="hint" style="margin-top:6px">销售的钱怎么构成（底薪 : 提成 : 年底分红池）</div>`;
     body += compbar([[cb, cb, '#6366f1'], [cg, cg, '#f59e0b'], [cl, cl, '#10b981']]);
-    body += `<div style="margin:10px 0">${h.badge(`好招指数 ${gi.toFixed(2)} · ${giLab}`, giTone, true)}</div>`;
+    body += `<div style="margin:10px 0">${h.badge(`这个待遇好不好招人：${gi.toFixed(2)} · ${giLab}`, giTone, true)}<span class="hint" style="margin-left:8px">（你给的钱 ÷ 市场价，1 以上才好招）</span></div>`;
     if (A.burdenRate != null) {
-      body += `<div class="hint">全链提成负担占目标毛利（健康带 25–35%）</div>${h.meter(A.burdenRate / 0.5, bTone, [0.5, 0.7])}${meterCap('0%', '健康带 25–35%', '50%+')}`;
+      body += `<div class="hint">全公司提成加起来，占目标毛利多少（25–35% 之间最健康）</div>${h.meter(A.burdenRate / 0.5, bTone, [0.5, 0.7])}${meterCap('0%', '健康 25–35%', '50%+')}`;
     }
     A.gates.filter(g => g.id !== 1).forEach(g => {
       body += gate(g.light, (W_TEXT[g.code] || (() => ''))(Object.assign({ burdenRate: A.burdenRate, marginRate: A.marginRate }, g)));
     });
-    if (A.fullBurden != null) body += h.banner(`ℹ️ 全口径人力负担（含底薪/社保/长期分红池）≈ <b>${fmt.pct(A.fullBurden)}</b>；按毛利率折营收 ≈ <b>${fmt.pct(A.fullRev)}</b>，对标 CCOS 健康带 8–15% 营收。`, 'n');
-    body += killer('这不是工资单，是一张「普通人干出头部水平」压强表——提成越高、底薪越低，越像鱼饵。');
-    body += h.src('📎 回算逻辑：参考底薪=城市基数×层级倍数×周期因子；达标月收入查阈值矩阵；提成=(达标收入×90%−底薪)÷月回款目标。自定义值以你为准。');
-    return dcard('A', '账单A · 这样定薪亏不亏', `好招指数 ${A.goodHire.toFixed(2)} · 销售${GRADE_SHORT[R.inp.tierGrade]}·管理层${GRADE_SHORT[R.inp.mgrGrade]}档`, s.rc != null ? '回款的 ' + fmt.pct(s.rc) : (s.r != null ? fmt.pct(s.r) : DASH), '销售提成', body);
+    body += killer('提成越高、底薪越低，越是在赌员工拿命换钱——好方案是普通人踏实干就能拿到数，而不是逼人变成赌徒。');
+    body += h.src(`📎 怎么算的：参考底薪 = 城市基数 × 层级倍数 × 成单周期系数；达标月收入 = 该城市该档位的市场价；提成 = (达标收入×90% − 底薪) ÷ 月回款目标。你自定义的值以你为准。全口径人力成本（含社保、分红池）约占目标毛利 ${A.fullBurden != null ? fmt.pct(A.fullBurden) : DASH}。`);
+    return dcard('A', '账单A · 这样定薪亏不亏', `${vShort} · 销售${GRADE_SHORT[R.inp.tierGrade]}档`, s.rc != null ? '回款的 ' + fmt.pct(s.rc) : (s.r != null ? fmt.pct(s.r) : DASH), '销售提成', body);
   }
   function cardBHtml(R) {
     const B = R.B;
     const rows = [
-      ['① 需要满产当量', B.fullCap.toFixed(2) + ' 人'],
-      ['② 你脑子里（天真）需招 S1', B.S1 + ' 人'],
-      ['③ 预期流失', B.expAttr.toFixed(2) + ' 人'],
-      ['④ 缺口当量', B.gapCap.toFixed(2) + ' 人'],
-      ['⑤ 单人当年有效产能 kEff(1)', (B.kEff1 * 100).toFixed(1) + '%（原始 k(1)=' + (B.k1 * 100).toFixed(1) + '%）'],
-      ['⑥ 六步链真实需招 S6', `<b>${B.S6} 人</b>`],
-      ['产能高估率', B.overRate != null ? fmt.pct(B.overRate) : DASH],
-      ['高估暴露（今年注定差的钱）', fmt.wan(B.exposeAmt)],
-      ['最晚开招日', `${B.latestHire || DASH}${B.isLate ? `（已晚 ${B.lateDays} 天）` : '（未晚）'}`],
+      ['① 目标全靠老手干，需要几个人', B.fullCap.toFixed(2) + ' 人'],
+      ['② 拍脑袋算：还差几个', B.S1 + ' 人'],
+      ['③ 今年预计还会走掉几个', B.expAttr.toFixed(2) + ' 人'],
+      ['④ 补上流失后，实际缺多少人的活儿', B.gapCap.toFixed(2) + ' 人'],
+      ['⑤ 新人第一年只能顶老手的几成', (B.kEff1 * 100).toFixed(1) + '%'],
+      ['⑥ 所以真实要招', `<b>${B.S6} 人</b>`],
+      ['拍脑袋比真实少算了', B.overRate != null ? fmt.pct(B.overRate) : DASH],
+      ['少招的人今年注定差的钱', fmt.wan(B.exposeAmt)],
+      ['最晚哪天必须开始招', `${B.latestHire || DASH}${B.isLate ? `（已经晚了 ${B.lateDays} 天）` : '（还来得及）'}`],
     ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
     const late = B.isLate
       ? (R.inp.targetYearMode === 'this'
-        ? `否则今年目标在今天就已经完不成了——你已经晚了 ${B.lateDays} 天。`
-        : `否则明年目标在今天就已经完不成了。`)
-      : `最晚 ${B.latestHire} 必须开招。`;
-    let body = h.tbl([{ t: '口径' }, { t: '数值', num: 1 }], rows);
-    body += `${h.spark(SK.RAMP[R.inp.cycleTier], B.ramp80)}<div class="hint">12 个月产能爬坡曲线（满产=100%）· 虚线＝满 80% 的第 ${B.ramp80} 月</div>`;
+        ? `你已经晚了 ${B.lateDays} 天——今天不动手，今年目标从现在就开始漏。`
+        : `再不动手，明年目标从今天就开始漏。`)
+      : `最晚 ${B.latestHire} 必须开始招。`;
+    let body = plain3(`${B.targetYear} 年这个目标，到底要招几个人？`,
+      `拍脑袋算要招 ${B.S1} 个 → 真实要招 <b>${B.S6}</b> 个，${late}`,
+      '为什么差这么多：新人第一年顶不了一个老手（要爬坡），今年还会走人——这两笔账拍脑袋时都没算。');
+    body += h.tbl([{ t: '一步步看' }, { t: '数值', num: 1 }], rows);
+    body += `${h.spark(SK.RAMP[R.inp.cycleTier], B.ramp80)}<div class="hint">新人成长曲线：入职后每个月能顶老手的几成（虚线＝干到八成功力的第 ${B.ramp80} 个月）</div>`;
     if (B.stretch) body += gate('amber', W_TEXT['W-09']());
-    body += killer(`你以为招 ${B.S1} 个，六步链算出要招 ${B.S6} 个——差的 ${B.S6 - B.S1} 个，就是「人头×配额」高估产能的代价。${late}`);
-    body += `<div class="hint" style="margin-top:8px">规划年份：${B.targetYear}　${h.btn(R.inp.targetYearMode === 'this' ? '改回算明年' : '改算今年', 'dj.ty', { cls: 'sm ghost' })}</div>`;
-    body += `<div style="margin-top:8px;display:flex;align-items:center;gap:8px">${h.btn('招人器有完整十二道闸与时间轴 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="zhaoren"' })}<span class="hint">「该招几人」六步链与招人器同源共享字段 ${h.linked()}</span></div>`;
-    return dcard('B', '账单B · 该招几个人', `拍脑袋 ${B.S1} 人 → 算完账 ${B.S6} 人`, `${B.S6}`, '真实需招人数', body);
+    body += `<div class="hint" style="margin-top:8px">算的是哪一年：${B.targetYear}　${h.btn(R.inp.targetYearMode === 'this' ? '改算明年' : '改算今年', 'dj.ty', { cls: 'sm ghost' })}</div>`;
+    body += `<div style="margin-top:8px;display:flex;align-items:center;gap:8px">${h.btn('去招人器看完整招聘计划 →', 'ui.nav', { cls: 'sm ghost', data: 'data-board="zhaoren"' })}<span class="hint">和招人器用同一份数据 ${h.linked()}</span></div>`;
+    return dcard('B', '账单B · 该招几个人', `拍脑袋 ${B.S1} 人 → 真实 ${B.S6} 人`, `${B.S6}`, '真实要招几个', body);
   }
   function cardCHtml(R) {
     const C = R.C;
     const rows = [
-      ['空窗损失（招聘周期内产能为0）', fmt.wan(C.idle)],
-      ['爬坡缺口（新人未满产的累计差）', fmt.wan(C.rampGap)],
-      ['招聘直接费', `${fmt.wan(C.recruitFee)} ${h.btn('改', 'dj.fee', { cls: 'sm ghost' })}`],
-      ['单人价签（简版 3 项）', `<b>${fmt.wan(C.tag)}</b>`],
-      ['OTE 比例口径（全球）', `${fmt.wan(C.oteLow)} – ${fmt.wan(C.oteHigh)}`],
-      ['今年流失总账', `<b>${fmt.wan(C.annual)}</b>`],
+      ['① 位子空着的损失（招到人之前，这份业绩没人干）', fmt.wan(C.idle)],
+      ['② 新人顶不上的损失（成长期干不出老手的量）', fmt.wan(C.rampGap)],
+      ['③ 招聘花的钱（渠道费、面试成本）', `${fmt.wan(C.recruitFee)} ${h.btn('改', 'dj.fee', { cls: 'sm ghost' })}`],
+      ['走一个熟手，三项加起来亏', `<b>${fmt.wan(C.tag)}</b>`],
+      ['按你的流失速度，今年一共要亏', `<b>${fmt.wan(C.annual)}</b>`],
     ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
-    let body = h.tbl([{ t: '构成' }, { t: '金额', num: 1 }], rows);
-    body += `<div class="hint" style="margin-top:6px">单人价签构成（空窗 : 爬坡缺口 : 招聘费）</div>`;
-    body += compbar([[Math.max(C.idle, 1), '空窗', '#6366f1'], [Math.max(C.rampGap, 1), '爬坡', '#f59e0b'], [Math.max(C.recruitFee, C.tag * 0.03), '招聘', '#10b981']]);
-    body += h.hint('注：本卡为「简版（3 项）」，不与留人器 6 项口径（约 75 万）并列比较。');
-    body += killer('最大的一块是爬坡缺口——所以「缩短爬坡」比「降低流失」更值钱。');
-    return dcard('C', '账单C · 走一个人亏多少钱', '简版（3 项）', fmt.wan(C.tag), '走一个销售亏（明细口径）', body);
+    let body = plain3('走一个熟手销售，你实际亏多少钱？',
+      `一个人 ≈ <b>${fmt.wan(C.tag)}</b>，按今年的流失速度全年 ≈ <b>${fmt.wan(C.annual)}</b>`,
+      '这笔钱工资单上看不见：位子空着、新人顶不上、招聘花钱——三笔都是真金白银。');
+    body += h.tbl([{ t: '亏在哪' }, { t: '金额', num: 1 }], rows);
+    body += `<div class="hint" style="margin-top:6px">三笔损失的占比</div>`;
+    body += compbar([[Math.max(C.idle, 1), '位子空着', '#6366f1'], [Math.max(C.rampGap, 1), '新人顶不上', '#f59e0b'], [Math.max(C.recruitFee, C.tag * 0.03), '招聘费', '#10b981']]);
+    body += killer('最大的一块是「新人顶不上」——所以让新人更快出活，比压流失率更值钱。');
+    body += h.src('📎 这是快算版（3 项）。留人器里有更全的 6 项算法（含客户流失、团队士气），数字会更大。');
+    return dcard('C', '账单C · 走一个人亏多少钱', `一个 ${fmt.wan(C.tag)} · 全年 ${fmt.wan(C.annual)}`, fmt.wan(C.tag), '走一个熟手亏', body);
   }
   function cardDHtml(R) {
     const D = R.D, B = R.B;
     const rows = [
-      ['周管理可用工时', D.availH + ' h'], ['一个主管跨度上限', D.spanCap + ' 人'],
-      ['规划总人数', D.heads + ' 人'], ['需要主管数', D.managerNeeded + ' 人'],
-      ['主管缺口', D.gap + ' 人'], ['每人每周分到辅导', (isFinite(D.coachMin) ? D.coachMin : DASH) + ' 分钟'],
+      ['一个主管每周真正能用来带人的时间', D.availH + ' 小时'],
+      ['所以一个主管最多带好', D.spanCap + ' 个人'],
+      ['你规划的总人数', D.heads + ' 人'],
+      ['需要主管', `<b>${D.managerNeeded} 个</b>`],
+      ['现在还缺', `<b>${D.gap} 个</b>`],
+      ['照现在的配置，每个销售每周只能被辅导', (isFinite(D.coachMin) ? D.coachMin : DASH) + ' 分钟'],
     ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
     const S6 = B && B.ok ? B.S6 : DASH;
-    let body = h.tbl([{ t: '口径' }, { t: '数值', num: 1 }], rows);
-    body += killer(`你要招的不是 ${S6} 个销售，是 ${S6} 个销售加 ${D.gap} 个主管——辅导剂量不足会推高流失与爬坡时长。`);
-    body += h.src('📎 跨度公式：周管理可用 = 40h×30% − 3h 固定会议 = 9h；跨度上限 = ⌊9 ÷ 1.1h/人⌋ = 8 人');
-    return dcard('D', '账单D · 该配几个主管', `需 ${D.managerNeeded} 主管 · 缺 ${D.gap}`, `${D.gap}`, '主管缺口', body);
+    let body = plain3('这些人需要几个主管带？',
+      `需要 <b>${D.managerNeeded}</b> 个主管，现在缺 <b>${D.gap}</b> 个`,
+      '一个主管开完会、处理完杂事，每周能实实在在带人的时间就 9 小时左右——最多带好 8 个人，超了就是放羊。');
+    body += h.tbl([{ t: '一步步看' }, { t: '数值', num: 1 }], rows);
+    body += killer(`你要招的不只是 ${S6} 个销售，还有 ${D.gap} 个主管——没人带的新人，走得更快、出活更慢。`);
+    return dcard('D', '账单D · 该配几个主管', `需 ${D.managerNeeded} 个 · 缺 ${D.gap} 个`, `${D.gap}`, '还缺几个主管', body);
   }
   function cardEHtml(R) {
+    const c = SK.DB.company;
     const E = R.E, light = E.light, dot = light === 'green' ? '🟢' : light === 'amber' ? '🟡' : '🔴';
     const rows = [
-      ['规模分（人越多越懈怠）', E.sizeScore.toFixed(0)], ['互补分', E.compScore.toFixed(0)],
-      ['可见分（能否精确到人头）', E.visScore.toFixed(0)],
-      ['团队激励适配 TIS', `<b>${E.TIS.toFixed(0)}</b>（≥70 绿 / 40–70 黄 / <40 红）`],
+      ['团队大小（人越多，越容易有人躺平沾光）', E.sizeScore.toFixed(0) + ' 分'],
+      ['要不要互相配合（越需要配合，团队奖越有用）', E.compScore.toFixed(0) + ' 分'],
+      ['谁的功劳分不分得清（分得越清，越该发个人奖）', E.visScore.toFixed(0) + ' 分'],
+      ['综合打分', `<b>${E.TIS.toFixed(0)}</b> 分（70 分以上再发）`],
     ].map(([a, b]) => `<tr><td>${a}</td><td class="num">${b}</td></tr>`);
     const tone = light === 'green' ? '' : light === 'amber' ? 'a' : 'r';
-    const msg = light === 'green' ? '小团队 + 互补 + 可见——团队奖能活。'
-      : light === 'amber' ? '介于之间：发团队奖前先确认贡献可见度。'
-      : '人多、各干各的、说不清谁干的——团队奖只会喂出搭便车。';
-    let body = h.tbl([{ t: '维度' }, { t: '得分', num: 1 }], rows);
-    body += h.meter(E.TIS / 100, tone, [0.4, 0.7]) + meterCap('0', '红 <40 · 黄 40–70 · 绿 ≥70', '100');
-    body += killer(msg);
-    body += h.src('📎 TIS = 0.4×规模分 + 0.3×互补分 + 0.3×可见分；规模分 8 人满分线性递减至 20 人归零');
-    return dcard('E', '账单E · 团队奖该不该发', `TIS ${E.TIS.toFixed(0)}`, `${dot} ${E.TIS.toFixed(0)}`, '团队激励适配分', body);
+    const msg = light === 'green' ? '可以发：团队小、要配合、功劳看得清——团队奖能起作用。'
+      : light === 'amber' ? '慎发：先弄清楚谁的功劳是谁的，再考虑团队奖。'
+      : '别发：人多、各干各的、分不清谁的功——团队奖只会养懒人。';
+    let body = plain3('团队奖该不该发？', `${dot} <b>${msg.slice(0, msg.indexOf('：'))}</b>（${E.TIS.toFixed(0)} 分，70 分及格）`,
+      msg.slice(msg.indexOf('：') + 1));
+    body += `<div class="grid g2" style="margin-bottom:8px">
+      ${h.field('你的团队怎么干活', h.seg('company.complementLevel', ENUMS.complementLevel.map(([v, t]) => ({ v, t })), c.complementLevel), '改一下，分数实时变')}
+      ${h.field('谁签的单分得清吗', h.seg('company.attributableLevel', ENUMS.attributableLevel.map(([v, t]) => ({ v, t })), c.attributableLevel))}
+    </div>`;
+    body += h.tbl([{ t: '打分依据' }, { t: '得分', num: 1 }], rows);
+    body += h.meter(E.TIS / 100, tone, [0.4, 0.7]) + meterCap('0', '40 以下别发 · 40–70 慎发 · 70 以上可发', '100');
+    return dcard('E', '账单E · 团队奖该不该发', msg.slice(0, msg.indexOf('：')), `${dot} ${E.TIS.toFixed(0)}`, '团队奖打分', body);
   }
 
   /* ---- 方案风洞 ---- */
@@ -2106,12 +2139,13 @@ const SK = (() => {
     ensureAudit();
     const R = results();
     if (!R || !R.A) {
-      return `<div class="sect"><h2>方案风洞</h2></div>
-        ${h.banner('🌀 方案风洞需要先有方案——先到「输入面板」把定薪基准与目标填全，再回来给方案做风洞测试。', 'n')}
-        ${h.btn('去输入面板', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
+      return `<div class="sect"><h2>防钻空子体检</h2></div>
+        ${h.banner('先到「三步定薪」把底薪和目标填好，再回来做体检。', 'n')}
+        ${h.btn('去三步定薪', 'ui.nav', { cls: 'pri', data: 'data-board="dingjia" data-sub="input"' })}`;
     }
-    return `<div class="sect"><h2>方案风洞</h2><span class="sub">发之前，先看它会被怎么玩。</span></div>
-      ${wtMenuHtml(R)}${wtGatesHtml(R)}${wtGuardrailHtml(R)}${wtSandboxHtml()}`;
+    return `<div class="sect"><h2>防钻空子体检 <span class="hint" style="font-weight:400">（选用的专业检查）</span></h2><span class="sub">方案发下去之前，先模拟员工会怎么钻空子。四个检查独立使用，看得懂哪个用哪个。</span>
+      <span style="margin-left:auto">${h.btn('← 回五张账单', 'ui.nav', { cls: 'sm ghost', data: 'data-board="dingjia" data-sub="dash"' })}</span></div>
+      ${wtGatesHtml(R)}${wtSandboxHtml()}${wtMenuHtml(R)}${wtGuardrailHtml(R)}`;
   }
   function wtMenuHtml(R) {
     const A = R.A;
@@ -2130,24 +2164,24 @@ const SK = (() => {
             <div class="hint" style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">${names[i]}</div>
             <div class="mono" style="font-size:21px;font-weight:780;margin:7px 0 2px">${fmt.wan(t.quota)}</div>
             <div class="mono" style="color:var(--accent);font-weight:680">奖金 ${fmt.yuan(t.bonus)}</div>
-            <div class="hint" style="margin-top:7px">达标概率 ${fmt.pct(t.P)} · 单位回报 ${(t.bonus / (t.quota / 1e6)).toFixed(1)} 元/万 · 偏差 ${(t.dev * 100).toFixed(2)}%</div>
+            <div class="hint" style="margin-top:7px">大约 ${fmt.pct(t.P)} 的人能干到 · 每做 1 万任务奖 ${(t.bonus / (t.quota / 1e6)).toFixed(0)} 元</div>
           </div>`).join('') + `</div>`;
-        body += h.hint('三档对你的期望成本完全相等（偏差 ≤3%）。选择一经登记不可撤销：他选的目标他认，你印的奖金你不能改。📎 Bommaraju & Hohenberg (2018) JM 82(5)。');
-        if (menuRes.adjusted) body += h.hint('稳妥档奖金按激励相容规则下调，期望成本略低于基准——偏差方向对你有利。');
+        body += h.hint('三档你平均要花的钱完全一样（误差 ≤3%）——员工挑哪档你都不吃亏。选择一经登记不可撤销：他选的目标他认，你承诺的奖金你不能改。');
+        if (menuRes.adjusted) body += h.hint('稳妥档奖金自动微调过（保证「干得越多、单位回报越高」），微调方向对你有利。');
         body += `<div style="margin-top:10px">${h.btn('登记选择（不可撤销 🔒）', 'dj.menu-reg', { cls: 'sm' })}</div>`;
       }
     }
-    return h.card('① 自选激励菜单（三档等价）', `<p class="hint" style="margin-bottom:8px">同样的钱，把「派下去的目标」换成「三选一菜单」——你一分钱不多花，买到每个人对自己选择的承诺。</p>${body}`);
+    return h.card('③ 目标改成三选一（进阶玩法）', `<p class="hint" style="margin-bottom:8px">同样的预算，把「派下去的任务」换成「稳妥/标准/冲刺三档自己挑」——你一分钱不多花，员工却对自己挑的目标更认账。填一个基准任务和基准奖金，系统生成等价三档。</p>${body}`);
   }
   function wtGatesHtml(R) {
     const a = SK.DB.audit;
     const sz = SK.X('suanzhang');
     const p90Real = (sz && sz.realP90Factor != null) ? sz.realP90Factor : null;
     let out = `<div class="grid g2" style="margin-bottom:0">
-      ${h.field('岗位类型', h.seg('audit.positionType', ENUMS.positionType.map(([v, t]) => ({ v, t })), a.positionType))}
-      ${h.field('现行提成基数', h.seg('audit.currentCommissionBase', ENUMS.commissionBaseType.map(([v, t]) => ({ v, t })), a.currentCommissionBase))}
+      ${h.field('要检查的岗位', h.seg('audit.positionType', ENUMS.positionType.map(([v, t]) => ({ v, t })), a.positionType))}
+      ${h.field('这个岗位现在按什么提成', h.seg('audit.currentCommissionBase', ENUMS.commissionBaseType.map(([v, t]) => ({ v, t })), a.currentCommissionBase))}
     </div>
-    ${h.field('现行底薪（元/月）', h.input('audit.currentBaseSalaryAmt', 'fen-yuan', { value: a.currentBaseSalaryAmt != null ? Math.round(a.currentBaseSalaryAmt / 100) : '', ph: '如 6000' }))}`;
+    ${h.field('现在给的底薪（元/月）', h.input('audit.currentBaseSalaryAmt', 'fen-yuan', { value: a.currentBaseSalaryAmt != null ? Math.round(a.currentBaseSalaryAmt / 100) : '', ph: '如 6000' }))}`;
     if (a.currentBaseSalaryAmt != null && a.currentBaseSalaryAmt > 0) {
       const fr = gateFraudRisk(a, R.inp, p90Real);
       const p90Src = p90Real != null ? `（算账器真实值）${h.linked('算账器联动')}` : '（全球默认 1.8）';
@@ -2155,18 +2189,18 @@ const SK = (() => {
         ? `造假风险闸：人均目标为真实产能上限的 ${fmt.pct(fr.ratioCur)}（未过 130% 红线）。p90 口径 ${fr.p90Eff}${p90Src}。`
         : `${W_TEXT[fr.code](fr)}<div class="hint" style="margin-top:4px">p90 口径 ${fr.p90Eff}${p90Src}</div>`);
     } else {
-      out += h.hint('填入现行底薪后，这里会出「造假风险闸」判定（富国银行方程）。');
+      out += h.hint('填一下你现在给的底薪，系统判断「目标 vs 底薪」这个组合会不会把人逼到造假那条路上。');
     }
     const al = gateAlignment(a);
-    out += gate(al.light, al.code === 'ok' ? '同向性闸：提成基数与客户利益同向，通过。' : W_TEXT[al.code]());
-    return h.card('② 造假风险闸 + 同向性闸', `<p class="hint" style="margin-bottom:8px">你的方案会不会逼人造假？提成基数是否与客户利益反向？</p>${out}`);
+    out += gate(al.light, al.code === 'ok' ? '提成方向检查：员工多挣钱的方向 = 客户得好处的方向，没问题。' : W_TEXT[al.code]());
+    return h.card('① 会不会逼人造假 / 提成方向对不对', `<p class="hint" style="margin-bottom:8px">两个致命检查：目标定太高+底薪太低会逼人造假；提成方向不对会让员工坑客户。只有纯销售岗的公司，岗位类型选「纯销售」即可。</p>${out}`);
   }
   function wtGuardrailHtml(R) {
     const a = SK.DB.audit;
     const segBtns = ENUMS.guardrailMetric.map(([v, t]) =>
       h.btn(t + (a.guardrailMetric === v ? ' ✓' : ''), 'dj.guard', { cls: 'sm' + (a.guardrailMetric === v ? ' pri' : ' ghost'), data: `data-v="${v}"` })).join(' ');
-    let out = h.field('护栏指标（点选，再点取消）', `<div style="display:flex;gap:6px;flex-wrap:wrap">${segBtns}</div>`);
-    out += h.field('过程「最低要求」条数', `<div style="display:flex;align-items:center;gap:8px">
+    let out = h.field('挑一个兜底指标一起盯（点选，再点取消）', `<div style="display:flex;gap:6px;flex-wrap:wrap">${segBtns}</div>`, '不用精确数字——你平时看哪个顺手就选哪个，目的是别让回款一个数遮住所有问题');
+    out += h.field('你现在设了几条「最低要求」（日报条数、打卡次数这类）', `<div style="display:flex;align-items:center;gap:8px">
       ${h.btn('−', 'dj.pr', { cls: 'sm ghost', data: 'data-d="-1"' })}<b style="min-width:24px;text-align:center">${a.processRedlineCount}</b>${h.btn('＋', 'dj.pr', { cls: 'sm ghost', data: 'data-d="1"' })}</div>`);
     const gr = checkGuardrail(true, a.guardrailMetric);
     if (gr.locked) out += gate('amber', W_TEXT['W-22']());
@@ -2174,13 +2208,13 @@ const SK = (() => {
     if (pr.warn) out += gate('amber', W_TEXT['W-23'](pr));
     out += `<label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;margin:8px 0;font-size:13px;cursor:pointer">
       <input type="checkbox" data-bind="audit.explorationMode" data-type="bool" ${a.explorationMode ? 'checked' : ''}>
-      <span>开拓型任务：启用探索合同（禁用月度冲刺与菜单）</span></label>`;
+      <span>我在开新市场 / 推新产品：用「保底期」代替月度提成压人</span></label>`;
     if (a.explorationMode) {
       const ec = explorationContract(R.inp);
       out += gate('green', `📋 ${W_TEXT['W-24'](ec)}`);
-      out += h.hint('开拓期已禁用短期冲刺与菜单：探索要的是试错空间，不是月度压强。');
+      out += h.hint('开拓期不搞月度冲刺：新市场要的是试错空间，不是月度压强。');
     }
-    return h.card('③ 护栏配对 · 过程红线 · 探索合同', `<p class="hint" style="margin-bottom:8px">每个强目标必须配一个护栏；过程红线要少而致命；新战场用新契约。</p>${out}`);
+    return h.card('④ 防动作变形（进阶）', `<p class="hint" style="margin-bottom:8px">只盯回款一个数，员工的动作会变形（砍价、乱承诺、冷落老客）。这里帮你配一个「兜底指标」一起盯；「最低要求」别设太多；开新市场用保底期代替月度提成。</p>${out}`);
   }
   function wtSandboxHtml() {
     const a = SK.DB.audit;
@@ -2195,7 +2229,7 @@ const SK = (() => {
           <td><label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" data-act="dj.claim" data-m="${r.measure}" ${a.claimedOutlets.includes(r.measure) ? 'checked' : ''}><span>${r.watch}</span></label></td></tr>`));
       out += gate('amber', `🚰 ${W_TEXT['W-25']({ n: rows.length })}`);
     }
-    return h.card('④ 漏水导流沙盘', `<p class="hint" style="margin-bottom:8px">你堵一个洞，水就从别处漏。选一个付得起的出口，让它可见、可归因。</p>${out}`);
+    return h.card('② 你的管控会被从哪儿钻空子', `<p class="hint" style="margin-bottom:8px">勾选你现在用的管控手段（不许降价、月底冲刺……），系统告诉你员工会从哪儿绕过去、代价是什么。堵不死所有口子——挑一个你付得起的盯住就行。</p>${out}`);
   }
 
   /* ---- 场景与信用书 ---- */
@@ -2225,7 +2259,7 @@ const SK = (() => {
           <div class="hint">底薪 ${fmt.yuan(cv.snapshot.baseSalaryAmt)} · 达标 ${fmt.yuan(cv.snapshot.thresholdTAmt)} · ${cv.issuedDate}</div></span>
           <b>${h.btn('查看/重打', 'dj.cov-show', { cls: 'sm ghost', data: `data-id="${cv.covenantId}"` })}</b></div>`).join('')
         : h.hint('还没有签发的信用书。到「五张账单」点“签发信用书”。')) + `<div style="margin-top:8px">${h.btn('签发招聘信用书', 'dj.cov-issue', { cls: 'sm pri' })}</div>`
-        + h.hint('信用书是当前定薪结果的 irrevocable 快照——一经签发，条款不因业绩上调而单方下调。'))}
+        + h.hint('信用书 = 把「底薪多少、提成多少」白纸黑字发给候选人，一经签发不能反悔下调——招人时最有说服力的一张纸。'))}
     </div>
     ${h.card(`菜单登记（不可撤销 🔒 · ${mcs.length} 条）`, mcs.length ? h.tbl(
       [{ t: '销售' }, { t: '所选档' }, { t: '配额', num: 1 }, { t: '奖金', num: 1 }, { t: '登记日', num: 1 }],
@@ -2233,7 +2267,7 @@ const SK = (() => {
         const tierIdx = { low: 0, mid: 1, high: 2 }[m.chosenTier], t = m.menuSnapshot && m.menuSnapshot[tierIdx];
         return `<tr><td><b>${esc(m.salespersonName)}</b></td><td>${{ low: '稳妥档', mid: '基准档', high: '冲刺档' }[m.chosenTier] || m.chosenTier} 🔒</td>
           <td class="num">${t ? fmt.wan(t.quotaAmt) : DASH}</td><td class="num">${t ? fmt.yuan(t.bonusAmt) : DASH}</td><td class="num">${m.chosenDate}</td></tr>`;
-      })) : h.hint('还没有登记的菜单选择。到「方案风洞 · ①菜单」生成三档后登记。'))}`;
+      })) : h.hint('还没有登记的三选一目标。到「五张账单 → 防钻空子体检 → 目标改成三选一」生成后登记。'))}`;
   }
   function covModalHtml(cv) {
     const s = cv.snapshot;
@@ -2359,13 +2393,13 @@ const SK = (() => {
   /* ================= 7. 模块注册 ================= */
   SK.registerModule({
     id: 'dingjia', title: '定价', icon: '💰', order: 2,
-    subnav: [{ id: 'input', label: '输入面板' }, { id: 'dash', label: '五张账单' }, { id: 'wt', label: '方案风洞' }, { id: 'data', label: '场景与信用书' }],
+    subnav: [{ id: 'input', label: '三步定薪' }, { id: 'dash', label: '五张账单' }, { id: 'data', label: '场景与信用书' }],   // 「防钻空子体检」（原方案风洞）从账单页进入，不占前台
     liveCells() {
       const dj = SK.X('dingjia'); if (!dj) return [];
       const b = dj.burdenRate;
       return [
-        { k: '今年漏损', v: dj.total != null ? fmt.wan(dj.total) : DASH, tone: dj.total != null ? 'red' : 'dim', board: 'dingjia', sub: 'dash', tip: '流失总账 + 产能高估暴露——「按老算法办事」的价格' },
-        { k: '全链负担', v: b != null ? fmt.pct(b) : DASH, tone: b == null ? 'dim' : (b > 0.35 ? 'red' : b < 0.25 ? 'amber' : 'green'), board: 'dingjia', sub: 'dash', tip: '全链提成占目标毛利 · 健康带 25–35%' },
+        { k: '今年漏损', v: dj.total != null ? fmt.wan(dj.total) : DASH, tone: dj.total != null ? 'red' : 'dim', board: 'dingjia', sub: 'dash', tip: '人员流失 + 少招人，今年要白亏的钱（账单B+C）' },
+        { k: '提成盘子', v: b != null ? fmt.pct(b) : DASH, tone: b == null ? 'dim' : (b > 0.35 ? 'red' : b < 0.25 ? 'amber' : 'green'), board: 'dingjia', sub: 'dash', tip: '全公司提成占目标毛利 · 25–35% 之间健康' },
       ];
     },
     alerts() { return this.alertList().filter(a => a.tone === 'r').length; },
@@ -2373,18 +2407,18 @@ const SK = (() => {
       const dj = SK.X('dingjia'); if (!dj || !dj.results) return [];
       const R = dj.results, out = [], go = { board: 'dingjia', sub: 'dash' };
       if (R.A) {
-        if (R.A.anyBlocked) out.push(Object.assign({ tone: 'r', text: '定价 W-02：' + GATE_BRIEF['W-02'] }, go));
+        if (R.A.anyBlocked) out.push(Object.assign({ tone: 'r', text: '定价：' + GATE_BRIEF['W-02'] }, go));
         R.A.gates.forEach(g => {
           if (g.id === 1 || g.code === 'ok') return;
           const brief = GATE_BRIEF[g.code]; if (!brief) return;
-          if (g.light === 'red' || g.light === 'amber') out.push(Object.assign({ tone: g.light === 'red' ? 'r' : 'a', text: `定价 ${g.code}：${brief}` }, go));
+          if (g.light === 'red' || g.light === 'amber') out.push(Object.assign({ tone: g.light === 'red' ? 'r' : 'a', text: `定价：${brief}` }, go));
         });
       }
-      if (R.B && R.B.isLate) out.push(Object.assign({ tone: 'r', text: `定价 · 最晚开招日 ${R.B.latestHire} 已过（晚 ${R.B.lateDays} 天）——目标从今天就开始漏` }, go));
-      if (R.B && R.B.stretch) out.push(Object.assign({ tone: 'a', text: '定价 W-09：人均目标超满产真实水平 120%（人人满产幻觉）' }, go));
+      if (R.B && R.B.isLate) out.push(Object.assign({ tone: 'r', text: `定价：最晚开招日 ${R.B.latestHire} 已过（晚 ${R.B.lateDays} 天）——目标从今天就开始漏` }, go));
+      if (R.B && R.B.stretch) out.push(Object.assign({ tone: 'a', text: '定价：人均任务超真实水平 120%——「人人满产」是幻觉' }, go));
       if (R.E && R.E.light !== 'green') out.push(Object.assign({
         tone: R.E.light === 'red' ? 'r' : 'a',
-        text: `定价 · 团队奖 TIS ${R.E.TIS.toFixed(0)}${R.E.light === 'red' ? '：团队奖只会喂出搭便车' : '：发团队奖前先确认贡献可见度'}`,
+        text: `定价：团队奖打分 ${R.E.TIS.toFixed(0)}（70 及格）${R.E.light === 'red' ? '——别发，会养懒人' : '——慎发，先分清谁的功劳'}`,
       }, go));
       return out;
     },
