@@ -48,6 +48,20 @@ export default function App() {
   return (
     <StateCtx.Provider value={{ state, refresh }}>
       <div className="mx-auto min-h-dvh max-w-lg pb-20">
+        {import.meta.env.VITE_DEMO && (
+          <div className="flex items-center justify-between bg-amber-100 px-3 py-1.5 text-xs text-amber-800">
+            <span>体验版 · 数据只存在当前浏览器</span>
+            <button
+              className="underline"
+              onClick={() => {
+                try { localStorage.removeItem('funnel_demo_db'); } catch { /* 沙箱可能禁用 */ }
+                window.location.reload();
+              }}
+            >
+              重置示例数据
+            </button>
+          </div>
+        )}
         {error && (
           <div className="m-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}

@@ -23,8 +23,14 @@ export default function CustomerDetail() {
   const nav = useNavigate();
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const [editing, setEditing] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
+  // 内联确认（不用原生弹窗）：'lost' | 'release' 展开原因输入；delete/成员删除用两次点击
+  const [pending, setPending] = useState<null | 'lost' | 'release'>(null);
+  const [reason, setReason] = useState('');
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [memberArmed, setMemberArmed] = useState(-1);
 
   const c = state?.customers.find((x) => x.id === id);
   if (!state) return <p className="p-6 text-center text-sm text-slate-400">加载中…</p>;
@@ -39,24 +45,31 @@ export default function CustomerDetail() {
 
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
+    setErr('');
     try {
       await fn();
       await refresh();
     } catch (e) {
-      alert((e as Error).message);
+      setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
 
+  function resetConfirms() {
+    setPending(null);
+    setReason('');
+    setDeleteArmed(false);
+    setMemberArmed(-1);
+  }
+
   function changeStage(to: string) {
+    resetConfirms();
     if (to === LOST) {
-      const reason = prompt('流失原因（如：价格、没时间、选了别家）');
-      if (reason === null) return;
-      void run(() => setStage(c!.id, LOST, reason));
-    } else {
-      void run(() => setStage(c!.id, to));
+      if (c!.stage !== LOST) setPending('lost');
+      return;
     }
+    void run(() => setStage(c!.id, to));
   }
 
   function submitNote(e: React.FormEvent) {
@@ -71,11 +84,6 @@ export default function CustomerDetail() {
   function saveMember(m: Member) {
     void run(() => updateCustomer(c!.id, { members: [...c!.members, m] }));
     setAddingMember(false);
-  }
-
-  function removeMember(i: number) {
-    if (!confirm(`删除成员「${c!.members[i].name}」？`)) return;
-    void run(() => updateCustomer(c!.id, { members: c!.members.filter((_, j) => j !== i) }));
   }
 
   const days = daysSince(c.lastFollowUpAt);
@@ -100,6 +108,7 @@ export default function CustomerDetail() {
       </div>
 
       {c.note && <p className="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">{c.note}</p>}
+      {err && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
 
       {/* 阶段流转 */}
       <div className="mt-4">
@@ -129,21 +138,36 @@ export default function CustomerDetail() {
             {LOST}
           </button>
         </div>
+        {pending === 'lost' && (
+          <div className="mt-2 flex gap-2 rounded-xl border border-slate-300 bg-white p-2">
+            <input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="流失原因（如：价格、没时间、选了别家）"
+              autoFocus
+              className="flex-1 rounded-lg px-2 py-1.5 text-sm outline-none"
+            />
+            <button
+              disabled={busy}
+              onClick={() => { const r = reason; resetConfirms(); void run(() => setStage(c.id, LOST, r)); }}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white"
+            >
+              确认流失
+            </button>
+            <button onClick={resetConfirms} className="px-1 text-sm text-slate-400">取消</button>
+          </div>
+        )}
         {c.stage === LOST && c.lostReason && (
           <p className="mt-1.5 text-xs text-slate-500">流失原因：{c.lostReason}</p>
         )}
       </div>
 
-      {/* 公海操作 */}
-      <div className="mt-3 flex gap-2">
+      {/* 公海 / 编辑 / 删除 */}
+      <div className="mt-3 flex flex-wrap gap-2">
         {c.owner === 'me' ? (
           <button
             disabled={busy}
-            onClick={() => {
-              const reason = prompt('放回公海的原因（可空）');
-              if (reason === null) return;
-              void run(() => release(c.id, reason));
-            }}
+            onClick={() => { resetConfirms(); setPending('release'); }}
             className="rounded-lg bg-cyan-50 px-3 py-1.5 text-sm text-cyan-700"
           >
             放回公海
@@ -151,7 +175,7 @@ export default function CustomerDetail() {
         ) : (
           <button
             disabled={busy}
-            onClick={() => void run(() => claim(c.id))}
+            onClick={() => { resetConfirms(); void run(() => claim(c.id)); }}
             className="rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white"
           >
             认领到私海
@@ -159,7 +183,7 @@ export default function CustomerDetail() {
         )}
         <button
           disabled={busy}
-          onClick={() => setEditing((v) => !v)}
+          onClick={() => { resetConfirms(); setEditing((v) => !v); }}
           className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-600"
         >
           {editing ? '收起编辑' : '编辑资料'}
@@ -167,17 +191,39 @@ export default function CustomerDetail() {
         <button
           disabled={busy}
           onClick={() => {
-            if (!confirm(`确定删除「${c.name}」？跟进记录一并删除，不可恢复`)) return;
+            if (!deleteArmed) { resetConfirms(); setDeleteArmed(true); return; }
             void run(async () => { await deleteCustomer(c.id); nav('/customers'); });
           }}
-          className="ml-auto rounded-lg px-3 py-1.5 text-sm text-red-500"
+          className={`ml-auto rounded-lg px-3 py-1.5 text-sm ${
+            deleteArmed ? 'bg-red-600 font-semibold text-white' : 'text-red-500'
+          }`}
         >
-          删除
+          {deleteArmed ? '再点一次确认删除' : '删除'}
         </button>
       </div>
 
+      {pending === 'release' && (
+        <div className="mt-2 flex gap-2 rounded-xl border border-slate-300 bg-white p-2">
+          <input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="放回公海的原因（可空）"
+            autoFocus
+            className="flex-1 rounded-lg px-2 py-1.5 text-sm outline-none"
+          />
+          <button
+            disabled={busy}
+            onClick={() => { const r = reason; resetConfirms(); void run(() => release(c.id, r)); }}
+            className="rounded-lg bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white"
+          >
+            确认
+          </button>
+          <button onClick={resetConfirms} className="px-1 text-sm text-slate-400">取消</button>
+        </div>
+      )}
+
       {editing && <EditForm id={c.id} name={c.name} source={c.source} note={c.note}
-        onDone={() => { setEditing(false); void refresh(); }} />}
+        onDone={() => { setEditing(false); void refresh(); }} onError={setErr} />}
 
       {/* 家庭成员 */}
       <div className="mt-5">
@@ -201,7 +247,18 @@ export default function CustomerDetail() {
                     .filter(Boolean).join(' · ') || '无联系方式'}
                 </div>
               </div>
-              <button onClick={() => removeMember(i)} className="text-xs text-slate-300">✕</button>
+              <button
+                onClick={() => {
+                  if (memberArmed !== i) { resetConfirms(); setMemberArmed(i); return; }
+                  resetConfirms();
+                  void run(() => updateCustomer(c.id, { members: c.members.filter((_, j) => j !== i) }));
+                }}
+                className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${
+                  memberArmed === i ? 'bg-red-600 font-semibold text-white' : 'text-slate-300'
+                }`}
+              >
+                {memberArmed === i ? '确认删除' : '✕'}
+              </button>
             </div>
           ))}
           {addingMember && <MemberForm onSave={saveMember} />}
@@ -242,15 +299,16 @@ export default function CustomerDetail() {
   );
 }
 
-function EditForm({ id, name, source, note, onDone }: {
-  id: string; name: string; source: string; note: string; onDone: () => void;
+function EditForm({ id, name, source, note, onDone, onError }: {
+  id: string; name: string; source: string; note: string;
+  onDone: () => void; onError: (msg: string) => void;
 }) {
   const [form, setForm] = useState({ name, source, note });
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        void updateCustomer(id, form).then(onDone).catch((err) => alert((err as Error).message));
+        void updateCustomer(id, form).then(onDone).catch((err) => onError((err as Error).message));
       }}
       className="mt-3 space-y-2 rounded-xl border border-slate-200 bg-white p-3"
     >

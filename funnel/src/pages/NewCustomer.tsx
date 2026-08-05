@@ -10,6 +10,7 @@ export default function NewCustomer() {
   const { refresh } = useAppState();
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const [form, setForm] = useState({
     name: '', relation: '孩子' as Relation, phone: '',
     parentName: '', parentPhone: '',
@@ -20,6 +21,7 @@ export default function NewCustomer() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setBusy(true);
+    setErr('');
     try {
       const members: Member[] = [];
       // 主姓名同时作为一名成员，身份可选（默认孩子——教培场景孩子是服务对象）
@@ -35,8 +37,8 @@ export default function NewCustomer() {
       });
       await refresh();
       nav(`/customers/${c.id}`);
-    } catch (err) {
-      alert((err as Error).message);
+    } catch (e) {
+      setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -47,6 +49,7 @@ export default function NewCustomer() {
   return (
     <div className="px-4 py-5">
       <h1 className="text-lg font-bold">快速录入</h1>
+      {err && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
       <form onSubmit={submit} className="mt-4 space-y-3">
         <div className="flex gap-2">
           <select
