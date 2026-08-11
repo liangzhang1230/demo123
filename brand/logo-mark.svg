@@ -4,6 +4,6 @@
   <!-- 撇捺：微曲，呼应「人」的书法笔意（竖粗） -->
   <path d="M120 84 Q110 142 64 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
   <path d="M120 84 Q130 142 176 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
-  <!-- 人首：朱砂，大半露于梁上，既是头也是支点 -->
-  <circle cx="120" cy="70" r="13" fill="#C93A2B"/>
+  <!-- 支点：朱砂，唯一的色彩记忆点 -->
+  <circle cx="120" cy="84" r="13" fill="#C93A2B"/>
 </svg>

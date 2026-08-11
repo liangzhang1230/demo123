@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="老良人价 头像">
   <circle cx="120" cy="120" r="120" fill="#1A1A1E"/>
-  <g transform="translate(45.6 40.6) scale(0.62)">
+  <g transform="translate(45.6 38.2) scale(0.62)">
     <path d="M33 72 L207 96" fill="none" stroke="#F7F5F0" stroke-width="14" stroke-linecap="round"/>
     <path d="M120 84 Q110 142 64 190" fill="none" stroke="#F7F5F0" stroke-width="19" stroke-linecap="round"/>
     <path d="M120 84 Q130 142 176 190" fill="none" stroke="#F7F5F0" stroke-width="19" stroke-linecap="round"/>
-    <circle cx="120" cy="70" r="14" fill="#E05A44"/>
+    <circle cx="120" cy="84" r="14" fill="#E05A44"/>
   </g>
 </svg>
