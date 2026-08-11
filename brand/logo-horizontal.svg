@@ -3,7 +3,7 @@
     <path d="M33 72 L207 96" fill="none" stroke="#1A1A1E" stroke-width="13" stroke-linecap="round"/>
     <path d="M120 84 Q110 142 64 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
     <path d="M120 84 Q130 142 176 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
-    <circle cx="120" cy="84" r="13" fill="#C93A2B"/>
+    <circle cx="120" cy="70" r="13" fill="#C93A2B"/>
   </g>
   <text x="228" y="106" font-family="'Songti SC','Noto Serif CJK SC','Source Han Serif SC','SimSun',serif" font-size="58" font-weight="700" letter-spacing="8" fill="#1A1A1E">老良人价</text>
   <text x="231" y="150" font-family="'PingFang SC','Hiragino Sans GB','Source Han Sans SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="19" letter-spacing="13" fill="#8A867E">销售人才定价</text>
