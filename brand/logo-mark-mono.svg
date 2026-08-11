@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="老良人价 标记（单色）">
+  <path d="M33 72 L207 96" fill="none" stroke="#1A1A1E" stroke-width="13" stroke-linecap="round"/>
+  <path d="M120 84 Q110 142 64 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
+  <path d="M120 84 Q130 142 176 190" fill="none" stroke="#1A1A1E" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="120" cy="84" r="13" fill="#1A1A1E"/>
+</svg>
