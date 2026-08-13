@@ -4,148 +4,174 @@
 <meta charset="UTF-8">
 <title>张良·销售业绩操盘手</title>
 <style>
-  @page { size: 340pt 2482pt; margin: 0; }
+  @page { size: 340pt 2662pt; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   :root {
     --navy: #16213c; --navy2: #0f1830; --gold: #c9a45c; --gold-d: #9d7c38;
-    --ink: #1a2030; --muted: #565d6e; --paper: #faf8f2; --line: #e7e0d1;
+    --ink: #212836; --muted: #6a7180; --paper: #faf8f2; --line: #e7e0d1;
   }
-  html, body { width: 340pt; }
-  body { font-family: 'Noto Serif CJK SC', 'Noto Sans CJK SC', serif; font-weight: 500; color: var(--ink); background: var(--paper); }
-  b, strong { font-weight: 900; }
+  html, body { width: 340pt; } 
+  /* 正文＝黑体 Regular；标题与点缀＝宋体 Black（与原版同配方） */
+  body { font-family: 'Noto Sans CJK SC', sans-serif; font-weight: 400; color: var(--ink); background: var(--paper); }
+  b, strong { font-weight: 700; }
+  .serif { font-family: 'Noto Serif CJK SC', serif; font-weight: 900; }
 
-  /* ============ header ============ */
-  .hd { background: var(--navy); color: #fff; padding: 26pt 22pt 20pt; }
-  .hd .name { font-size: 28pt; font-weight: 900; letter-spacing: 5pt; }
-  .hd .name span { font-size: 13.5pt; color: var(--gold); font-weight: 700; letter-spacing: 3pt; margin-left: 8pt; }
-  .hd .sub { margin-top: 9pt; font-size: 10pt; color: #aab3c7; letter-spacing: 1.5pt; }
-  .hd .telbar { margin-top: 12pt; background: var(--navy2); border-radius: 4pt; padding: 8pt 12pt; display: flex; justify-content: space-between; align-items: center; }
-  .hd .telbar span { font-size: 9pt; color: #aab3c7; letter-spacing: 1pt; }
-  .hd .telbar b { font-size: 16pt; color: #fff; font-weight: 900; letter-spacing: 1.5pt; }
+  /* ============ 头部 ============ */
+  .hd { background: var(--navy); color: #fff; padding: 28pt 22pt 22pt; }
+  .hd .name { font-size: 26pt; letter-spacing: 5pt; }
+  .hd .name span { font-size: 12.5pt; color: var(--gold); letter-spacing: 3pt; margin-left: 8pt; }
+  .hd .sub { margin-top: 9pt; font-size: 9.5pt; color: #a8b1c5; letter-spacing: 1.5pt; }
+  .hd .telbar { margin-top: 14pt; background: var(--navy2); border-radius: 4pt; padding: 9pt 13pt; display: flex; justify-content: space-between; align-items: center; }
+  .hd .telbar span { font-size: 9pt; color: #a8b1c5; letter-spacing: 1pt; }
+  .hd .telbar b { font-size: 15.5pt; color: #fff; letter-spacing: 1.5pt; }
 
-  /* ============ hero ============ */
-  .hero { background: #fff; padding: 22pt 22pt 20pt; }
-  .hero h1 { font-size: 21.5pt; font-weight: 900; line-height: 1.55; letter-spacing: 0.5pt; }
+  /* ============ 开门见山 ============ */
+  .hero { background: #fff; padding: 26pt 22pt 24pt; }
+  .hero h1 { font-size: 20pt; line-height: 1.6; }
   .hero h1 em { font-style: normal; color: var(--gold-d); }
-  .hero p { margin-top: 10pt; font-size: 12.5pt; line-height: 1.78; color: var(--ink); }
-  .hero .claim { margin-top: 12pt; background: var(--navy); border-left: 4pt solid var(--gold); border-radius: 3pt; padding: 10pt 12pt; }
-  .hero .claim p { margin: 0; font-size: 12pt; line-height: 1.78; color: #e2e7f2; }
-  .hero .claim b { color: var(--gold); font-weight: 900; }
+  .hero p { margin-top: 12pt; font-size: 12pt; line-height: 1.8; }
+  .hero .claim { margin-top: 14pt; background: var(--navy); border-left: 3.5pt solid var(--gold); border-radius: 3pt; padding: 12pt 14pt; }
+  .hero .claim p { margin: 0; font-size: 11.5pt; line-height: 1.8; color: #e6e6e6; }
+  .hero .claim b { color: var(--gold); }
 
-  /* ============ sections ============ */
-  .sec { padding: 26pt 22pt 4pt; }
-  .sec .st { display: flex; align-items: center; gap: 7pt; }
-  .sec .st .sq { width: 12pt; height: 12pt; background: var(--gold); flex: 0 0 auto; }
-  .sec .st h2 { font-size: 18.5pt; font-weight: 900; letter-spacing: 1pt; }
-  .sec .ss { margin: 6pt 0 13pt 19pt; font-size: 10pt; color: #8d93a3; letter-spacing: 0.5pt; }
+  /* ============ 章节 ============ */
+  .sec { padding: 34pt 22pt 2pt; }
+  .sec .st { display: flex; align-items: center; gap: 8pt; }
+  .sec .st .sq { width: 11pt; height: 11pt; background: var(--gold); flex: 0 0 auto; }
+  .sec .st h2 { font-size: 17.5pt; letter-spacing: 1pt; }
+  .sec .ss { margin: 7pt 0 14pt 19pt; font-size: 9.5pt; color: #98a0ae; letter-spacing: 0.5pt; }
 
-  /* ============ questions ============ */
-  .q { background: #fff; border-left: 3.5pt solid var(--gold); border-radius: 3pt; padding: 11pt 12pt 11pt 10pt; margin-bottom: 9pt; display: flex; gap: 9pt; box-shadow: 0 1pt 3pt rgba(22,33,60,.07); }
-  .q .n { font-size: 17pt; font-weight: 900; color: var(--gold-d); flex: 0 0 auto; margin-top: 1pt; }
-  .q p { font-size: 13pt; line-height: 1.72; font-weight: 500; }
-  .q p b { font-weight: 900; }
+  /* ============ 三个问题 ============ */
+  .q { background: #fff; border-left: 3pt solid var(--gold); border-radius: 3pt; padding: 14pt 15pt; margin-bottom: 12pt; display: flex; gap: 12pt; align-items: flex-start; box-shadow: 0 1pt 3pt rgba(22,33,60,.06); }
+  .q .n { font-size: 17pt; color: var(--gold-d); flex: 0 0 auto; margin-top: 2pt; }
+  .q p { font-size: 12.5pt; line-height: 1.8; }
   .q p .g { color: var(--gold-d); font-weight: 700; }
 
-  /* ============ steps ============ */
-  .stp { background: #fff; border-radius: 4pt; padding: 12pt 13pt; margin-bottom: 9pt; box-shadow: 0 1pt 3pt rgba(22,33,60,.07); }
-  .stp h3 { font-size: 15pt; font-weight: 900; }
-  .stp h3 em { font-style: normal; color: var(--gold-d); margin-right: 6pt; }
-  .stp p { margin-top: 5.5pt; font-size: 12pt; line-height: 1.75; color: #394153; }
-  .stp p b { font-weight: 900; color: var(--ink); }
+  /* ============ 五步 ============ */
+  .stp { background: #fff; border-radius: 4pt; padding: 13pt 15pt; margin-bottom: 11pt; box-shadow: 0 1pt 3pt rgba(22,33,60,.06); }
+  .stp h3 { font-size: 13.5pt; font-weight: 700; font-family: 'Noto Sans CJK SC', sans-serif; }
+  .stp h3 em { font-style: normal; color: var(--gold-d); margin-right: 6pt; font-family: 'Noto Serif CJK SC', serif; font-weight: 900; font-size: 14pt; }
+  .stp p { margin-top: 6pt; font-size: 11.5pt; line-height: 1.8; color: #454c5b; }
+  .stp p b { color: var(--ink); }
 
-  /* ============ cases ============ */
-  .cs { margin-bottom: 12pt; }
-  .cs .lb { font-size: 12pt; font-weight: 900; color: var(--gold-d); letter-spacing: 1pt; }
-  .cs p { margin-top: 4pt; font-size: 12.5pt; line-height: 1.75; }
-  .cs p b { font-weight: 900; font-size: 13.5pt; }
+  /* ============ 做过的事 ============ */
+  .cs { margin-bottom: 15pt; }
+  .cs .lb { font-size: 11pt; font-weight: 700; color: var(--gold-d); letter-spacing: 1.5pt; }
+  .cs p { margin-top: 5pt; font-size: 12pt; line-height: 1.8; }
+  .cs p b { font-size: 13pt; }
 
-  /* ============ modes (navy cards) ============ */
-  .md { background: var(--navy); border-radius: 5pt; padding: 13pt 14pt; margin-bottom: 10pt; color: #d9deea; }
-  .md .row { display: flex; align-items: center; gap: 8pt; margin-bottom: 6pt; }
-  .md .pill { border: 1pt solid var(--gold); color: var(--gold); font-size: 9.5pt; font-weight: 700; border-radius: 999pt; padding: 2pt 8pt; letter-spacing: 1pt; flex: 0 0 auto; }
-  .md h3 { font-size: 15.5pt; font-weight: 900; color: #fff; letter-spacing: 1pt; }
-  .md p { font-size: 12pt; line-height: 1.78; color: #dbe1ee; }
-  .md p b { color: var(--gold); font-weight: 900; }
+  /* ============ 三种方式（藏青卡·条款式） ============ */
+  .md { background: var(--navy); border-radius: 5pt; padding: 15pt 16pt 14pt; margin-bottom: 13pt; color: #e6e6e6; }
+  .md .row { display: flex; align-items: center; gap: 8pt; }
+  .md .pill { border: 1pt solid var(--gold); color: var(--gold); font-size: 9pt; font-weight: 700; border-radius: 999pt; padding: 2pt 8pt; letter-spacing: 1.5pt; flex: 0 0 auto; }
+  .md h3 { font-size: 15pt; color: #fff; letter-spacing: 1pt; }
+  .md .tag { margin-left: auto; font-size: 8.5pt; color: var(--navy); background: var(--gold); border-radius: 2pt; padding: 1.5pt 5pt; font-weight: 700; letter-spacing: 1pt; flex: 0 0 auto; }
+  .md .ess { margin-top: 7pt; font-size: 11pt; color: #9fabc4; line-height: 1.6; }
+  .md ul { list-style: none; margin-top: 8pt; }
+  .md li { font-size: 11.5pt; line-height: 1.75; padding: 2.5pt 0 2.5pt 14pt; position: relative; }
+  .md li::before { content: '▪'; position: absolute; left: 0; color: var(--gold); }
+  .md li b { color: #fff; }
+  .md .vow { margin-top: 9pt; padding-top: 8pt; border-top: 0.6pt solid rgba(201,164,92,.35); font-size: 12pt; font-weight: 700; color: var(--gold); }
 
-  /* ============ footer ============ */
-  .ft { padding: 26pt 22pt 0; text-align: center; }
-  .ft .l1 { font-size: 18.5pt; font-weight: 900; letter-spacing: 1pt; }
+  /* ============ 收尾 ============ */
+  .ft { padding: 34pt 22pt 0; text-align: center; }
+  .ft .l1 { font-size: 18pt; letter-spacing: 1pt; }
   .ft .l1 em { font-style: normal; color: var(--gold-d); }
-  .ft .l2 { margin-top: 9pt; font-size: 11.5pt; font-weight: 700; color: var(--muted); letter-spacing: 2pt; }
-  .ft .tel { margin-top: 14pt; font-size: 10.5pt; color: var(--muted); letter-spacing: 1pt; }
-  .ft .tel b { font-size: 21pt; color: var(--navy); font-weight: 900; letter-spacing: 2pt; margin-left: 6pt; }
-  .endbar { margin-top: 22pt; height: 14pt; background: var(--navy); border-top: 2.5pt solid var(--gold); }
+  .ft .l2 { margin-top: 10pt; font-size: 11pt; font-weight: 700; color: var(--muted); letter-spacing: 2.5pt; }
+  .ft .tel { margin-top: 16pt; font-size: 10pt; color: var(--muted); letter-spacing: 1pt; }
+  .ft .tel b { font-size: 20pt; color: var(--navy); letter-spacing: 2pt; margin-left: 7pt; }
+  .endbar { margin-top: 26pt; height: 14pt; background: var(--navy); border-top: 2.5pt solid var(--gold); }
 </style>
 </head>
 <body>
 
 <!-- 头部 -->
 <div class="hd">
-  <div class="name">张 良<span>销售业绩操盘手</span></div>
+  <div class="name serif">张 良<span>销售业绩操盘手</span></div>
   <div class="sub">20 年销售团队实战操盘 · 跨行业验证</div>
   <div class="telbar"><span>电话 / 微信（同号）</span><b>135 5272 5767</b></div>
 </div>
 
 <!-- 开门见山 -->
 <div class="hero">
-  <h1>只干一件事：<em>90 天</em>，给你建起一支销冠团队。</h1>
+  <h1 class="serif">只干一件事：<em>90 天</em>，给你建起一支销冠团队。</h1>
   <p><b>20 年只死磕销售团队这一件事</b>：销冠怎么招得快又多、怎么筛得又快又准、怎么驾驭得住、怎么捆得牢——卖的人又多又强，业绩才有资格谈快。</p>
   <div class="claim"><p><b>先定价，后招人。</b>企业以为自己在「招人」，其实一直在「标价」——价标错了，销冠不来，来了也走。</p></div>
 </div>
 
 <!-- 三个问题 -->
 <div class="sec">
-  <div class="st"><div class="sq"></div><h2>先问你三个问题</h2></div>
+  <div class="st"><div class="sq"></div><h2 class="serif">先问你三个问题</h2></div>
   <div class="ss">有两个答不上来或不满意，我们就有的聊</div>
-  <div class="q"><div class="n">壹</div><p>这个销售岗，<b>挂了多久了</b>？是简历太少，还是来的人不行？<span class="g">——两个答案是同一个病：这份工作的价，标错了。</span></p></div>
-  <div class="q"><div class="n">贰</div><p>同样的产品，<b>销冠一个人顶十个</b>普通销售——你团队里，有几个真销冠？</p></div>
-  <div class="q"><div class="n">叁</div><p>业绩靠<b>机制</b>自己转，还是靠你天天盯？你一松手就掉？</p></div>
+  <div class="q"><div class="n serif">壹</div><p>这个销售岗，<b>挂了多久了</b>？是简历太少，还是来的人不行？<span class="g">——两个答案，同一个病：价标错了。</span></p></div>
+  <div class="q"><div class="n serif">贰</div><p>同样的产品，<b>销冠一个人顶十个</b>普通销售——你团队里，有几个真销冠？</p></div>
+  <div class="q"><div class="n serif">叁</div><p>业绩靠<b>机制</b>自己转，还是靠你天天盯？你一松手就掉？</p></div>
 </div>
 
 <!-- 我干的活 -->
 <div class="sec">
-  <div class="st"><div class="sq"></div><h2>我干的活</h2></div>
+  <div class="st"><div class="sq"></div><h2 class="serif">我干的活</h2></div>
   <div class="ss">这套打法，我叫它「销冠组织」：定价→招→筛→管→留</div>
-  <div class="stp"><h3><em>定价</em>激励机制重设</h3><p>先把底薪和提成改成销冠「非来不可」的样子——机制挂出去，三个月内，<b>足量销冠主动来面试</b>。</p></div>
-  <div class="stp"><h3><em>招</em>招聘全程提效</h3><p>宣传吸睛、内容吸心、面试吸人——人才流量翻着涨，<b>不再是你求人来，是销冠主动来</b>。</p></div>
-  <div class="stp"><h3><em>筛</em>3–7 天筛人模型</h3><p>试岗 3 天定去留，几百块试人，不拿三个月底薪赌人——<b>庸才想混进来，门儿都没有</b>。</p></div>
-  <div class="stp"><h3><em>管</em>销售 SOP ＋ 全程 PK</h3><p>从获客到成交拆到动作、量化到人，实时 PK、即时激励——<b>业绩是从过程里逼出来的，不是等出来的</b>。</p></div>
-  <div class="stp"><h3><em>留</em>销冠与高管利益捆绑</h3><p>让能人「为自己干」，和公司捆在一条船上——<b>销冠留得死死的，水货一个也混不住</b>。</p></div>
+  <div class="stp"><h3><em>定价</em>激励机制重设</h3><p>底薪和提成，改成销冠「非来不可」的样子。机制挂出去，三个月内，<b>销冠主动来面试</b>。</p></div>
+  <div class="stp"><h3><em>招</em>招聘全程提效</h3><p>宣传吸睛、内容吸心、面试吸人——<b>不再是你求人来</b>。</p></div>
+  <div class="stp"><h3><em>筛</em>3–7 天筛人模型</h3><p>试岗 3 天定去留，几百块试人，<b>不拿三个月底薪赌人</b>。庸才想混进来，门儿都没有。</p></div>
+  <div class="stp"><h3><em>管</em>销售 SOP ＋ 全程 PK</h3><p>拆到动作、量化到人，实时 PK、即时激励——<b>业绩是逼出来的，不是等出来的</b>。</p></div>
+  <div class="stp"><h3><em>留</em>销冠与高管利益捆绑</h3><p>让能人「为自己干」，和公司捆在一条船上——<b>销冠留得死死的</b>，水货一个也混不住。</p></div>
 </div>
 
 <!-- 做过的事 -->
 <div class="sec">
-  <div class="st"><div class="sq"></div><h2>做过的事</h2></div>
+  <div class="st"><div class="sq"></div><h2 class="serif">做过的事</h2></div>
   <div class="ss">细节与数据，见面拿给你看</div>
-  <div class="cs"><div class="lb">培训行业</div><p>2 年，销售团队从 0 建起，年销售额做到 <b>2 亿</b>，规模做到北京同行头部——<b>每个数，敢当面对账</b>。</p></div>
-  <div class="cs"><div class="lb">通信行业</div><p>半年招不到人的团队，重设底薪与提成，<b>第 4 个月整体盈利</b>（跨春节淡季），1 年业绩近 <b>1000 万</b>。</p></div>
-  <div class="cs"><div class="lb">医药行业</div><p>连亏 6 年的团队，重建定薪与筛人机制，<b>第 5 个月扭亏为盈</b>，1 年招商业绩近 <b>3000 万</b>。</p></div>
+  <div class="cs"><div class="lb">培训行业</div><p>2 年从 0 建队，年销售额做到 <b>2 亿</b>，北京同行头部。每个数，敢当面对账。</p></div>
+  <div class="cs"><div class="lb">通信行业</div><p>半年招不到人的团队，重设底薪与提成，<b>第 4 个月整体盈利</b>，跨春节淡季，首年近 1000 万。</p></div>
+  <div class="cs"><div class="lb">医药行业</div><p>连亏 6 年的团队，重建定薪与筛人机制，<b>第 5 个月扭亏为盈</b>，首年招商近 3000 万。</p></div>
 </div>
 
 <!-- 合作方式 -->
 <div class="sec">
-  <div class="st"><div class="sq"></div><h2>合作方式 · 三选一</h2></div>
-  <div class="ss">风险都在我这边</div>
+  <div class="st"><div class="sq"></div><h2 class="serif">合作方式</h2></div>
+  <div class="ss">三选一——风险都在我这边</div>
+
   <div class="md">
-    <div class="row"><div class="pill">方式一</div><h3>按月顾问</h3></div>
-    <p>每周固定天数到岗，其余远程盯数据、盯机制、盯新人，按月付费，随时可停——<b>不满意，当月不付。</b>比一个全职总监便宜一半，买走的全是判断和机制。</p>
+    <div class="row"><div class="pill">其 一</div><h3 class="serif">按成果付费</h3></div>
+    <div class="ess">人，按留下的算钱；业绩，按新增的分成。</div>
+    <ul>
+      <li>保底：按你<b>一个普通销售</b>的标准。</li>
+      <li>招人：留满 2 个月、考核合格，一人一结。</li>
+      <li>分成：只分新增，按月对账，年度封顶。</li>
+      <li>基线：启动前 12 个月<b>真实数据</b>。</li>
+    </ul>
+    <div class="vow">你见过哪个总监，敢这么签？</div>
   </div>
+
   <div class="md">
-    <div class="row"><div class="pill">方式二</div><h3>按成果付费</h3></div>
-    <p><b>人，按留下的算钱；业绩，按新增的分成。</b>保底费用按你一个普通销售的标准来；我招进来的销售，<b>留满 2 个月、考核合格，一人一结</b>——猎头收完钱人走不退，我留下来才收；业绩增量再分成，以启动前 12 个月<b>真实数据</b>为基线，按月对账，年度封顶。<b>你见过哪个总监敢这么签？</b></p>
+    <div class="row"><div class="pill">其 二</div><h3 class="serif">按月顾问</h3><div class="tag">多数老板选这个</div></div>
+    <div class="ess">全职总监一半的钱，买走判断和机制。</div>
+    <ul>
+      <li>每周固定天数到岗，其余<b>远程盯数据</b>。</li>
+      <li>按月付费，当月见效，当月再续。</li>
+    </ul>
+    <div class="vow">不满意，当月不付——没有辞退成本。</div>
   </div>
+
   <div class="md">
-    <div class="row"><div class="pill">方式三</div><h3>先试后谈</h3></div>
-    <p>先免费给你出一页《销售团队人效诊断》——就三个数。觉得准，再谈合作；觉得不准，直说——<b>算不准，我认。</b></p>
+    <div class="row"><div class="pill">其 三</div><h3 class="serif">先试后谈</h3></div>
+    <div class="ess">先看货，再谈钱。</div>
+    <ul>
+      <li>免费出一页《销售团队人效诊断》，就三个数。</li>
+      <li>觉得准，再谈合作；不准，直说。</li>
+    </ul>
+    <div class="vow">算不准，我认。</div>
   </div>
 </div>
 
 <!-- 收尾 -->
 <div class="ft">
-  <div class="l1">行不行，<em>每个月都看得见</em>。</div>
-  <div class="l2" style="color:var(--ink);margin-top:10pt;font-weight:900">销冠不是招来的，是你的分钱方式筛出来的。</div>
+  <div class="l1 serif">行不行，<em>每个月都看得见</em>。</div>
+  <div class="l2" style="color:var(--ink)">销冠不是招来的，是你的分钱方式筛出来的。</div>
   <div class="l2">只和老板本人谈</div>
-  <div class="tel">电话 / 微信<b>135 5272 5767</b></div>
+  <div class="tel">电话 / 微信<b class="serif">135 5272 5767</b></div>
 </div>
 <div class="endbar"></div>
 
