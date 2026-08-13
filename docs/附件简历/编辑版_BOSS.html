@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>张良·销售业绩操盘手·可编辑版</title>
 <style>
-  @page { size: 340pt 2803pt; margin: 0; }
+  @page { size: 340pt 2825pt; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   :root {
     --green: #16213c; --green2: #0f1830; --gold: #c9a45c; --gold-d: #9d7c38;
@@ -14,34 +14,38 @@
     --wash-stone: #f2f0e9; --wash-stone-line: #e1dccb;
   }
   html, body { width: 340pt; }
-  body { font-family: 'Noto Sans CJK SC', sans-serif; font-weight: 400; color: var(--ink); background: var(--paper); }
+  body { font-family: 'Noto Sans CJK SC', sans-serif; font-weight: 400; color: var(--ink); background-color: var(--paper); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
   b, strong { font-weight: 700; }
   .serif { font-family: 'Noto Serif CJK SC', serif; font-weight: 900; }
+  .foil { color: var(--gold-d); }
 
   /* ============ 头部（墨绿） ============ */
-  .hd { background: var(--green); color: #fff; padding: 30pt 22pt 24pt; position: relative; }
+  .hd { background: radial-gradient(ellipse at 28% 12%, #1e2b50 0%, var(--green) 52%, #10192e 100%); color: #fff; padding: 30pt 22pt 24pt; position: relative; border-bottom: 2.2pt solid var(--gold); }
+  .hd::after { content: ''; position: absolute; left: 0; right: 0; bottom: -5pt; height: .7pt; background: rgba(201,164,92,.55); }
   .hd .name { font-size: 27pt; letter-spacing: 5pt; }
   .hd .name span { font-size: 12.5pt; color: var(--gold); letter-spacing: 3pt; margin-left: 8pt; }
   .hd .sub { margin-top: 10pt; font-size: 9.5pt; color: #aab3c7; letter-spacing: 2pt; }
-  .hd .telbar { margin-top: 16pt; background: var(--green2); border-radius: 4pt; padding: 9pt 13pt; display: flex; justify-content: space-between; align-items: center; }
+  .hd .telbar { margin-top: 16pt; background: rgba(15,24,48,.85); border: .6pt solid rgba(201,164,92,.35); border-radius: 4pt; padding: 9pt 13pt; display: flex; justify-content: space-between; align-items: center; }
   .hd .telbar span { font-size: 9pt; color: #aab3c7; letter-spacing: 1pt; }
   .hd .telbar b { font-size: 15.5pt; color: #fff; letter-spacing: 1.5pt; }
 
   /* ============ 开门见山（白） ============ */
   .hero { background: #fff; padding: 26pt 22pt 24pt; }
   .hero h1 { font-size: 20pt; line-height: 1.6; }
-  .hero h1 em { font-style: normal; color: var(--gold-d); }
+  .hero h1 em { font-style: normal; font-size: 26pt; }
   .hero p { margin-top: 12pt; font-size: 12pt; line-height: 1.8; }
   .hero .claim { margin-top: 14pt; background: var(--wash-gold); border-left: 3pt solid var(--gold); border-radius: 0 4pt 4pt 0; padding: 12pt 14pt; }
   .hero .claim p { margin: 0; font-size: 11.5pt; line-height: 1.8; color: var(--ink); }
   .hero .claim b { color: var(--gold-d); }
 
   /* ============ 章节 ============ */
-  .sec { padding: 34pt 22pt 2pt; }
+  .sec { padding: 34pt 22pt 2pt; position: relative; overflow: hidden; }
+  .sec .ghost { position: absolute; top: 14pt; right: 6pt; font-size: 88pt; line-height: 1; color: rgba(22,33,60,.05); pointer-events: none; }
   .sec .st { display: flex; align-items: baseline; gap: 8pt; }
   .sec .st h2 { font-size: 18pt; letter-spacing: 1pt; }
   .sec .st .no { font-size: 10pt; color: var(--gold-d); font-weight: 700; letter-spacing: 2pt; }
   .sec .rule { margin-top: 6pt; height: 2pt; background: linear-gradient(to right, var(--gold) 0 20pt, var(--line) 20pt 100%); }
+  .sec .rule2 { margin-top: 1.8pt; height: .6pt; background: var(--line); }
   .sec .ss { margin: 8pt 0 15pt; font-size: 10pt; color: #98a0ae; letter-spacing: 0.5pt; }
 
   /* ============ 三笔账 ============ */
@@ -84,7 +88,7 @@
   /* ============ 收尾 ============ */
   .ft { padding: 36pt 22pt 0; text-align: center; position: relative; }
   .ft .l1 { font-size: 18pt; letter-spacing: 1pt; }
-  .ft .l1 em { font-style: normal; color: var(--gold-d); }
+  .ft .l1 em { font-style: normal; }
   .ft .l2 { margin-top: 10pt; font-size: 11pt; font-weight: 700; color: var(--muted); letter-spacing: 3pt; }
   .ft .tel { margin-top: 18pt; font-size: 10pt; color: var(--muted); letter-spacing: 1pt; }
   .ft .tel b { font-size: 20pt; color: var(--green); letter-spacing: 2pt; margin-left: 7pt; }
@@ -103,15 +107,17 @@
 
 <!-- 开门见山 -->
 <div class="hero">
-  <h1 class="serif">只干一件事：<em>90 天</em>，给你建起一支销冠团队。</h1>
+  <h1 class="serif">只干一件事：<em class="serif foil">90 天</em>，给你建起一支销冠团队。</h1>
   <p><b>20 年只死磕销售团队这一件事</b>：销冠怎么招得快又多、怎么筛得又快又准、怎么驾驭得住、怎么捆得牢——卖的人又多又强，业绩才有资格谈快。</p>
   <div class="claim"><p><b>先定价，后招人。</b>企业以为自己在「招人」，其实一直在「标价」——价标错了，销冠不来，来了也走。</p></div>
 </div>
 
 <!-- 三笔账 -->
 <div class="sec">
+  <div class="ghost serif">壹</div>
   <div class="st"><span class="no">账 · 壹</span><h2 class="serif">先和你对三笔账</h2></div>
   <div class="rule"></div>
+  <div class="rule2"></div>
   <div class="ss">有一笔对不上，我们就有的聊</div>
   <div class="q">
     <div class="qh"><span class="n serif">壹</span><span class="lb">招聘的账</span></div>
@@ -129,8 +135,10 @@
 
 <!-- 打法 -->
 <div class="sec">
+  <div class="ghost serif">贰</div>
   <div class="st"><span class="no">账 · 贰</span><h2 class="serif">我的打法：销冠组织</h2></div>
   <div class="rule"></div>
+  <div class="rule2"></div>
   <div class="ss">定价→招→筛→管→留，五步一套打完</div>
   <div class="stp"><h3><em>定价</em>激励机制重设</h3><p>底薪和提成，改成销冠「非来不可」的样子。机制挂出去，三个月内，<b>销冠主动来面试</b>。</p></div>
   <div class="stp"><h3><em>招</em>招聘全程提效</h3><p>宣传吸睛、内容吸心、面试吸人——<b>不再是你求人来</b>。</p></div>
@@ -141,8 +149,10 @@
 
 <!-- 结清的账 -->
 <div class="sec">
+  <div class="ghost serif">叁</div>
   <div class="st"><span class="no">账 · 叁</span><h2 class="serif">三笔结清的账</h2></div>
   <div class="rule"></div>
+  <div class="rule2"></div>
   <div class="ss">每个数，敢当面对账</div>
   <div class="lg">
     <div class="r1"><span class="ind">培训行业</span><span class="lead"></span><b class="num serif">年销售额 2 亿</b></div>
@@ -160,8 +170,10 @@
 
 <!-- 三种签法 -->
 <div class="sec">
+  <div class="ghost serif">肆</div>
   <div class="st"><span class="no">账 · 肆</span><h2 class="serif">跟我签，三种签法</h2></div>
   <div class="rule"></div>
+  <div class="rule2"></div>
   <div class="ss">风险都在我这边——行不行，每个月都看得见</div>
 
   <div class="md">
@@ -193,7 +205,7 @@
 
 <!-- 收尾 -->
 <div class="ft">
-  <div class="l1 serif">行不行，<em>每个月都看得见</em>。</div>
+  <div class="l1 serif">行不行，<em class="serif foil">每个月都看得见</em>。</div>
   <div class="l2">只和老板本人谈</div>
   <div class="tel">电话 / 微信<b class="serif">135 5272 5767</b></div>
 </div>
