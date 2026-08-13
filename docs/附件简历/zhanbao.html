@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>销冠战报·张良</title>
+<style>
+  @page { size: 340pt 2530pt; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root { --ink: #171512; --red: #c2271d; --paper: #f8f6ef; --gray: #6b675e; --rule: #171512; }
+  html, body { width: 340pt; }
+  body { font-family: 'Noto Sans CJK SC', sans-serif; font-weight: 400; color: var(--ink); background: var(--paper); padding: 0 20pt; }
+  .serif { font-family: 'Noto Serif CJK SC', serif; font-weight: 900; }
+  b { font-weight: 700; }
+
+  /* ===== 报头 ===== */
+  .mast { text-align: center; padding-top: 26pt; }
+  .mast .paper-name { font-size: 46pt; letter-spacing: 6pt; line-height: 1.15; }
+  .mast .edition { display: inline-block; margin-top: 8pt; background: var(--red); color: #fff; font-size: 10pt; font-weight: 700; letter-spacing: 4pt; padding: 3pt 10pt 3pt 14pt; }
+  .dateline { margin-top: 12pt; display: flex; justify-content: space-between; align-items: baseline; font-size: 9pt; color: var(--gray); letter-spacing: 1pt; }
+  .dateline b { color: var(--ink); font-size: 10pt; }
+  .dateline span { white-space: nowrap; }
+  .wenwu { margin-top: 7pt; border-top: 3.5pt solid var(--rule); border-bottom: 0.8pt solid var(--rule); height: 3.2pt; }
+
+  /* ===== 头条 ===== */
+  .lead { text-align: center; padding: 22pt 0 0; }
+  .lead .kicker { font-size: 10.5pt; letter-spacing: 6pt; color: var(--gray); font-weight: 700; }
+  .lead h1 { margin-top: 10pt; font-size: 30pt; line-height: 1.45; letter-spacing: 1pt; }
+  .lead h1 .rd { color: var(--red); }
+  .lead .deck { margin-top: 13pt; text-align: left; font-size: 11.5pt; line-height: 1.85; }
+  .lead .deck b { font-weight: 700; }
+  .anyu { margin-top: 13pt; border: 1.2pt solid var(--ink); padding: 10pt 12pt; text-align: left; }
+  .anyu .t { font-size: 10pt; font-weight: 700; letter-spacing: 3pt; color: var(--red); }
+  .anyu p { margin-top: 5pt; font-size: 11.5pt; line-height: 1.8; }
+  .anyu p b { color: var(--red); }
+
+  /* ===== 栏目题花 ===== */
+  .col { margin-top: 26pt; }
+  .colhead { display: flex; align-items: center; gap: 8pt; }
+  .colhead .bar { flex: 1; height: 2.8pt; background: var(--rule); }
+  .colhead h2 { font-size: 17pt; letter-spacing: 3pt; white-space: nowrap; }
+  .colsub { text-align: center; margin-top: 6pt; font-size: 9.5pt; color: var(--gray); letter-spacing: 1.5pt; }
+
+  /* ===== 今日三问 ===== */
+  .wen { padding: 13pt 0; border-bottom: 0.8pt solid #cfcabb; display: flex; gap: 11pt; }
+  .wen:last-of-type { border-bottom: none; }
+  .wen .n { flex: 0 0 auto; font-size: 20pt; color: var(--red); line-height: 1.3; }
+  .wen p { font-size: 12.5pt; line-height: 1.75; font-weight: 500; }
+  .wen p b { font-weight: 900; }
+  .wen p .rd { color: var(--red); font-weight: 700; }
+
+  /* ===== 操盘五法 ===== */
+  .fa { display: flex; gap: 10pt; padding: 11pt 0; border-bottom: 0.8pt solid #cfcabb; align-items: flex-start; }
+  .fa:last-of-type { border-bottom: none; }
+  .fa .z { flex: 0 0 22pt; height: 22pt; background: var(--ink); color: var(--paper); font-size: 13pt; display: flex; align-items: center; justify-content: center; margin-top: 2pt; }
+  .fa .bd h3 { font-size: 13pt; font-weight: 700; }
+  .fa .bd p { margin-top: 3.5pt; font-size: 11.5pt; line-height: 1.7; color: #3a362e; }
+  .fa .bd p b { color: var(--ink); }
+
+  /* ===== 战绩公告 ===== */
+  .zj { padding: 14pt 0 13pt; border-bottom: 0.8pt solid #cfcabb; }
+  .zj:last-of-type { border-bottom: none; }
+  .zj .lab { font-size: 10pt; font-weight: 700; letter-spacing: 2pt; color: var(--gray); }
+  .zj .big { margin-top: 3pt; font-size: 24pt; line-height: 1.35; }
+  .zj .big .rd { color: var(--red); }
+  .zj p { margin-top: 4.5pt; font-size: 11.5pt; line-height: 1.7; color: #3a362e; }
+  .zj p b { color: var(--ink); }
+
+  /* ===== 合作启事 ===== */
+  .qs { border: 1.4pt solid var(--ink); padding: 13pt 14pt 12pt; margin-bottom: 12pt; position: relative; }
+  .qs .qt { text-align: center; font-size: 14.5pt; letter-spacing: 2pt; }
+  .qs .qt .fl { color: #b1ab9c; font-weight: 400; margin: 0 7pt; }
+  .qs .jian { position: absolute; top: -1.4pt; right: -1.4pt; background: var(--red); color: #fff; font-size: 8.5pt; font-weight: 700; padding: 2.5pt 6pt; letter-spacing: 2pt; }
+  .qs .ess { text-align: center; margin-top: 6pt; font-size: 10.5pt; color: var(--gray); }
+  .qs .tr { display: flex; margin-top: 7pt; font-size: 11.5pt; line-height: 1.65; }
+  .qs .tr .k { flex: 0 0 56pt; font-weight: 700; letter-spacing: 1pt; }
+  .qs .tr .v { flex: 1; color: #3a362e; }
+  .qs .tr .v b { color: var(--ink); }
+  .qs .vow { margin-top: 9pt; padding-top: 8pt; border-top: 0.8pt solid #cfcabb; text-align: center; font-size: 11.5pt; font-weight: 900; color: var(--red); letter-spacing: 1pt; }
+
+  /* ===== 报尾 ===== */
+  .tail { margin-top: 26pt; border-top: 3.5pt solid var(--rule); padding-top: 4pt; }
+  .tail .inner { border-top: 0.8pt solid var(--rule); text-align: center; padding: 20pt 0 6pt; }
+  .tail .s1 { font-size: 19pt; letter-spacing: 1pt; }
+  .tail .s1 .rd { color: var(--red); }
+  .tail .s2 { margin-top: 9pt; font-size: 10.5pt; font-weight: 700; letter-spacing: 4pt; color: var(--gray); }
+  .tail .tel { margin-top: 13pt; font-size: 10pt; color: var(--gray); letter-spacing: 1pt; }
+  .tail .tel b { font-size: 21pt; color: var(--ink); letter-spacing: 2.5pt; margin-left: 7pt; }
+  .tail .foot { margin-top: 18pt; padding: 6pt 0 16pt; border-top: 0.8pt solid #cfcabb; font-size: 8.5pt; color: #9d988a; text-align: center; letter-spacing: 1.5pt; }
+</style>
+</head>
+<body>
+
+<!-- 报头 -->
+<div class="mast">
+  <div class="paper-name serif">销冠战报</div>
+  <div class="edition">操盘手特刊 · 只此一版</div>
+</div>
+<div class="dateline"><span>主笔：<b>张良</b> · 销售业绩操盘手</span><span>电话/微信 <b>135 5272 5767</b></span></div>
+<div class="wenwu"></div>
+
+<!-- 头条 -->
+<div class="lead">
+  <div class="kicker">只 干 一 件 事</div>
+  <h1 class="serif"><span class="rd">90 天</span>，建起一支<br>销冠团队。</h1>
+  <p class="deck"><b>20 年只死磕销售团队这一件事</b>：销冠怎么招得快又多、怎么筛得又快又准、怎么驾驭得住、怎么捆得牢——卖的人又多又强，业绩才有资格谈快。</p>
+  <div class="anyu">
+    <div class="t">按 语</div>
+    <p><b>先定价，后招人。</b>企业以为自己在「招人」，其实一直在「标价」——价标错了，销冠不来，来了也走。</p>
+  </div>
+</div>
+
+<!-- 今日三问 -->
+<div class="col">
+  <div class="colhead"><div class="bar"></div><h2 class="serif">今日三问</h2><div class="bar"></div></div>
+  <div class="colsub">有两问答不上来，往下读</div>
+  <div class="wen"><div class="n serif">壹</div><p>这个销售岗，<b>挂了多久了</b>？<span class="rd">岗位每空一个月，丢的不是工资，是一个月业绩。</span></p></div>
+  <div class="wen"><div class="n serif">贰</div><p>同样的产品，<b>销冠一个人顶十个</b>——你团队里，有几个真销冠？</p></div>
+  <div class="wen"><div class="n serif">叁</div><p>业绩靠<b>机制</b>自己转，还是靠你天天盯？你一松手就掉？</p></div>
+</div>
+
+<!-- 操盘五法 -->
+<div class="col">
+  <div class="colhead"><div class="bar"></div><h2 class="serif">操盘五法</h2><div class="bar"></div></div>
+  <div class="colsub">这套打法，叫「销冠组织」：定价 → 招 → 筛 → 管 → 留</div>
+  <div class="fa"><div class="z serif">定</div><div class="bd"><h3>先定价：激励机制重设</h3><p>底薪提成改成销冠「非来不可」的样子——机制挂出去，<b>销冠主动来面试</b>。</p></div></div>
+  <div class="fa"><div class="z serif">招</div><div class="bd"><h3>招聘全程提效</h3><p>宣传吸睛、内容吸心、面试吸人——<b>不再是你求人来</b>。</p></div></div>
+  <div class="fa"><div class="z serif">筛</div><div class="bd"><h3>3–7 天筛人模型</h3><p>试岗 3 天定去留，几百块试人，<b>不拿三个月底薪赌人</b>。</p></div></div>
+  <div class="fa"><div class="z serif">管</div><div class="bd"><h3>销售 SOP ＋ 全程 PK</h3><p>拆到动作、量化到人——<b>业绩是逼出来的，不是等出来的</b>。</p></div></div>
+  <div class="fa"><div class="z serif">留</div><div class="bd"><h3>销冠与高管利益捆绑</h3><p>让能人「为自己干」——<b>销冠留得死死的</b>，水货一个也混不住。</p></div></div>
+</div>
+
+<!-- 战绩公告 -->
+<div class="col">
+  <div class="colhead"><div class="bar"></div><h2 class="serif">战绩公告</h2><div class="bar"></div></div>
+  <div class="colsub">每个数，敢当面对账</div>
+  <div class="zj">
+    <div class="lab">培训行业</div>
+    <div class="big serif">2 年从 0 建队，年销售 <span class="rd" style="white-space:nowrap">2 亿</span></div>
+    <p>做到北京同行头部，规模与数据俱在。</p>
+  </div>
+  <div class="zj">
+    <div class="lab">通信行业</div>
+    <div class="big serif"><span class="rd">第 4 个月</span>整体盈利</div>
+    <p>半年招不到人的团队，重设底薪与提成；跨春节淡季，首年业绩近 <b>1000 万</b>。</p>
+  </div>
+  <div class="zj">
+    <div class="lab">医药行业</div>
+    <div class="big serif"><span class="rd">第 5 个月</span>扭亏为盈</div>
+    <p>连亏 6 年的团队，重建定薪与筛人机制；1 年招商业绩近 <b>3000 万</b>。</p>
+  </div>
+</div>
+
+<!-- 合作启事 -->
+<div class="col">
+  <div class="colhead"><div class="bar"></div><h2 class="serif">合作启事</h2><div class="bar"></div></div>
+  <div class="colsub">三选一——风险都在我这边</div>
+
+  <div class="qs">
+    <div class="qt serif"><span class="fl">───</span>全职入职<span class="fl">───</span></div>
+    <div class="ess">你要一个全扑在这儿的人，也行。</div>
+    <div class="tr"><span class="k">底薪提成</span><span class="v">按普通总监的标准来，<b>不要溢价</b></span></div>
+    <div class="tr"><span class="k">交付</span><span class="v">90 天立起机制、招筛、SOP</span></div>
+    <div class="vow">不行，随时叫停。</div>
+  </div>
+
+  <div class="qs">
+    <div class="jian">多数老板选这个</div>
+    <div class="qt serif"><span class="fl">───</span>顾问式总监<span class="fl">───</span></div>
+    <div class="ess">全职总监一半的钱，买走判断和机制。</div>
+    <div class="tr"><span class="k">到岗</span><span class="v">每周固定天数，其余<b>远程盯数据</b></span></div>
+    <div class="tr"><span class="k">付费</span><span class="v">按月付费，当月见效，当月再续</span></div>
+    <div class="vow">不满意当月叫停——没有辞退成本。</div>
+  </div>
+
+  <div class="qs">
+    <div class="qt serif"><span class="fl">───</span>按成果付费<span class="fl">───</span></div>
+    <div class="ess">人，按留下的算钱；业绩，按新增的分成。</div>
+    <div class="tr"><span class="k">保底</span><span class="v">按你<b>一个普通销售</b>的标准</span></div>
+    <div class="tr"><span class="k">招人</span><span class="v">留满 2 个月、考核合格，<b>一人一结</b></span></div>
+    <div class="tr"><span class="k">分成</span><span class="v">只分新增，按月对账，年度封顶</span></div>
+    <div class="tr"><span class="k">基线</span><span class="v">启动前 12 个月<b>真实数据</b></span></div>
+    <div class="vow">你见过哪个总监，敢这么签？</div>
+  </div>
+</div>
+
+<!-- 报尾 -->
+<div class="tail">
+  <div class="inner">
+    <div class="s1 serif">行不行，<span class="rd">每个月都看得见</span>。</div>
+    <div class="s2">只 和 老 板 本 人 谈</div>
+    <div class="tel">电话 / 微信<b class="serif">135 5272 5767</b></div>
+    <div class="foot">销冠战报 · 张良 主笔 · 本报只发给正在招销售的老板</div>
+  </div>
+</div>
+
+</body>
+</html>
