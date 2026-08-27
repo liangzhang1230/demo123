@@ -27,66 +27,88 @@
       rgba(231,231,228,.62) 50%,
       rgba(253,252,249,.80) 72%,
       rgba(228,228,227,.68) 100%);
-  --glass-print:linear-gradient(148deg,
-      #FFFFFF 0%,#FAF9F5 26%,#F0F0EE 50%,#FDFCF9 72%,#EFEFEE 100%);
-  --glass-edge:rgba(255,255,255,.92);
-  --frost:blur(22px) saturate(135%);
+  --frost:blur(15px) saturate(126%);
+  --gap-x:3.4;         /* 玻璃卡左右距页边 —— 黑底露出来的量 */
+  --gap-y:4.8;         /* 上下留多一点，给菱形的尖角让位 */
+  --rad:calc(8 * var(--u));    /* 卡片圆角 */
+  --bez:2.45;          /* 玻璃厚度带（那圈厚边）的宽度 */
 
   --f:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   --n:"Helvetica Neue",Helvetica,Arial,var(--f);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-/* 画布：黑底 + 奶油杏光晕（对应参考图里玻璃卡背后的那块杏色衬形）。
-   磨砂要有东西可模糊，才看得出"磨砂"，所以底不能是纯色白 */
 body{font-family:var(--f);display:flex;flex-direction:column;
-  align-items:center;gap:14px;padding:14px 0 96px;
-  background:
-    radial-gradient(62% 32% at 50% 18%, rgba(239,221,182,.55) 0%, rgba(239,221,182,0) 62%),
-    radial-gradient(52% 28% at 50% 76%, rgba(239,221,182,.32) 0%, rgba(239,221,182,0) 64%),
-    var(--black);
-  background-attachment:fixed}
+  align-items:center;gap:14px;padding:14px 0 96px;background:#000}
 
-/* ═══ 画幅：3:4 竖版，全部尺寸基于 --u，可整体自适应缩放 ═══ */
+/* ═══ 画幅：3:4 竖版，全部尺寸基于 --u，可整体自适应缩放 ═══
+   四层叠出来的空间（对应参考图）：
+     ① 页面本身 = 黑画布
+     ② ::before = 奶油杏菱形，上下尖角探出玻璃卡、落在黑底上
+     ③ ::after  = 半透明磨砂玻璃卡，把菱形糊开 —— 卡中间透出暖色、
+                  四角透出黑色变冷银，斜的明暗分界就是菱形的边
+     ④ 光带与厚边，做在 ③ 的背景与 box-shadow 里
+   内容压在最上面（z-index:1）                                    ═══ */
 .page{
   --fs:1; --u:calc(1cqw * var(--fs));
-  position:relative;overflow:hidden;
+  position:relative;overflow:hidden;isolation:isolate;
   width:min(100vw - 24px, 452px); aspect-ratio:3/4;
   container-type:inline-size;
-  color:var(--ink);
-  border-radius:calc(5 * var(--u));
-  /* 两层：上面是半透明的银灰渐变（磨砂），下面垫一层白。
-     白也留一点透 —— 全不透明的话 backdrop-filter 没东西可模糊，
-     磨砂质感就没了，只剩一张灰纸 */
+  background:var(--black); color:var(--ink);
+  display:flex;flex-direction:column;
+  /* 内边距 = 卡片外距 + 卡内留白，所以比原稿大一圈 */
+  padding:calc(9.4 * var(--u)) calc(11.6 * var(--u)) calc(9 * var(--u)) calc(9 * var(--u));
+}
+
+/* ② 奶油杏菱形。宽 100% → 左右尖角正好顶到页边；
+   高 98.5% → 上下尖角比卡片各高出约 3.8u，露在黑底上 */
+.page::before{
+  content:"";position:absolute;z-index:0;pointer-events:none;
+  left:50%;top:50%;width:100%;height:98.5%;transform:translate(-50%,-50%);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  background:linear-gradient(152deg,#F0DBA6 0%,#E3C68A 46%,#D0AE5C 100%);
+}
+
+/* ③④ 玻璃卡：半透明（中间实、四角透，四角才透得出黑）+ 磨砂 +
+   两道斜光束 + 左上角受光点 + 一圈有厚度的玻璃边 */
+.page::after{
+  content:"";position:absolute;z-index:0;pointer-events:none;
+  inset:calc(var(--gap-y) * var(--u)) calc(var(--gap-x) * var(--u));
+  border-radius:var(--rad);
   background:
-    var(--glass),
-    linear-gradient(0deg,rgba(255,255,255,.70),rgba(255,255,255,.70));
+    /* 两道斜光束：窄、亮、收得干净，别糊成一片 */
+    linear-gradient(118deg,transparent 21%,rgba(255,255,255,.26) 26.5%,
+      rgba(255,255,255,.82) 30%,rgba(255,255,255,.24) 34%,transparent 39.5%),
+    linear-gradient(238deg,transparent 19%,rgba(255,255,255,.20) 25.5%,
+      rgba(255,255,255,.60) 28.8%,rgba(255,255,255,.16) 32.6%,transparent 38%),
+    /* 左上角受光点 */
+    radial-gradient(52% 32% at 14% 3%,rgba(255,255,255,.50) 0%,rgba(255,255,255,0) 70%),
+    /* 玻璃本体：中间"薄"，杏色菱形才透得出来；越靠边越"实"，
+       黑底透不过来，四角才有足够亮度承字 */
+    radial-gradient(122% 98% at 50% 45%,rgba(255,255,255,.58) 0%,
+      rgba(255,255,255,.72) 52%,rgba(255,255,255,.88) 100%);
   backdrop-filter:var(--frost);
   -webkit-backdrop-filter:var(--frost);
-  /* 金属描边：外圈暗、内圈白高光，就是参考图那道亮边 */
+  /* 一圈有厚度的玻璃边：外沿细白 → 亮带 → 暗带 → 内沿白高光，
+     再加左上/右下两处受光，边缘才有"厚度"而不是一根描边 */
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.95),
-    inset 0 0 0 2px rgba(160,163,170,.34),
-    inset 0 calc(1.2 * var(--u)) calc(3.6 * var(--u)) rgba(255,255,255,.55),
-    0 calc(3 * var(--u)) calc(9 * var(--u)) rgba(0,0,0,.45);
-  display:flex;flex-direction:column;
-  padding:calc(7 * var(--u)) calc(11 * var(--u)) calc(6.5 * var(--u)) calc(7 * var(--u));
+    inset 0 0 0 calc(.32 * var(--u)) rgba(255,255,255,.98),
+    inset 0 0 0 calc(1.35 * var(--u)) rgba(255,255,255,.42),
+    inset 0 0 0 calc(var(--bez) * var(--u)) rgba(138,143,156,.40),
+    inset 0 0 0 calc(var(--bez) * var(--u) + .3 * var(--u)) rgba(255,255,255,.92),
+    inset calc(1.6 * var(--u)) calc(1.6 * var(--u)) calc(3.8 * var(--u)) calc(-1 * var(--u)) rgba(255,255,255,.80),
+    inset calc(-1.6 * var(--u)) calc(-1.6 * var(--u)) calc(3.8 * var(--u)) calc(-1 * var(--u)) rgba(255,255,255,.60),
+    0 calc(2.6 * var(--u)) calc(7.5 * var(--u)) rgba(0,0,0,.60);
 }
-/* 斜向光带：参考图里横穿玻璃的两道高光 */
-.page::before{
-  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-  background:
-    linear-gradient(122deg,transparent 16%,rgba(255,255,255,.50) 29%,transparent 41%),
-    linear-gradient(292deg,transparent 18%,rgba(255,255,255,.34) 31%,transparent 45%);
-}
-/* 内容压在光带之上，否则白光会把字洗掉 */
 .page>*{position:relative;z-index:1}
 .page:focus{outline:none}
 .page::selection,.page ::selection{background:var(--cream)}
 
 /* ═══ 右侧书脊：竖排章节字 + 页码 ═══ */
 /* z-index 2：深色页脚现在铺到页底，会盖住书脊页码，书脊必须再高一档 */
-.rail{position:absolute;z-index:2;right:calc(3.6 * var(--u));top:calc(7 * var(--u));
-  bottom:calc(6.5 * var(--u));width:calc(4 * var(--u));
+/* z-index 2：深色页脚会盖住书脊页码，书脊必须再高一档。
+   位置跟着玻璃卡内收：卡外距 3.4u + 厚边 2.45u + 留白 */
+.rail{position:absolute;z-index:2;right:calc(7 * var(--u));top:calc(9.4 * var(--u));
+  bottom:calc(9 * var(--u));width:calc(4 * var(--u));
   display:flex;flex-direction:column;align-items:center;justify-content:space-between}
 .rail .bar{width:calc(.45 * var(--u));height:calc(9 * var(--u));background:var(--red)}
 .rail .rc{writing-mode:vertical-rl;font-size:calc(3.3 * var(--u));font-weight:700;
@@ -143,17 +165,18 @@ body{font-family:var(--f);display:flex;flex-direction:column;
   margin-bottom:calc(2.6 * var(--u))}
 .foot p{font-size:calc(5 * var(--u));font-weight:800;line-height:1.42;letter-spacing:-.01em}
 .foot p em{font-style:normal;color:var(--red)}
-/* 深色页脚：横向出血，但不使用负的 margin-bottom —— 负底边距会在
-   打印分页时被裁掉（导出 PDF 时黑块消失），且会让 fit() 漏算高度。
-   纵向出血改用"页面去掉下内边距 + 页脚自己补回同样的量"：总高不变，
-   fit() 的测量也不变，但深色块能一直铺到页底。原稿没有这一步，
-   白色页码正好骑在深色块的下边缘上，一半压在浅底上看不见。 */
-.page:has(.foot.solid){padding-bottom:0}
-.page:has(.foot.solid) .foot.solid{padding-bottom:calc(11.1 * var(--u))}
+/* 深色页脚：现在不出血到页边了 —— 出血到玻璃卡的厚边以内为止，
+   四周那圈玻璃边保持完整，深色块变成"嵌在玻璃里的一块"。
+   下边同样不用负 margin（负底边距会在打印分页时被裁掉，导出 PDF
+   黑块会消失，还会让 fit() 漏算高度），改成
+   "页面减掉下内边距 + 页脚自己补回同样的量"：总高与测量都不变。 */
+.page:has(.foot.solid){padding-bottom:calc(7.25 * var(--u))}
+.page:has(.foot.solid) .foot.solid{padding-bottom:calc(6.35 * var(--u))}
 .foot.solid{background:linear-gradient(118deg,var(--navy-d) 0%,var(--navy) 58%,var(--navy-l) 100%);
-  color:#fff;margin-left:calc(-7 * var(--u));
-  margin-right:calc(-11 * var(--u));margin-bottom:0;break-inside:avoid;
-  padding:calc(4.6 * var(--u)) calc(11 * var(--u)) calc(4.6 * var(--u)) calc(7 * var(--u))}
+  color:#fff;margin-left:calc(-3.15 * var(--u));
+  margin-right:calc(-5.75 * var(--u));margin-bottom:0;break-inside:avoid;
+  border-radius:0 0 calc(5.55 * var(--u)) calc(5.55 * var(--u));
+  padding:calc(4.6 * var(--u)) calc(5.75 * var(--u)) calc(4.6 * var(--u)) calc(3.15 * var(--u))}
 /* 深底上强调字必须换成奶油杏 —— 藏蓝压藏蓝会直接看不见 */
 .foot.solid .fr{background:var(--cream)}
 .foot.solid p em{color:var(--cream)}
@@ -163,10 +186,6 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 .mark{position:absolute;right:calc(-9 * var(--u));top:calc(-6 * var(--u));
   font-size:calc(92 * var(--u));font-weight:800;line-height:.8;color:transparent;
   -webkit-text-stroke:calc(.4 * var(--u)) var(--navy);letter-spacing:-.05em;opacity:.42}
-/* 扉页在磨砂卡背后再加一团奶油杏光晕，呼应参考图的杏色衬形 */
-.mw::before{content:"";position:absolute;right:calc(-14 * var(--u));top:calc(-10 * var(--u));
-  width:calc(72 * var(--u));height:calc(72 * var(--u));border-radius:50%;
-  background:radial-gradient(circle,rgba(239,221,182,.62) 0%,rgba(239,221,182,0) 68%)}
 .chbody{margin-top:auto}
 .page:has(.foot.solid) .rail .rn{color:#fff}
 .chno{font-family:var(--n);font-size:calc(3.4 * var(--u));font-weight:700;
@@ -186,15 +205,7 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 .quote em{font-style:normal;color:var(--red)}
 .by{font-size:calc(3.3 * var(--u));color:var(--gray);margin-top:calc(3 * var(--u))}
 
-/* 封面 / 封底：同样是磨砂玻璃，只是杏色再重一点 */
-.cov{background:
-    linear-gradient(148deg,
-      rgba(255,255,255,.88) 0%,
-      rgba(249,244,233,.74) 26%,
-      rgba(236,231,219,.62) 50%,
-      rgba(254,252,246,.80) 72%,
-      rgba(233,227,213,.68) 100%),
-    linear-gradient(0deg,rgba(255,255,255,.70),rgba(255,255,255,.70))}
+/* 封面 / 封底：不另设底色，跟其它页共用同一块玻璃卡 */
 .cov .t{font-size:calc(14.5 * var(--u));font-weight:800;line-height:1.1;letter-spacing:-.035em;
   color:var(--navy)}
 .cov .s{font-size:calc(7.6 * var(--u));font-weight:800;color:var(--navy);margin-top:calc(4 * var(--u));letter-spacing:-.02em}
@@ -203,8 +214,8 @@ body{font-family:var(--f);display:flex;flex-direction:column;
   border-radius:calc(2.6 * var(--u));color:var(--navy);
   background:linear-gradient(150deg,rgba(255,255,255,.62),rgba(239,221,182,.42));
   padding:calc(2.4 * var(--u)) calc(3.6 * var(--u));font-size:calc(3.6 * var(--u));font-weight:800;line-height:1.5}
-.tel{color:var(--navy)}
-.tel{font-family:var(--n);font-size:calc(7.4 * var(--u));font-weight:800;letter-spacing:-.02em}
+.tel{font-family:var(--n);font-size:calc(7.4 * var(--u));font-weight:800;
+  letter-spacing:-.02em;color:var(--navy)}
 
 /* ═══ 编辑工具栏 ═══ */
 #tb{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#111318;
@@ -225,18 +236,20 @@ body{font-family:var(--f);display:flex;flex-direction:column;
   .page:last-child{break-after:auto;page-break-after:auto}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-  /* 打印引擎不执行 backdrop-filter，半透明层背后是白纸 ——
-     直接印会糊成一片灰。所以换成"已经把磨砂算好"的不透明渐变，
-     并去掉圆角和投影（整页即纸张，圆角会露出白边）。 */
-  .page{
-    border-radius:0;box-shadow:none;
+  /* 打印引擎不执行 backdrop-filter，玻璃卡不会再把菱形糊开，
+     斜边会变成硬边。半透明本身是能印的，所以层次还在 ——
+     只把白的比重调高一点，硬边不至于太扎眼。 */
+  .page::after{
     backdrop-filter:none;-webkit-backdrop-filter:none;
-    background:var(--glass-print);
+    background:
+      linear-gradient(118deg,transparent 15%,rgba(255,255,255,.44) 24%,
+        rgba(255,255,255,.74) 29.5%,rgba(255,255,255,.36) 36%,transparent 47%),
+      linear-gradient(238deg,transparent 13%,rgba(255,255,255,.32) 23%,
+        rgba(255,255,255,.56) 28.5%,rgba(255,255,255,.24) 35%,transparent 46%),
+      radial-gradient(74% 48% at 20% 6%,rgba(255,255,255,.52) 0%,rgba(255,255,255,0) 64%),
+      radial-gradient(122% 98% at 50% 45%,rgba(255,255,255,.62) 0%,
+        rgba(255,255,255,.75) 52%,rgba(255,255,255,.90) 100%);
   }
-  .cov{background:linear-gradient(148deg,
-      #FFFFFF 0%,#FBF7EE 26%,#F2EEE4 50%,#FEFCF7 72%,#F1EDE3 100%)}
-  /* 光带留着，但压淡一档：纸面反光不像屏幕，太强会显脏 */
-  .page::before{opacity:.45}
 }
 @page{size:150mm 200mm;margin:0}
 </style>
