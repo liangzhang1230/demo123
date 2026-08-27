@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>张良 · 销售业绩操盘手</title>
+<style>
+:root{
+  /* ═══ 三色体系：黑 · 奶油杏 · 藏蓝 ═══ */
+  --navy:#1E2C7C;      /* 主蓝：强调字 / 编号 / 短线 */
+  --navy-d:#101A52;    /* 深藏蓝：深色页脚渐变起点 */
+  --navy-l:#3348A6;    /* 亮藏蓝：渐变收尾 */
+  --cream:#EFDDB6;     /* 奶油杏：第三色，做底衬与高光 */
+  --cream-w:#F6EAD0;   /* 淡奶油：高亮字的底衬 */
+  --black:#0B0C0F;     /* 画布黑 */
+  /* 原稿散落着 var(--red)/var(--red-w)，保留别名，遗漏处也不会退回红色 */
+  --red:var(--navy); --red-w:var(--cream-w);
+
+  /* 正文墨色走"黑"，不跟着藏蓝走 —— 墨色一旦也偏蓝，
+     强调色和正文就分不开了，原稿靠红黑对比撑起来的层次会整页塌掉 */
+  --paper:#FFFFFF; --ink:#0F1116;
+  --gray:#6E7899; --line:#D8DAE4; --wash:#F3F4F8;
+
+  /* ═══ 磨砂玻璃：半透明银灰渐变 + 模糊，下面垫一层白 ═══ */
+  --glass:linear-gradient(148deg,
+      rgba(255,255,255,.88) 0%,
+      rgba(247,245,240,.74) 26%,
+      rgba(231,231,228,.62) 50%,
+      rgba(253,252,249,.80) 72%,
+      rgba(228,228,227,.68) 100%);
+  --glass-print:linear-gradient(148deg,
+      #FFFFFF 0%,#FAF9F5 26%,#F0F0EE 50%,#FDFCF9 72%,#EFEFEE 100%);
+  --glass-edge:rgba(255,255,255,.92);
+  --frost:blur(22px) saturate(135%);
+
+  --f:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+  --n:"Helvetica Neue",Helvetica,Arial,var(--f);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+/* 画布：黑底 + 奶油杏光晕（对应参考图里玻璃卡背后的那块杏色衬形）。
+   磨砂要有东西可模糊，才看得出"磨砂"，所以底不能是纯色白 */
+body{font-family:var(--f);display:flex;flex-direction:column;
+  align-items:center;gap:14px;padding:14px 0 96px;
+  background:
+    radial-gradient(62% 32% at 50% 18%, rgba(239,221,182,.55) 0%, rgba(239,221,182,0) 62%),
+    radial-gradient(52% 28% at 50% 76%, rgba(239,221,182,.32) 0%, rgba(239,221,182,0) 64%),
+    var(--black);
+  background-attachment:fixed}
+
+/* ═══ 画幅：3:4 竖版，全部尺寸基于 --u，可整体自适应缩放 ═══ */
+.page{
+  --fs:1; --u:calc(1cqw * var(--fs));
+  position:relative;overflow:hidden;
+  width:min(100vw - 24px, 452px); aspect-ratio:3/4;
+  container-type:inline-size;
+  color:var(--ink);
+  border-radius:calc(5 * var(--u));
+  /* 两层：上面是半透明的银灰渐变（磨砂），下面垫一层白。
+     白也留一点透 —— 全不透明的话 backdrop-filter 没东西可模糊，
+     磨砂质感就没了，只剩一张灰纸 */
+  background:
+    var(--glass),
+    linear-gradient(0deg,rgba(255,255,255,.70),rgba(255,255,255,.70));
+  backdrop-filter:var(--frost);
+  -webkit-backdrop-filter:var(--frost);
+  /* 金属描边：外圈暗、内圈白高光，就是参考图那道亮边 */
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.95),
+    inset 0 0 0 2px rgba(160,163,170,.34),
+    inset 0 calc(1.2 * var(--u)) calc(3.6 * var(--u)) rgba(255,255,255,.55),
+    0 calc(3 * var(--u)) calc(9 * var(--u)) rgba(0,0,0,.45);
+  display:flex;flex-direction:column;
+  padding:calc(7 * var(--u)) calc(11 * var(--u)) calc(6.5 * var(--u)) calc(7 * var(--u));
+}
+/* 斜向光带：参考图里横穿玻璃的两道高光 */
+.page::before{
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:
+    linear-gradient(122deg,transparent 16%,rgba(255,255,255,.50) 29%,transparent 41%),
+    linear-gradient(292deg,transparent 18%,rgba(255,255,255,.34) 31%,transparent 45%);
+}
+/* 内容压在光带之上，否则白光会把字洗掉 */
+.page>*{position:relative;z-index:1}
+.page:focus{outline:none}
+.page::selection,.page ::selection{background:var(--cream)}
+
+/* ═══ 右侧书脊：竖排章节字 + 页码 ═══ */
+/* z-index 2：深色页脚现在铺到页底，会盖住书脊页码，书脊必须再高一档 */
+.rail{position:absolute;z-index:2;right:calc(3.6 * var(--u));top:calc(7 * var(--u));
+  bottom:calc(6.5 * var(--u));width:calc(4 * var(--u));
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+.rail .bar{width:calc(.45 * var(--u));height:calc(9 * var(--u));background:var(--red)}
+.rail .rc{writing-mode:vertical-rl;font-size:calc(3.3 * var(--u));font-weight:700;
+  letter-spacing:.42em;color:var(--gray)}
+.rail .rn{font-family:var(--n);font-size:calc(3 * var(--u));font-weight:700;color:var(--gray)}
+
+/* ═══ 排版元件 ═══ */
+.kick{font-size:calc(3.1 * var(--u));font-weight:700;color:var(--red);letter-spacing:.16em}
+.h1{font-size:calc(8.6 * var(--u));font-weight:800;line-height:1.24;letter-spacing:-.02em;
+  margin-top:calc(3.4 * var(--u))}
+.h1.sm{font-size:calc(7.2 * var(--u))}
+.h1 em{font-style:normal;color:var(--red)}
+.h1 u{text-decoration:none;box-shadow:inset 0 calc(-1.4 * var(--u)) 0 var(--red-w)}
+.lede{font-size:calc(3.7 * var(--u));line-height:1.75;color:var(--gray);margin-top:calc(2.6 * var(--u))}
+
+.hr{height:1px;background:var(--line);margin:calc(4 * var(--u)) 0 0}
+.hr.ink{background:linear-gradient(90deg,var(--navy-d),var(--navy) 62%,var(--navy-l));
+  height:calc(.5 * var(--u))}
+.hr.red{background:var(--navy);height:calc(.5 * var(--u));width:calc(14 * var(--u))}
+
+/* 悬挂编号列表 —— 只用细线分隔，不用卡片 */
+.rows{margin-top:calc(4.4 * var(--u))}
+.r{display:flex;gap:calc(4 * var(--u));padding:calc(3.4 * var(--u)) 0;border-top:1px solid var(--line)}
+.r:last-child{border-bottom:1px solid var(--line)}
+.r .i{flex:0 0 auto;font-family:var(--n);font-size:calc(3.2 * var(--u));font-weight:700;
+  color:var(--red);padding-top:calc(.9 * var(--u));min-width:calc(6 * var(--u))}
+.r b{display:block;font-size:calc(4.9 * var(--u));font-weight:800;line-height:1.32;letter-spacing:-.01em}
+.r p{font-size:calc(3.5 * var(--u));line-height:1.62;color:var(--gray);margin-top:calc(1.2 * var(--u))}
+
+/* 巨型数字 —— 极端字号对比 */
+.big{font-family:var(--n);font-weight:800;font-size:calc(30 * var(--u));line-height:.86;
+  letter-spacing:-.045em;color:var(--ink);white-space:nowrap}
+/* nowrap 必须有：中文大字号在窄栏里会被逐字断行，导出 PDF 时
+   "3个月"会碎成"3 / 个 / 月"并和旁边的说明文字交错 */
+.big.xs{font-size:calc(11 * var(--u))}
+.duo.cmp>div{min-width:0}
+.duo.cmp .cap{white-space:normal}
+.big.red{color:var(--red)}
+.big.mid{font-size:calc(19 * var(--u))}
+.big.s{font-size:calc(13 * var(--u))}
+.cap{font-size:calc(3.3 * var(--u));color:var(--gray);line-height:1.5;margin-top:calc(1.8 * var(--u))}
+
+.duo{display:flex;gap:calc(5 * var(--u));margin-top:calc(4 * var(--u))}
+.duo>div{flex:1}
+.trio{display:flex;gap:calc(3.5 * var(--u));margin-top:calc(4 * var(--u))}
+.trio>div{flex:1;border-top:calc(.5 * var(--u)) solid var(--navy);padding-top:calc(2 * var(--u))}
+.trio b{display:block;font-family:var(--n);font-size:calc(6.4 * var(--u));font-weight:800;
+  line-height:1.05;letter-spacing:-.03em}
+.trio span{display:block;font-size:calc(3 * var(--u));color:var(--gray);margin-top:calc(1.2 * var(--u));line-height:1.4}
+
+/* 页脚断言 */
+.foot{margin-top:auto;padding-top:calc(4 * var(--u))}
+.foot .fr{width:calc(11 * var(--u));height:calc(.55 * var(--u));background:var(--red);
+  margin-bottom:calc(2.6 * var(--u))}
+.foot p{font-size:calc(5 * var(--u));font-weight:800;line-height:1.42;letter-spacing:-.01em}
+.foot p em{font-style:normal;color:var(--red)}
+/* 深色页脚：横向出血，但不使用负的 margin-bottom —— 负底边距会在
+   打印分页时被裁掉（导出 PDF 时黑块消失），且会让 fit() 漏算高度。
+   纵向出血改用"页面去掉下内边距 + 页脚自己补回同样的量"：总高不变，
+   fit() 的测量也不变，但深色块能一直铺到页底。原稿没有这一步，
+   白色页码正好骑在深色块的下边缘上，一半压在浅底上看不见。 */
+.page:has(.foot.solid){padding-bottom:0}
+.page:has(.foot.solid) .foot.solid{padding-bottom:calc(11.1 * var(--u))}
+.foot.solid{background:linear-gradient(118deg,var(--navy-d) 0%,var(--navy) 58%,var(--navy-l) 100%);
+  color:#fff;margin-left:calc(-7 * var(--u));
+  margin-right:calc(-11 * var(--u));margin-bottom:0;break-inside:avoid;
+  padding:calc(4.6 * var(--u)) calc(11 * var(--u)) calc(4.6 * var(--u)) calc(7 * var(--u))}
+/* 深底上强调字必须换成奶油杏 —— 藏蓝压藏蓝会直接看不见 */
+.foot.solid .fr{background:var(--cream)}
+.foot.solid p em{color:var(--cream)}
+
+/* 章节扉页 */
+.mw{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.mark{position:absolute;right:calc(-9 * var(--u));top:calc(-6 * var(--u));
+  font-size:calc(92 * var(--u));font-weight:800;line-height:.8;color:transparent;
+  -webkit-text-stroke:calc(.4 * var(--u)) var(--navy);letter-spacing:-.05em;opacity:.42}
+/* 扉页在磨砂卡背后再加一团奶油杏光晕，呼应参考图的杏色衬形 */
+.mw::before{content:"";position:absolute;right:calc(-14 * var(--u));top:calc(-10 * var(--u));
+  width:calc(72 * var(--u));height:calc(72 * var(--u));border-radius:50%;
+  background:radial-gradient(circle,rgba(239,221,182,.62) 0%,rgba(239,221,182,0) 68%)}
+.chbody{margin-top:auto}
+.page:has(.foot.solid) .rail .rn{color:#fff}
+.chno{font-family:var(--n);font-size:calc(3.4 * var(--u));font-weight:700;
+  color:var(--red);letter-spacing:.4em}
+.cht{font-size:calc(11 * var(--u));font-weight:800;line-height:1.22;
+  letter-spacing:-.03em;margin-top:calc(2.6 * var(--u))}
+
+/* 网格：11项系统 */
+.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:calc(4 * var(--u));margin-top:calc(4 * var(--u))}
+.g{display:flex;gap:calc(2.4 * var(--u));align-items:baseline;padding:calc(2.5 * var(--u)) 0;
+  border-top:1px solid var(--line);font-size:calc(3.7 * var(--u));font-weight:700;line-height:1.3}
+.g i{font-style:normal;font-family:var(--n);font-size:calc(2.9 * var(--u));color:var(--gray)}
+.g.on{color:var(--red)} .g.on i{color:var(--red)}
+
+/* 引述 */
+.quote{font-size:calc(4.4 * var(--u));line-height:1.82;font-weight:600;margin-top:calc(3.4 * var(--u))}
+.quote em{font-style:normal;color:var(--red)}
+.by{font-size:calc(3.3 * var(--u));color:var(--gray);margin-top:calc(3 * var(--u))}
+
+/* 封面 / 封底：同样是磨砂玻璃，只是杏色再重一点 */
+.cov{background:
+    linear-gradient(148deg,
+      rgba(255,255,255,.88) 0%,
+      rgba(249,244,233,.74) 26%,
+      rgba(236,231,219,.62) 50%,
+      rgba(254,252,246,.80) 72%,
+      rgba(233,227,213,.68) 100%),
+    linear-gradient(0deg,rgba(255,255,255,.70),rgba(255,255,255,.70))}
+.cov .t{font-size:calc(14.5 * var(--u));font-weight:800;line-height:1.1;letter-spacing:-.035em;
+  color:var(--navy)}
+.cov .s{font-size:calc(7.6 * var(--u));font-weight:800;color:var(--navy);margin-top:calc(4 * var(--u));letter-spacing:-.02em}
+/* 参考图里那个圆角描边小框 */
+.badge{display:inline-block;border:calc(.5 * var(--u)) solid var(--navy);
+  border-radius:calc(2.6 * var(--u));color:var(--navy);
+  background:linear-gradient(150deg,rgba(255,255,255,.62),rgba(239,221,182,.42));
+  padding:calc(2.4 * var(--u)) calc(3.6 * var(--u));font-size:calc(3.6 * var(--u));font-weight:800;line-height:1.5}
+.tel{color:var(--navy)}
+.tel{font-family:var(--n);font-size:calc(7.4 * var(--u));font-weight:800;letter-spacing:-.02em}
+
+/* ═══ 编辑工具栏 ═══ */
+#tb{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#111318;
+  border-top:1px solid #2A2E36;padding:9px 10px calc(9px + env(safe-area-inset-bottom));
+  display:flex;gap:6px;align-items:center;overflow-x:auto;font-family:var(--f)}
+#tb button{flex:0 0 auto;font-family:var(--f);font-size:13px;font-weight:700;color:#E8EAEE;
+  background:#242832;border:1px solid #333944;border-radius:8px;padding:8px 11px;cursor:pointer;white-space:nowrap}
+#tb button:active{background:#333944}
+#tb .sw{width:30px;height:30px;border-radius:8px;border:1px solid #444B57;padding:0}
+#tb .sep{flex:0 0 auto;width:1px;height:24px;background:#333944;margin:0 3px}
+#tb .go{background:var(--red);border-color:var(--red);color:#fff}
+#tb .hint{flex:0 0 auto;font-size:11px;color:#7C838F;padding-left:4px}
+
+@media print{
+  body{background:#fff;padding:0;gap:0;display:block}
+  #tb{display:none!important}
+  .page{width:150mm;height:200mm;aspect-ratio:auto;break-after:page;page-break-after:always}
+  .page:last-child{break-after:auto;page-break-after:auto}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* 打印引擎不执行 backdrop-filter，半透明层背后是白纸 ——
+     直接印会糊成一片灰。所以换成"已经把磨砂算好"的不透明渐变，
+     并去掉圆角和投影（整页即纸张，圆角会露出白边）。 */
+  .page{
+    border-radius:0;box-shadow:none;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:var(--glass-print);
+  }
+  .cov{background:linear-gradient(148deg,
+      #FFFFFF 0%,#FBF7EE 26%,#F2EEE4 50%,#FEFCF7 72%,#F1EDE3 100%)}
+  /* 光带留着，但压淡一档：纸面反光不像屏幕，太强会显脏 */
+  .page::before{opacity:.45}
+}
+@page{size:150mm 200mm;margin:0}
+</style>
+</head><body>
+
+<!-- 01 封面 -->
+<section class="page cov" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="kick">张良 · 销售业绩操盘手</div>
+  <div class="hr ink" style="margin-top:calc(2.6 * var(--u))"></div>
+  <div class="t" style="margin-top:calc(5 * var(--u))">销冠<br>去哪儿了？</div>
+  <div class="s">他们一直都在<br>只是不来找你</div>
+  <div class="lede" style="margin-top:calc(4 * var(--u))">
+    20年实战 · 亲手带出 1000人+ 销冠团队
+  </div>
+  <div class="foot">
+    <span class="badge">只有销冠团队 &nbsp;·&nbsp; 才能以弱胜强</span>
+    <div class="hr" style="margin-top:calc(5 * var(--u))"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:calc(3 * var(--u))">
+      <div class="cap" style="margin:0">电话 / 微信</div>
+      <div class="tel">135 5272 5767</div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 战绩 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">实战验证</div><div class="rn">02</div></div>
+  <div class="kick">20年 · 只用结果说话</div>
+  <h2 class="h1">跨周期<br>跨行业</h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>0 → 2亿 · 2年</b><p>培训行业 · 我的职位：销售负责人<br>2年做到北京同行第一</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>4个月盈利 · 1年近1000万</b><p>通信行业 · 我的职位：销售合伙人<br>从 0 开始打造销冠团队</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>5个月扭亏 · 1年近3000万</b><p>医药行业 · 我的职位：销售操盘<br>连亏6年 → 1年估值翻20倍</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>多家企业<em>主动投资、主动赠股</em><br></p></div>
+</section>
+
+<!-- 03 只有一条路 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">唯一杠杆</div><div class="rn">03</div></div>
+  <div class="kick">20年，我只信这一件事</div>
+  <h2 class="h1 sm">中小企业<br>只有一条路<br><em>能弯道超车</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(2.6 * var(--u))">
+    <span style="color:var(--ink);font-weight:800">大企业输得起时间，你输不起。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(2.8 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>拼资金</b><p>拼不过</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>拼品牌</b><p>拼不过</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>拼产品</b><p>三个月就被抄走</p></div></div>
+    <div class="r"><span class="i" style="color:var(--red)">04</span><div><b style="color:var(--red)">拼速度</b><p>而速度，是人跑出来的</p></div></div>
+  </div>
+  <div class="foot solid"><div class="fr"></div>
+    <p>谁的销冠多<br><em>谁就赢</em></p></div>
+</section>
+
+<!-- 04 章节 一 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">认</div></div>
+  <div class="chno">CHAPTER 01</div>
+  <div class="chbody"><div class="cht">销冠<br>是天赋</div>
+  <div class="lede">20年，我没见过一个庸才被培养成销冠。<br>认了这一点，问题才有解。</div></div>
+</section>
+
+<!-- 05 不是培养，是选出来的 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">认</div><div class="rn">05</div></div>
+  <div class="kick">先说一句得罪人的实话</div>
+  <h2 class="h1 sm">不是培养出来的<br><em>是选出来的</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>天赋决定上限</b><p>对钱的饥饿、被拒绝之后还能笑、目标感、深夜研究客户 —— 这几样，教不会</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>训练只决定他离上限多远</b><p>能把 60 分练到 75 分，练不到 95 分</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>所以钱不该砸在"培养"上</b><p>该砸在：让他来、认出他、留住他</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>指望把庸才培养成销冠<br>是<em>最贵的自我安慰</em></p></div>
+</section>
+
+<!-- 06 面不到销冠 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">认</div><div class="rn">06</div></div>
+  <div class="kick">20年，老板问我最多的一句</div>
+  <h2 class="h1 sm">面不到销冠<br><em>为啥？</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(2.8 * var(--u))">
+    招了一整年，简历翻了几百份，<br>
+    <span style="color:var(--ink);font-weight:800">面到的人里，没有一个让你眼前一亮。</span><br>
+    于是你得出一个结论：市场上没销冠了。
+  </div>
+  <div class="rows" style="margin-top:calc(3 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>这个结论，是错的</b><p>他们一直都在 —— 只是不来找你</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>从他看见你，到他坐下来，要过六道关</b><p>你每一道都在漏，而你一道都没量过</p></div></div>
+  </div>
+  <div class="foot solid"><div class="fr"></div>
+    <p>招人不是碰运气<br>是一道一道<em>算出来的</em></p></div>
+</section>
+
+<!-- 07 章节 二 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">漏</div></div>
+  <div class="chno">CHAPTER 02</div>
+  <div class="chbody"><div class="cht">六道关<br>你只看<br>最后一个数</div>
+  <div class="lede">"这个月招到几个" —— 你只盯这一个数。<br>而人是在前面五道关，一道一道漏掉的。</div></div>
+</section>
+
+<!-- 08 漏斗 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">漏</div><div class="rn">08</div></div>
+  <div class="kick">这是全篇最该记住的一页</div>
+  <h2 class="h1 sm">从他看见你<br>到他坐在你对面<br><em>要过六道关</em></h2>
+  <div class="grid">
+    <div class="g"><i>01</i>标题 · 他点开了吗</div>
+    <div class="g"><i>02</i>内容 · 他投了吗</div>
+    <div class="g"><i>03</i>邀约 · 你约到了吗</div>
+    <div class="g"><i>04</i>到面 · 他来了吗</div>
+    <div class="g"><i>05</i>面试 · 你认出来了吗</div>
+    <div class="g"><i>06</i>条件 · 他答应了吗</div>
+  </div>
+  <div class="hr" style="margin-top:calc(4 * var(--u))"></div>
+  <div class="lede" style="margin-top:calc(2.6 * var(--u))">
+    六个数，每一个都能量、能改、能提上去。<br>
+    <span style="color:var(--ink);font-weight:800">而你现在，一个都没有。</span>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>不是市场没人<br>是<em>你的漏斗在漏水</em></p></div>
+</section>
+
+<!-- 09 机制是1 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">漏</div><div class="rn">09</div></div>
+  <div class="kick">而第一道关，就卡死了</div>
+  <h2 class="h1">机制是 1<br>后面<em>全是 0</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>你能写进招聘的东西，跟同行一模一样</b><p>他没有理由点开你</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>收益一眼看到顶</b><p>他心里已经算完了，不会投</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>干得再好也留不住</b><p>就算来了，几个月后照样走</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>机制不对<br>后面每一分钱<em>都白花</em></p></div>
+</section>
+
+<!-- 10 章节 三 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">引</div></div>
+  <div class="chno">CHAPTER 03</div>
+  <div class="chbody"><div class="cht">让销冠<br>非来<br>不可</div>
+  <div class="lede">销冠手上不止你一个选择。<br>你得给出一个别人给不了的东西。</div></div>
+</section>
+
+<!-- 11 三个数 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">引</div><div class="rn">11</div></div>
+  <div class="kick">他坐在你对面时</div>
+  <h2 class="h1 sm">你在讲平台<br>他在<em>算三个数</em></h2>
+  <div class="hr"></div>
+  <div class="rows" style="margin-top:calc(3 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>最多能拿多少</b><p>有没有封顶 —— 这一条决定他来不来</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>什么时候到手</b><p>即时兑现，看得见摸得着 —— 不是饼</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>走的时候，丢什么</b><p>这一条决定他两年后走不走</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>这三个数不让他心动<br>他<em>面完就把你忘了</em></p></div>
+</section>
+
+<!-- 12 人才机制 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">系统</div><div class="rn">12</div></div>
+  <div class="kick">人才机制设计</div>
+  <h2 class="h1 sm">把这三个数<br><em>写清楚给他看</em></h2>
+  <div class="hr"></div>
+  <div class="rows" style="margin-top:calc(3 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>上限不封顶</b><p>他能拿多少，他自己说了算，不是你说了算</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>钱到手要快，且值得他付出</b><p>不是"等公司好了再说"</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>干得越久，走的时候丢得越多</b><p>这才叫留人 —— 靠感情留不住销冠</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>极具差异化 · 独具吸引力<br>对销冠 → <em>非来不可</em></p></div>
+</section>
+
+<!-- 13 激励 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">系统</div><div class="rn">13</div></div>
+  <div class="kick">每家公司都有激励 —— 差别在这</div>
+  <h2 class="h1 sm">让员工<br><em>比你更急</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(2.8 * var(--u))">
+    多数公司卖得越多、却拿不到对应回报 —— 因为老板心疼。<br>
+    <span style="color:var(--ink);font-weight:800">销冠一眼就看出来，然后不来。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(3 * var(--u))">
+    <div class="r"><span class="i">即时</span><div><b>别人给不了的，你能给</b></div></div>
+    <div class="r"><span class="i">月度</span><div><b>他在别人那儿赚不到的</b></div></div>
+    <div class="r"><span class="i">季度</span><div><b>他能额外拿到的</b></div></div>
+    <div class="r"><span class="i">长期</span><div><b>打工变合伙</b></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>别人都有激励<br>差别是<em>他心不心动</em></p></div>
+</section>
+
+<!-- 14 章节 四 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">认</div></div>
+  <div class="chno">CHAPTER 04</div>
+  <div class="chbody"><div class="cht">人来了<br>接下来是<br><span style="color:var(--red)">多久认出他</span></div>
+  <div class="lede">你当然认得出销冠。<br>问题是 —— 你要用多久。</div></div>
+</section>
+
+<!-- 15 三个月才认得出 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">认</div><div class="rn">15</div></div>
+  <div class="kick">关于"认人"，说句公道话</div>
+  <h2 class="h1 sm">你不是认不出<br>你是<em>三个月才认得出</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(2.6 * var(--u))">
+    三个月后，谁行谁不行，你比谁都清楚。<br>
+    <span style="color:var(--ink);font-weight:800">问题是这三个月，已经付出去了：</span>
+  </div>
+  <div class="rows" style="margin-top:calc(2.8 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>三个月工资</b><p>白发的，还带社保，带辞退成本</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>一支被带偏的团队</b><p>庸才的情绪会传染，比业绩差更坏</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>一批被做死的客户</b><p>他手上碰过的客户，别人再也接不回来</p></div></div>
+    <div class="r"><span class="i">04</span><div><b>三个月市场窗口</b><p>这一项最贵，而且找不回来</p></div></div>
+  </div>
+  <div class="foot solid"><div class="fr"></div>
+    <p>看走眼不可怕<br><em>三个月后才看出来，才可怕</em></p></div>
+</section>
+
+<!-- 16 3-7天 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">系统</div><div class="rn">16</div></div>
+  <div class="kick">3-7天筛人模型</div>
+  <h2 class="h1 sm">三个月的活<br><em>七天干完</em></h2>
+  <div class="duo cmp" style="margin-top:calc(4.6 * var(--u))">
+    <div>
+      <div class="big xs" style="color:var(--gray)">3个月</div>
+      <div class="cap">行业平均<br>筛选周期</div>
+    </div>
+    <div>
+      <div class="big xs red">3-7天</div>
+      <div class="cap">我的周期<br>最长封顶 15 天</div>
+    </div>
+  </div>
+  <div class="rows" style="margin-top:calc(3.6 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>不靠面试，靠真打一场</b><p>真名单、真客户、真场景</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>高标准 + PK</b><p>不是我筛他，是他们互相筛</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>错了，损失锁死在两周内</b><p>不是半年后才发现</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>只会说的<br>撑不过<em>第三天</em></p></div>
+</section>
+
+<!-- 17 堵漏斗 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">系统</div><div class="rn">17</div></div>
+  <div class="kick">六道关，一道一道修</div>
+  <h2 class="h1 sm">把漏斗<br><em>一道一道堵上</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>标题吸睛</b><p>决定他手指停不停下来 —— 看你</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>内容吸心</b><p>决定他投不投</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>邀约与到面</b><p>约十个来三个，和约十个来八个，是两种办法</p></div></div>
+    <div class="r"><span class="i">04</span><div><b>干招聘的人，也分二八</b><p>招人和出单一样 —— 顶尖的那 20%，招来 80% 的好人</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>老板只看<em>最后招到几个</em><br>我盯前面五个数</p></div>
+</section>
+
+<!-- 18 章节 五 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">稳</div></div>
+  <div class="chno">CHAPTER 05</div>
+  <div class="chbody"><div class="cht">人进来了<br>怎么让他<br><span style="color:var(--navy)">不走、还拼</span></div>
+  <div class="lede">留人的钱，前面已经设计好了。<br>这一章只解决两件：不让天赋被浪费，让他把人带来。</div></div>
+</section>
+
+<!-- 19 SOP -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">稳</div><div class="rn">19</div></div>
+  <div class="kick">销售 SOP 高标建设</div>
+  <h2 class="h1 sm">SOP 不生产天赋<br>它只是<em>不让天赋被浪费</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(3 * var(--u))">
+    <span style="color:var(--ink);font-weight:800">你现在的痛：业绩好坏全凭感觉，出了事不知道卡在哪一环。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(3.2 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>让销冠不做无效动作</b><p>顶尖的人，时间最贵</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>让过程数据替你识人</b><p>不用等3个月，2周见真章</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>给精英销售一个下限</b><p>成不了销冠，但必须是精英</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>过往项目区间：业绩同比 <em>+30~100%</em><br>不同行业差异大，不做承诺</p></div>
+</section>
+
+<!-- 20 销冠吸引销冠 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">稳</div><div class="rn">20</div></div>
+  <div class="kick">最值钱的一件事</div>
+  <h2 class="h1 sm">销冠<em>吸引</em>销冠</h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(3 * var(--u))">
+    一个销冠在你这儿赚到钱，他会带来第二个 ——<br>
+    <span style="color:var(--ink);font-weight:800">因为这一行，能打的人彼此都认识。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(3.2 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>销冠赚得多</b><p>→ 他的朋友会来问"你们那儿怎么样"</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>招人的人赚得多</b><p>→ 他自己就会去挖人</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>客户赚得多</b><p>→ 一荐十，十荐百</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>第一个销冠靠招<br>第三个之后，<em>他们自己会来</em></p></div>
+</section>
+
+<!-- 21 章节 六 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="mw"><div class="mark">我</div></div>
+  <div class="chno">CHAPTER 06</div>
+  <div class="chbody"><div class="cht">道理你都懂<br>缺的是<br><span style="color:var(--red)">狠劲</span></div>
+  <div class="lede">狠劲不是嘴上狠 —— 是敢动分配方案，敢放权。<br>接下来几页，是我的软肋，也是我对你的要求。</div></div>
+</section>
+
+<!-- 22 我也做砸过 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">22</div></div>
+  <div class="kick">该说的实话</div>
+  <h2 class="h1 sm">我也<em>做砸过</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(3 * var(--u))">
+    砸掉的那几家，方案没问题，人也招进来了。<br>
+    <span style="color:var(--ink);font-weight:800">卡死在同一个地方：老板想要销冠，但舍不得给销冠让利。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(3.2 * var(--u))">
+    <div class="r"><span class="i">01</span><div><b>分配方案，最后没敢动</b></div></div>
+    <div class="r"><span class="i">02</span><div><b>亲信挡在关键位置上，动不了</b></div></div>
+    <div class="r"><span class="i">03</span><div><b>干到一半，埋怨销冠拿多了</b></div></div>
+  </div>
+  <div class="foot solid"><div class="fr"></div>
+    <p>三次都砸在同一件事<br><em>你能不能放权</em></p></div>
+</section>
+
+<!-- 23 三个条件 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">23</div></div>
+  <div class="kick">所以我现在先筛企业</div>
+  <h2 class="h1 sm">我只有<em>三个条件</em><br>都跟钱和权有关</h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>你本人拍板</b><p>分配方案能不能改，你一句话说了算 —— 这条不成立，后面全是白干</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>我招的人，我有权否</b><p>不合格的，我说走就得走，不用绕三层</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>你能不能放权</b><p>干涉太多的，我不接</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>这三条你点头<br>剩下的<em>是我的事</em></p></div>
+</section>
+
+<!-- 24 11套办法 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">24</div></div>
+  <div class="kick">交付内容 · 可单做，可全做</div>
+  <h2 class="h1 sm">不是耍嘴皮子<br><em>是 11 套办法</em></h2>
+  <div class="hr"></div>
+  <div class="lede" style="margin-top:calc(2.6 * var(--u))">
+    嘴皮子，经不起推敲和验证，很快露馅儿。<br>
+    <span style="color:var(--ink);font-weight:800">办法 —— 直面问题，解决问题。</span>
+  </div>
+  <div class="rows" style="margin-top:calc(2.8 * var(--u))">
+    <div class="r"><span class="i">让他来</span><div><b>4 项</b><p>人才机制设计 · 激励组合设计 · 高管与内部创业激励 · 创业故事梳理</p></div></div>
+    <div class="r"><span class="i">招进来</span><div><b>3 项</b><p>招聘全程提效 · 3-7天筛人模型 · 人力绩效与激励</p></div></div>
+    <div class="r"><span class="i">干出来</span><div><b>4 项</b><p>销售 SOP 高标 · 游戏化 PK 模型 · 魔鬼训练模型 · 渠道裂变体系</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>哪几项该做、哪几项不用做<br>见一面，<em>我当场告诉你</em></p></div>
+</section>
+
+<!-- 25 落地节奏 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">25</div></div>
+  <div class="kick">什么时候能见到钱</div>
+  <h2 class="h1 sm">落地节奏<br><em>天天看得见</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">30天</span><div><b>落地</b><p>机制定稿，招聘全线提效</p></div></div>
+    <div class="r"><span class="i">90天</span><div><b>见效</b><p>反复筛选高手，漏斗六个数全部上来</p></div></div>
+    <div class="r"><span class="i">6个月</span><div><b>突破</b><p>人均产出上台阶，队伍开始自己转</p></div></div>
+    <div class="r"><span class="i" style="color:var(--red)">1年</span><div><b style="color:var(--red)">翻倍</b><p>销冠自己带销冠，增速拉开同行</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>天天看得见，你放心<br>只有销冠团队 · <em>单点打透，才能以弱胜强</em></p></div>
+</section>
+
+<!-- 26 我不是干完就走 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">26</div></div>
+  <div class="kick">你最该问的一个问题</div>
+  <h2 class="h1 sm">我不是<br><em>干完就走</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">0-30天</span><div><b>我定机制，我指挥</b></div></div>
+    <div class="r"><span class="i">31-60天</span><div><b>找出并带出顶级高管储备</b></div></div>
+    <div class="r"><span class="i">61-90天</span><div><b>他从试岗到指挥，我只上周会</b></div></div>
+    <div class="r"><span class="i" style="color:var(--red)">半年后</span><div><b style="color:var(--red)">我转顾问位，长期陪跑</b><p>我不消失 —— 但你已经不需要天天找我</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>我交付的不是一套方案<br>是<em>一个顶级销管 + 一支销冠团队</em></p></div>
+</section>
+
+<!-- 27 证言 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">27</div></div>
+  <div class="kick">凭什么信我 · 客户怎么说</div>
+  <h2 class="h1 sm">他们用真金白银<br>给我投票</h2>
+  <div class="hr"></div>
+  <div class="quote">
+    "合作前我们连亏 6 年，濒临倒闭。<br>
+    张良让我们 <em>5 个月扭亏</em>，一年招商额近 3000万。<br>
+    我们主动投他 <em>500万</em>。"
+  </div>
+  <div class="by">—— 医药企业 董事长</div>
+  <div class="trio">
+    <div><b>500万</b><span>客户主动投资</span></div>
+    <div><b>赠股</b><span>多家企业主动给</span></div>
+    <div><b>可背调</b><span>老客户接受电话验证</span></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>对手的高管主动加入<br>对手的老板<em>主动来找我合作</em></p></div>
+</section>
+
+<!-- 28 算账 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">28</div></div>
+  <div class="kick">按 10 人团队测算</div>
+  <h2 class="h1 sm">你值得花点时间<br><em>好好算算账</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">￥</span><div><b>100万 / 年</b><p>10人团队月工资 8-10万 · 新人3个月留存仅 20%<br>反复招聘，一年工资就白扔 100万</p></div></div>
+    <div class="r"><span class="i">人</span><div><b>3-5 个总监</b><p>每换一次，团队重来一次，都是钱</p></div></div>
+    <div class="r"><span class="i">%</span><div><b>30% TOP 销售</b><p>总监离职时带走的人 · 外加你的客户资源，全是钱</p></div></div>
+    <div class="r"><span class="i">时机</span><div><b>最致命的一项</b><p>本该你赚的几百上千万，被对手赚走了 —— 被你自己耽误了</p></div></div>
+  </div>
+  <div class="foot solid"><div class="fr"></div>
+    <p>看得见的损失，几十几百万<br>看不见的，<em>是业绩和市场</em></p></div>
+</section>
+
+<!-- 29 合作方式 -->
+<section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="rail"><div class="bar"></div><div class="rc">我</div><div class="rn">29</div></div>
+  <div class="kick">合作方式 · 你来选</div>
+  <h2 class="h1 sm">全职、驻场、顾问<br><em>你说了算</em></h2>
+  <div class="rows">
+    <div class="r"><span class="i">01</span><div><b>全职操盘</b><p>我进来当你的销售负责人 —— 从招人到出单，全程我扛</p></div></div>
+    <div class="r"><span class="i">02</span><div><b>驻场操盘</b><p>每月固定天数在司 + 远程，有指挥权，不占你的编制</p></div></div>
+    <div class="r"><span class="i">03</span><div><b>顾问陪跑</b><p>机制和招法我定，你的人执行，我按月复盘</p></div></div>
+  </div>
+  <div class="foot"><div class="fr"></div>
+    <p>我不挑形式<br>只挑一条：<em>你让不让我动分配方案</em></p></div>
+</section>
+
+<!-- 30 封底 -->
+<section class="page cov" contenteditable="true" spellcheck="false" style="--fs: 1;">
+  <div class="kick">对比全国同行</div>
+  <h2 class="h1 sm" style="margin-top:calc(2.8 * var(--u))">你的人效，<em>高还是低</em>？<br>你的增长，<em>快还是慢</em>？</h2>
+  <div class="lede">如果答案不在同行前 10% —— 再等，机会就是别人的了。</div>
+  <div class="hr ink" style="margin-top:calc(4.5 * var(--u))"></div>
+  <div class="t" style="font-size:calc(9.5 * var(--u));font-weight:800;line-height:1.28;letter-spacing:-.03em;margin-top:calc(3.6 * var(--u))">
+    现在动手<br>还是<em style="font-style:normal;color:var(--red)">再等</em>？
+  </div>
+  <div class="foot">
+    <div class="fr"></div>
+    <p>我不培养销冠<br>我<em>把他带到你面前</em></p>
+    <div class="hr" style="margin-top:calc(3.6 * var(--u))"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:calc(2.8 * var(--u))">
+      <div class="cap" style="margin:0">张良 · 销售业绩操盘手<br>电话 / 微信</div>
+      <div class="tel">135 5272 5767</div>
+    </div>
+  </div>
+</section>
+<!-- ═══ 编辑工具栏 ═══ -->
+<div id="tb">
+  <span class="hint">选中文字 →</span>
+  <button onclick="sz(1.14)">A＋</button>
+  <button onclick="sz(0.88)">A－</button>
+  <button onclick="wt(900)">加粗</button>
+  <button onclick="wt(400)">变细</button>
+  <span class="sep"></span>
+  <button class="sw" style="background:#1E2C7C" onclick="col('#1E2C7C')" title="藏蓝 · 主色"></button>
+  <button class="sw" style="background:#101A52" onclick="col('#101A52')" title="深藏蓝"></button>
+  <button class="sw" style="background:#131C46" onclick="col('#131C46')" title="墨色"></button>
+  <button class="sw" style="background:#6E7899" onclick="col('#6E7899')" title="灰"></button>
+  <button class="sw" style="background:#EFDDB6" onclick="col('#EFDDB6')" title="奶油杏 · 第三色"></button>
+  <input type="color" class="sw" style="background:#fff" value="#1E2C7C" oninput="col(this.value)" title="自选颜色">
+  <span class="sep"></span>
+  <button onclick="clr()">清除格式</button>
+  <span class="sep"></span>
+  <button class="go" onclick="window.print()">导出 PDF</button>
+  <button onclick="save()">保存 HTML</button>
+</div>
+
+<script>
+/* ── 清污：浏览器在编辑时会把当前渲染出的"像素值"写死进行内样式，
+      例如 font-size:5.89px。本文件所有字号都是按页宽百分比换算的
+      （--u = 1cqw × --fs），一旦写死 px 就不再跟着缩放 —— 屏幕上看着
+      还行，导出 PDF（页宽只有 150mm）时就会变得极小。
+      所以每次重排前，先把含 px 的字号/间距声明剥掉。 ── */
+function clean(){
+  document.querySelectorAll('.page [style]').forEach(function(el){
+    var s=el.getAttribute('style')||'';
+    if(!/\dpx/.test(s)) return;
+    var keep=s.split(';').filter(function(d){
+      if(!d.trim()) return false;
+      return !(/\dpx/.test(d) &&
+        /font-size|margin|padding|line-height|letter-spacing/i.test(d));
+    }).join(';');
+    keep ? el.setAttribute('style',keep) : el.removeAttribute('style');
+  });
+}
+
+/* ── 自适应：任何内容长度都压进 3:4 画幅，永不裁切 ── */
+function fit(){
+  clean();
+  document.querySelectorAll('.page').forEach(function(p){
+    p.style.setProperty('--fs',1);
+    var s=1,g=0;
+    while(p.scrollHeight>p.clientHeight+1 && s>0.6 && g++<45){
+      s=Math.round((s-0.02)*100)/100; p.style.setProperty('--fs',s);
+    }
+  });
+}
+
+/* ── 选区格式化：每一个字都可单独改字号 / 颜色 / 字重 ── */
+var lastRange=null;
+document.addEventListener('selectionchange',function(){
+  var s=getSelection();
+  if(s.rangeCount && !s.isCollapsed && document.activeElement.classList.contains('page')){
+    lastRange=s.getRangeAt(0).cloneRange();
+  }
+});
+function wrap(css){
+  var s=getSelection(), r=null;
+  if(s.rangeCount && !s.isCollapsed) r=s.getRangeAt(0);
+  else if(lastRange) r=lastRange;
+  if(!r||r.collapsed){ alert('请先用手指或鼠标选中要修改的文字'); return; }
+  var sp=document.createElement('span');
+  for(var k in css) sp.style[k]=css[k];
+  try{ r.surroundContents(sp); }
+  catch(e){ sp.appendChild(r.extractContents()); r.insertNode(sp); }
+  var ns=document.createRange(); ns.selectNodeContents(sp);
+  s.removeAllRanges(); s.addRange(ns); lastRange=ns.cloneRange();
+  fit();
+}
+function sz(m){ wrap({fontSize:m+'em'}); }
+function col(c){ wrap({color:c}); }
+function wt(w){ wrap({fontWeight:w}); }
+function clr(){
+  var s=getSelection(), r=(s.rangeCount&&!s.isCollapsed)?s.getRangeAt(0):lastRange;
+  if(!r){ return; }
+  var host=r.commonAncestorContainer;
+  if(host.nodeType===3) host=host.parentNode;
+  host.querySelectorAll('span[style]').forEach(function(sp){
+    if(r.intersectsNode(sp)){
+      sp.style.fontSize=''; sp.style.color=''; sp.style.fontWeight='';
+    }
+  });
+  fit();
+}
+
+/* ── 保存成一个新的 HTML 文件（保留全部编辑能力） ── */
+function save(){
+  var html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  var b=new Blob([html],{type:'text/html;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='张良-销售业绩操盘手.html';
+  a.click();
+}
+
+document.addEventListener('input',function(e){ if(e.target.closest('.page')) fit(); });
+window.addEventListener('resize',fit);
+window.addEventListener('beforeprint',fit);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit);
+window.addEventListener('load',fit);
+fit();
+</script>
+
+
+</body></html>
