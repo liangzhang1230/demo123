@@ -5,128 +5,41 @@
 <title>张良 · 销售业绩操盘手</title>
 <style>
 :root{
-  /* ═══ 三色体系：黑 · 奶油杏 · 藏蓝 ═══ */
-  --navy:#1E2C7C;      /* 主蓝：强调字 / 编号 / 短线 */
-  --navy-d:#101A52;    /* 深藏蓝：深色页脚渐变起点 */
-  --navy-l:#3348A6;    /* 亮藏蓝：渐变收尾 */
-  --cream:#EFDDB6;     /* 奶油杏：第三色，做底衬与高光 */
-  --cream-w:#F6EAD0;   /* 淡奶油：高亮字的底衬 */
-  --black:#0B0C0F;     /* 画布黑 */
-  /* 原稿散落着 var(--red)/var(--red-w)，保留别名，遗漏处也不会退回红色 */
-  --red:var(--navy); --red-w:var(--cream-w);
-
-  /* 正文墨色走"黑"，不跟着藏蓝走 —— 墨色一旦也偏蓝，
-     强调色和正文就分不开了，原稿靠红黑对比撑起来的层次会整页塌掉 */
-  --paper:#FFFFFF; --ink:#0F1116;
-  /* 玻璃是烟灰底，浅灰字会糊掉 —— 次级文字和分隔线都得压深 */
-  --gray:#4A5570; --line:rgba(26,34,62,.20); --wash:#F3F4F8;
-
-  /* ═══ 磨砂玻璃：半透明银灰渐变 + 模糊，下面垫一层白 ═══ */
-  --glass:linear-gradient(148deg,
-      rgba(255,255,255,.88) 0%,
-      rgba(247,245,240,.74) 26%,
-      rgba(231,231,228,.62) 50%,
-      rgba(253,252,249,.80) 72%,
-      rgba(228,228,227,.68) 100%);
-  --frost:blur(15px) saturate(118%);
-  --gap-x:4.2;         /* 玻璃卡左右距页边 —— 黑底露出来的量 */
-  --gap-y:4.8;         /* 上下留多一点，给菱形的尖角让位 */
-  --rad:10;            /* 卡片圆角（乘 --u 用）：参考图是很大的圆角 */
-  --bez:2.45;          /* 玻璃厚度带（那圈厚边）的宽度 */
-  /* 卡内留白，与卡外距相加才是页面的 padding */
-  /* 卡内留白压到刚好避开厚边即可 —— 玻璃边本身已经起了分隔作用，
-     再留宽就是白白挤掉正文字号（密集页会被 fit() 压得过小） */
-  --pad-t:4.0; --pad-r:7.6; --pad-b:3.6; --pad-l:5.0;
-
+  --paper:#FFFFFF; --ink:#0E0F11; --red:#DC2B1E; --red-w:#FDEDEB;
+  /* 深色块上专用的红：正红 #DC2B1E 压在近黑上只有 4.02:1，
+     字糊在底里。同色相提亮到 5.97:1，仍是正红，不发橘粉。
+     只在深底生效，白底一律还用 --red，全篇红色观感不变。 */
+  --red-d:#FF5240;
+  --gray:#8A9097; --line:#E4E5E8; --wash:#F7F7F8;
   --f:"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   --n:"Helvetica Neue",Helvetica,Arial,var(--f);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-body{font-family:var(--f);display:flex;flex-direction:column;
-  align-items:center;gap:14px;padding:14px 0 96px;background:#000}
+body{background:#DCDDE0;font-family:var(--f);display:flex;flex-direction:column;
+  align-items:center;gap:14px;padding:14px 0 96px}
 
-/* ═══ 画幅：3:4 竖版，全部尺寸基于 --u，可整体自适应缩放 ═══
-   四层叠出来的空间（对应参考图）：
-     ① 页面本身 = 黑画布
-     ② ::before = 奶油杏菱形，上下尖角探出玻璃卡、落在黑底上
-     ③ ::after  = 半透明磨砂玻璃卡，把菱形糊开 —— 卡中间透出暖色、
-                  四角透出黑色变冷银，斜的明暗分界就是菱形的边
-     ④ 光带与厚边，做在 ③ 的背景与 box-shadow 里
-   内容压在最上面（z-index:1）                                    ═══ */
+/* ═══ 画幅：3:4 竖版，全部尺寸基于 --u，可整体自适应缩放 ═══ */
 .page{
   --fs:1;
-  /* --u = 页宽的 1%。不能用 1cqw：container-type 只对"后代"生效，
-     .page 自身的 padding 会拿视口去算，子元素却拿内容宽算 ——
-     同一个变量两把尺子，玻璃卡和页边距对不齐。直接按页宽算，
-     页面和后代拿到的是同一个值。 */
+  /* --u = 页宽的 1%。这里不能用 1cqw —— container-type 只对"后代"
+     生效，.page 自身的 padding 会拿视口去算，而子元素（比如深色页脚
+     的负 margin）拿的是内容宽，同一个变量两把尺子，出血永远对不齐。
+     视口越宽差得越离谱：1280px 下页面内边距会涨到 89.6px、黑块内缩
+     116px。直接按页宽算，页面和后代拿到的是同一个值。 */
   --u:calc(min(100vw - 24px, 452px) / 100 * var(--fs));
-  position:relative;overflow:hidden;isolation:isolate;
+  position:relative;overflow:hidden;
   width:min(100vw - 24px, 452px); aspect-ratio:3/4;
   container-type:inline-size;
-  background:var(--black); color:var(--ink);
+  background:var(--paper); color:var(--ink);
   display:flex;flex-direction:column;
-  /* 内边距 = 卡外距 + 卡内留白 */
-  padding:calc((var(--gap-y) + var(--pad-t)) * var(--u))
-          calc((var(--gap-x) + var(--pad-r)) * var(--u))
-          calc((var(--gap-y) + var(--pad-b)) * var(--u))
-          calc((var(--gap-x) + var(--pad-l)) * var(--u));
+  padding:calc(7 * var(--u)) calc(11 * var(--u)) calc(6.5 * var(--u)) calc(7 * var(--u));
 }
-
-/* ② 奶油杏菱形。宽 100% → 左右尖角正好顶到页边；
-   高 98.5% → 上下尖角比卡片各高出约 3.8u，露在黑底上 */
-.page::before{
-  content:"";position:absolute;z-index:0;pointer-events:none;
-  left:50%;top:50%;width:100%;height:98.5%;transform:translate(-50%,-50%);
-  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
-  background:linear-gradient(152deg,#F8EDCE 0%,#F0E0B8 46%,#E2CE9C 100%);
-}
-
-/* ③④ 玻璃卡：半透明（中间实、四角透，四角才透得出黑）+ 磨砂 +
-   两道斜光束 + 左上角受光点 + 一圈有厚度的玻璃边 */
-.page::after{
-  content:"";position:absolute;z-index:0;pointer-events:none;
-  inset:calc(var(--gap-y) * var(--u)) calc(var(--gap-x) * var(--u));
-  border-radius:calc(var(--rad) * var(--u));
-  background:
-    /* 两道斜光束：镜面反射，所以是纯白，压在烟灰之上才亮得出来 */
-    linear-gradient(118deg,transparent 20%,rgba(255,255,255,.22) 25.5%,
-      rgba(255,255,255,.80) 29.5%,rgba(255,255,255,.20) 34%,transparent 40%),
-    linear-gradient(238deg,transparent 18%,rgba(255,255,255,.16) 24.5%,
-      rgba(255,255,255,.58) 28.5%,rgba(255,255,255,.14) 32.5%,transparent 38%),
-    /* 左上角受光 */
-    radial-gradient(46% 28% at 22% 8%,rgba(255,255,255,.30) 0%,rgba(255,255,255,0) 72%),
-    /* 玻璃本体 —— 关键：暖烟灰，不是白。
-       白色半透明是"提亮"，杏色一透过去就变米白，整张像办公用纸；
-       烟灰是"压暗"，杏色透过来变成暖驼色，冷暖拉得开，高级感在这儿。
-       中间薄（杏色透得出来），越靠边越实（黑透不过来，四角才承得住字）。 */
-    radial-gradient(124% 100% at 50% 46%,
-      rgba(196,195,188,.54) 0%,
-      rgba(198,197,190,.68) 50%,
-      rgba(201,200,194,.88) 100%);
-  backdrop-filter:var(--frost);
-  -webkit-backdrop-filter:var(--frost);
-  /* 一圈有厚度的玻璃边：外沿细白 → 暖亮带 → 暖暗带 → 内沿白高光，
-     再加左上/右下两处受光，边缘才有"厚度"而不是一根描边 */
-  box-shadow:
-    inset 0 0 0 calc(.32 * var(--u)) rgba(255,255,255,.90),
-    inset 0 0 0 calc(1.35 * var(--u)) rgba(238,236,229,.52),
-    inset 0 0 0 calc(var(--bez) * var(--u)) rgba(140,138,130,.44),
-    inset 0 0 0 calc(var(--bez) * var(--u) + .3 * var(--u)) rgba(255,255,255,.86),
-    inset calc(1.6 * var(--u)) calc(1.6 * var(--u)) calc(3.8 * var(--u)) calc(-1 * var(--u)) rgba(255,255,255,.72),
-    inset calc(-1.6 * var(--u)) calc(-1.6 * var(--u)) calc(3.8 * var(--u)) calc(-1 * var(--u)) rgba(255,255,255,.52),
-    0 calc(2.6 * var(--u)) calc(7.5 * var(--u)) rgba(0,0,0,.60);
-}
-.page>*{position:relative;z-index:1}
 .page:focus{outline:none}
-.page::selection,.page ::selection{background:var(--cream)}
+.page::selection,.page ::selection{background:#FFD9D5}
 
 /* ═══ 右侧书脊：竖排章节字 + 页码 ═══ */
-/* z-index 2：深色页脚会盖住书脊页码，书脊必须再高一档。
-   位置全部由卡片变量推导：卡外距 + 厚边 + 一点留白 */
-.rail{position:absolute;z-index:2;
-  right:calc((var(--gap-x) + var(--bez) + 1.15) * var(--u));
-  top:calc((var(--gap-y) + var(--pad-t)) * var(--u));
-  bottom:calc((var(--gap-y) + var(--pad-b)) * var(--u));width:calc(4 * var(--u));
+.rail{position:absolute;right:calc(3.6 * var(--u));top:calc(7 * var(--u));
+  bottom:calc(6.5 * var(--u));width:calc(4 * var(--u));
   display:flex;flex-direction:column;align-items:center;justify-content:space-between}
 .rail .bar{width:calc(.45 * var(--u));height:calc(9 * var(--u));background:var(--red)}
 .rail .rc{writing-mode:vertical-rl;font-size:calc(3.3 * var(--u));font-weight:700;
@@ -143,9 +56,8 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 .lede{font-size:calc(3.7 * var(--u));line-height:1.75;color:var(--gray);margin-top:calc(2.6 * var(--u))}
 
 .hr{height:1px;background:var(--line);margin:calc(4 * var(--u)) 0 0}
-.hr.ink{background:linear-gradient(90deg,var(--navy-d),var(--navy) 62%,var(--navy-l));
-  height:calc(.5 * var(--u))}
-.hr.red{background:var(--navy);height:calc(.5 * var(--u));width:calc(14 * var(--u))}
+.hr.ink{background:var(--ink);height:calc(.5 * var(--u))}
+.hr.red{background:var(--red);height:calc(.5 * var(--u));width:calc(14 * var(--u))}
 
 /* 悬挂编号列表 —— 只用细线分隔，不用卡片 */
 .rows{margin-top:calc(4.4 * var(--u))}
@@ -172,7 +84,7 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 .duo{display:flex;gap:calc(5 * var(--u));margin-top:calc(4 * var(--u))}
 .duo>div{flex:1}
 .trio{display:flex;gap:calc(3.5 * var(--u));margin-top:calc(4 * var(--u))}
-.trio>div{flex:1;border-top:calc(.5 * var(--u)) solid var(--navy);padding-top:calc(2 * var(--u))}
+.trio>div{flex:1;border-top:calc(.5 * var(--u)) solid var(--ink);padding-top:calc(2 * var(--u))}
 .trio b{display:block;font-family:var(--n);font-size:calc(6.4 * var(--u));font-weight:800;
   line-height:1.05;letter-spacing:-.03em}
 .trio span{display:block;font-size:calc(3 * var(--u));color:var(--gray);margin-top:calc(1.2 * var(--u));line-height:1.4}
@@ -183,30 +95,25 @@ body{font-family:var(--f);display:flex;flex-direction:column;
   margin-bottom:calc(2.6 * var(--u))}
 .foot p{font-size:calc(5 * var(--u));font-weight:800;line-height:1.42;letter-spacing:-.01em}
 .foot p em{font-style:normal;color:var(--red)}
-/* 深色页脚：现在不出血到页边了 —— 出血到玻璃卡的厚边以内为止，
-   四周那圈玻璃边保持完整，深色块变成"嵌在玻璃里的一块"。
-   下边同样不用负 margin（负底边距会在打印分页时被裁掉，导出 PDF
-   黑块会消失，还会让 fit() 漏算高度），改成
-   "页面减掉下内边距 + 页脚自己补回同样的量"：总高与测量都不变。 */
-.page:has(.foot.solid){padding-bottom:calc((var(--gap-y) + var(--bez)) * var(--u))}
-.page:has(.foot.solid) .foot.solid{
-  padding-bottom:calc((4.6 + var(--pad-b) - var(--bez)) * var(--u))}
-.foot.solid{background:linear-gradient(118deg,var(--navy-d) 0%,var(--navy) 58%,var(--navy-l) 100%);
-  color:#fff;margin-bottom:0;break-inside:avoid;
-  margin-left:calc((var(--bez) - var(--pad-l)) * var(--u));
-  margin-right:calc((var(--bez) - var(--pad-r)) * var(--u));
-  border-radius:0 0 calc((var(--rad) - var(--bez)) * var(--u)) calc((var(--rad) - var(--bez)) * var(--u));
-  padding:calc(4.6 * var(--u)) calc((var(--pad-r) - var(--bez)) * var(--u))
-          calc(4.6 * var(--u)) calc((var(--pad-l) - var(--bez)) * var(--u))}
-/* 深底上强调字必须换成奶油杏 —— 藏蓝压藏蓝会直接看不见 */
-.foot.solid .fr{background:var(--cream)}
-.foot.solid p em{color:var(--cream)}
+/* 深色页脚：横向出血，但不使用负的 margin-bottom —— 负底边距会在
+   打印分页时被裁掉（导出 PDF 时黑块消失），且会让 fit() 漏算高度。
+   纵向同理：改成"页面让出下内边距 + 页脚补回同样的量"，
+   总高和 fit() 的测量都不变，黑块能一直铺到页底。
+   不这么做的话，白色页码正好骑在黑块的下边缘上，
+   一半压在白底上，看不见。 */
+.page:has(.foot.solid){padding-bottom:0}
+.page:has(.foot.solid) .foot.solid{padding-bottom:calc(11.1 * var(--u))}
+.foot.solid{background:var(--ink);color:var(--paper);margin-left:calc(-7 * var(--u));
+  margin-right:calc(-11 * var(--u));margin-bottom:0;break-inside:avoid;
+  padding:calc(4.6 * var(--u)) calc(11 * var(--u)) calc(4.6 * var(--u)) calc(7 * var(--u))}
+.foot.solid .fr{background:var(--red-d)}
+.foot.solid p em{color:var(--red-d)}
 
 /* 章节扉页 */
 .mw{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .mark{position:absolute;right:calc(-9 * var(--u));top:calc(-6 * var(--u));
   font-size:calc(92 * var(--u));font-weight:800;line-height:.8;color:transparent;
-  -webkit-text-stroke:calc(.4 * var(--u)) var(--navy);letter-spacing:-.05em;opacity:.42}
+  -webkit-text-stroke:calc(.4 * var(--u)) var(--red);letter-spacing:-.05em;opacity:.9}
 .chbody{margin-top:auto}
 .page:has(.foot.solid) .rail .rn{color:#fff}
 .chno{font-family:var(--n);font-size:calc(3.4 * var(--u));font-weight:700;
@@ -226,17 +133,13 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 .quote em{font-style:normal;color:var(--red)}
 .by{font-size:calc(3.3 * var(--u));color:var(--gray);margin-top:calc(3 * var(--u))}
 
-/* 封面 / 封底：不另设底色，跟其它页共用同一块玻璃卡 */
-.cov .t{font-size:calc(14.5 * var(--u));font-weight:800;line-height:1.1;letter-spacing:-.035em;
-  color:var(--navy)}
-.cov .s{font-size:calc(7.6 * var(--u));font-weight:800;color:var(--navy);margin-top:calc(4 * var(--u));letter-spacing:-.02em}
-/* 参考图里那个圆角描边小框 */
-.badge{display:inline-block;border:calc(.5 * var(--u)) solid var(--navy);
-  border-radius:calc(2.6 * var(--u));color:var(--navy);
-  background:linear-gradient(150deg,rgba(255,255,255,.62),rgba(239,221,182,.42));
+/* 封面 / 封底 */
+.cov{background:var(--paper)}
+.cov .t{font-size:calc(14.5 * var(--u));font-weight:800;line-height:1.1;letter-spacing:-.035em}
+.cov .s{font-size:calc(7.6 * var(--u));font-weight:800;color:var(--red);margin-top:calc(4 * var(--u));letter-spacing:-.02em}
+.badge{display:inline-block;border:calc(.5 * var(--u)) solid var(--ink);
   padding:calc(2.4 * var(--u)) calc(3.6 * var(--u));font-size:calc(3.6 * var(--u));font-weight:800;line-height:1.5}
-.tel{font-family:var(--n);font-size:calc(7.4 * var(--u));font-weight:800;
-  letter-spacing:-.02em;color:var(--navy)}
+.tel{font-family:var(--n);font-size:calc(7.4 * var(--u));font-weight:800;letter-spacing:-.02em}
 
 /* ═══ 编辑工具栏 ═══ */
 #tb{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#111318;
@@ -253,28 +156,11 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 @media print{
   body{background:#fff;padding:0;gap:0;display:block}
   #tb{display:none!important}
-  /* 打印页宽 150mm，--u 跟着换算，否则整套尺寸还按屏幕视口走 */
+  /* 打印页宽是 150mm，--u 必须跟着换算，否则整套尺寸还按屏幕视口走 */
   .page{width:150mm;height:200mm;aspect-ratio:auto;break-after:page;page-break-after:always;
     --u:calc(1.5mm * var(--fs))}
   .page:last-child{break-after:auto;page-break-after:auto}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-
-  /* 打印引擎不执行 backdrop-filter，玻璃不再把菱形糊开，斜边会变硬。
-     半透明本身是能印的，所以冷暖层次还在 —— 只把烟灰整体提亮一档，
-     补回失去的模糊，硬边不至于太扎眼。 */
-  .page::after{
-    backdrop-filter:none;-webkit-backdrop-filter:none;
-    background:
-      linear-gradient(118deg,transparent 20%,rgba(255,255,255,.24) 25.5%,
-        rgba(255,255,255,.80) 29.5%,rgba(255,255,255,.22) 34%,transparent 40%),
-      linear-gradient(238deg,transparent 18%,rgba(255,255,255,.18) 24.5%,
-        rgba(255,255,255,.58) 28.5%,rgba(255,255,255,.16) 32.5%,transparent 38%),
-      radial-gradient(46% 28% at 22% 8%,rgba(255,255,255,.30) 0%,rgba(255,255,255,0) 72%),
-      radial-gradient(124% 100% at 50% 46%,
-        rgba(203,202,195,.56) 0%,
-        rgba(205,204,197,.70) 50%,
-        rgba(208,207,201,.89) 100%);
-  }
 }
 @page{size:150mm 200mm;margin:0}
 </style>
@@ -310,7 +196,7 @@ body{font-family:var(--f);display:flex;flex-direction:column;
     <div class="r"><span class="i">03</span><div><b>5个月扭亏 · 1年近3000万</b><p>医药行业 · 我的职位：销售操盘<br>连亏6年 → 1年估值翻20倍</p></div></div>
   </div>
   <div class="foot"><div class="fr"></div>
-    <p>多家企业<em>主动投资、主动赠股</em><br></p></div>
+    <p>多家企业<em>主动投资、主动赠股</em></p></div>
 </section>
 
 <!-- 03 只有一条路 -->
@@ -458,21 +344,22 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 <!-- 13 激励 -->
 <section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
   <div class="rail"><div class="bar"></div><div class="rc">系统</div><div class="rn">13</div></div>
-  <div class="kick">每家公司都有激励 —— 差别在这</div>
-  <h2 class="h1 sm">让员工<br><em>比你更急</em></h2>
+  <div class="kick">激励谁都有 —— 大部分不管用</div>
+  <h2 class="h1 sm">不是没有激励<br><em>是不让人心动</em></h2>
   <div class="hr"></div>
   <div class="lede" style="margin-top:calc(2.8 * var(--u))">
-    多数公司卖得越多、却拿不到对应回报 —— 因为老板心疼。<br>
-    <span style="color:var(--ink);font-weight:800">销冠一眼就看出来，然后不来。</span>
+    底薪、提成、奖金、期权 —— 你有的，<br>
+    同行一样不缺，写出来几乎一模一样。<br>
+    <span style="color:var(--ink);font-weight:800">销冠扫一眼就算完了，然后不来。<br>能让他心动的，是下面这四层：</span>
   </div>
   <div class="rows" style="margin-top:calc(3 * var(--u))">
-    <div class="r"><span class="i">即时</span><div><b>别人给不了的，你能给</b></div></div>
-    <div class="r"><span class="i">月度</span><div><b>他在别人那儿赚不到的</b></div></div>
-    <div class="r"><span class="i">季度</span><div><b>他能额外拿到的</b></div></div>
-    <div class="r"><span class="i">长期</span><div><b>打工变合伙</b></div></div>
+    <div class="r"><span class="i">即时</span><div><b>别人给不了的，你敢给</b></div></div>
+    <div class="r"><span class="i">月度</span><div><b>他在别人那儿赚不到的数</b></div></div>
+    <div class="r"><span class="i">季度</span><div><b>超出的部分，不封顶</b></div></div>
+    <div class="r"><span class="i">长期</span><div><b>打工变合伙，赚自己的</b></div></div>
   </div>
   <div class="foot"><div class="fr"></div>
-    <p>别人都有激励<br>差别是<em>他心不心动</em></p></div>
+    <p>差别不在有没有激励<br>在<em>有没有差异化</em></p></div>
 </section>
 
 <!-- 14 章节 四 -->
@@ -546,7 +433,7 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 <section class="page" contenteditable="true" spellcheck="false" style="--fs: 1;">
   <div class="mw"><div class="mark">稳</div></div>
   <div class="chno">CHAPTER 05</div>
-  <div class="chbody"><div class="cht">人进来了<br>怎么让他<br><span style="color:var(--navy)">不走、还拼</span></div>
+  <div class="chbody"><div class="cht">人进来了<br>怎么让他<br><span style="color: rgb(220, 43, 30);">不走、还拼</span></div>
   <div class="lede">留人的钱，前面已经设计好了。<br>这一章只解决两件：不让天赋被浪费，让他把人带来。</div></div>
 </section>
 
@@ -754,12 +641,12 @@ body{font-family:var(--f);display:flex;flex-direction:column;
   <button onclick="wt(900)">加粗</button>
   <button onclick="wt(400)">变细</button>
   <span class="sep"></span>
-  <button class="sw" style="background:#1E2C7C" onclick="col('#1E2C7C')" title="藏蓝 · 主色"></button>
-  <button class="sw" style="background:#101A52" onclick="col('#101A52')" title="深藏蓝"></button>
-  <button class="sw" style="background:#131C46" onclick="col('#131C46')" title="墨色"></button>
-  <button class="sw" style="background:#6E7899" onclick="col('#6E7899')" title="灰"></button>
-  <button class="sw" style="background:#EFDDB6" onclick="col('#EFDDB6')" title="奶油杏 · 第三色"></button>
-  <input type="color" class="sw" style="background:#fff" value="#1E2C7C" oninput="col(this.value)" title="自选颜色">
+  <button class="sw" style="background:#DC2B1E" onclick="col('#DC2B1E')"></button>
+  <button class="sw" style="background:#0E0F11" onclick="col('#0E0F11')"></button>
+  <button class="sw" style="background:#8A9097" onclick="col('#8A9097')"></button>
+  <button class="sw" style="background:#C79A2E" onclick="col('#C79A2E')"></button>
+  <button class="sw" style="background:#1B5E9B" onclick="col('#1B5E9B')"></button>
+  <input type="color" class="sw" style="background:#fff" value="#DC2B1E" oninput="col(this.value)" title="自选颜色">
   <span class="sep"></span>
   <button onclick="clr()">清除格式</button>
   <span class="sep"></span>
@@ -770,7 +657,7 @@ body{font-family:var(--f);display:flex;flex-direction:column;
 <script>
 /* ── 清污：浏览器在编辑时会把当前渲染出的"像素值"写死进行内样式，
       例如 font-size:5.89px。本文件所有字号都是按页宽百分比换算的
-      （--u = 1cqw × --fs），一旦写死 px 就不再跟着缩放 —— 屏幕上看着
+      （--u = 页宽 1% × --fs），一旦写死 px 就不再跟着缩放 —— 屏幕上看着
       还行，导出 PDF（页宽只有 150mm）时就会变得极小。
       所以每次重排前，先把含 px 的字号/间距声明剥掉。 ── */
 function clean(){
